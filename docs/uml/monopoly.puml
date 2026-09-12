@@ -6,6 +6,13 @@ class Jugador {
     - saldo : double
     - posicionActual : int
     - activo : boolean
+
+    + Jugador(identificador : String, nombre : String, saldo : double)
+    + getIdentificador() : String
+    + getNombre() : String
+    + getSaldo() : double
+    + getPosicionActual() : int
+    + esActivo() : boolean
 }
 
 @enduml
