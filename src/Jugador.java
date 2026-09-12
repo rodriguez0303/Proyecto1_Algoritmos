@@ -1,3 +1,4 @@
+package src;
 public class Jugador {
     private String identificador;
     private String nombre;
@@ -30,8 +31,8 @@ public class Jugador {
     public void modificarSaldo(double monto) {
         saldo += monto;
     }
-    public void setPosicionActual(int posicion) {
-        this.posicionActual = posicion;
+    public void setPosicionActual(int nuevaPosicion) {
+        this.posicionActual = nuevaPosicion;
     }
     public void eliminar() {
         this.activo = false;

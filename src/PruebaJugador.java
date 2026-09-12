@@ -1,3 +1,4 @@
+package src;
 public class PruebaJugador {
     public static void main(String[] args) {
         Jugador jugador1 = new Jugador("J001",
