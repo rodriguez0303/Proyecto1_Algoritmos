@@ -27,4 +27,13 @@ public class Jugador {
     public boolean esActivo() {
         return activo;
     }
+    public void modificarSaldo(double monto) {
+        saldo += monto;
+    }
+    public void setPosicionActual(int posicion) {
+        this.posicionActual = posicion;
+    }
+    public void eliminar() {
+        this.activo = false;
+    }
 }

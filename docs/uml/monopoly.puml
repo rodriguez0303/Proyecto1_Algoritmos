@@ -13,6 +13,9 @@ class Jugador {
     + getSaldo() : double
     + getPosicionActual() : int
     + esActivo() : boolean
+    + modificarSaldo(monto : double) : void
+    + setPosicionActual(nuevaPosicion : int) : void
+    + eliminar() : void
 }
 
 @enduml
