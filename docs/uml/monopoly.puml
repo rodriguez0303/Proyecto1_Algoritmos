@@ -1,11 +1,16 @@
 @startuml monopoly
 
+' ==============================
+' CLASE JUGADOR
+' ==============================
+
 class Jugador {
     - identificador : String
     - nombre : String
     - saldo : double
     - posicionActual : int
     - activo : boolean
+    - propiedades : ListaPropiedades
 
     + Jugador(identificador : String, nombre : String, saldo : double)
     + getIdentificador() : String
@@ -13,9 +18,54 @@ class Jugador {
     + getSaldo() : double
     + getPosicionActual() : int
     + esActivo() : boolean
+
     + modificarSaldo(monto : double) : void
     + setPosicionActual(nuevaPosicion : int) : void
     + eliminar() : void
+
+    + agregarPropiedad(propiedad : Propiedad) : void
+    + obtenerPropiedades() : ListaPropiedades
+    + calcularPatrimonio() : double
 }
+
+
+' ==============================
+' LISTA DE PROPIEDADES
+' ==============================
+
+class ListaPropiedades {
+    - primero : NodoPropiedad
+
+    + agregar(propiedad : Propiedad) : void
+    + eliminar(propiedad : Propiedad) : void
+    + buscar(id : String) : Propiedad
+}
+
+
+class NodoPropiedad {
+    - propiedad : Propiedad
+    - siguiente : NodoPropiedad
+}
+
+
+' ==============================
+' PROPIEDAD
+' ==============================
+
+class Propiedad {
+    - identificador : String
+    - nombre : String
+    - precioCompra : double
+    - alquiler : double
+}
+
+
+' ==============================
+' RELACIONES
+' ==============================
+
+Jugador *-- ListaPropiedades : propiedades
+ListaPropiedades *-- NodoPropiedad
+NodoPropiedad --> Propiedad
 
 @enduml
