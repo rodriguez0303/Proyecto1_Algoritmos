@@ -1,0 +1,11 @@
+@startuml monopoly
+
+class Jugador {
+    - identificador : String
+    - nombre : String
+    - saldo : double
+    - posicionActual : int
+    - activo : boolean
+}
+
+@enduml
