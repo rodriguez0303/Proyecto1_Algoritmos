@@ -1,0 +1,225 @@
+@startuml monopoly
+
+' ==============================
+' CLASE JUGADOR
+' ==============================
+
+class Jugador {
+    - identificador : String
+    - nombre : String
+    - saldo : double
+    - posicionActual : int
+    - activo : boolean
+    - propiedades : ListaPropiedades
+
+    + Jugador(identificador : String, nombre : String, saldo : double)
+    + getIdentificador() : String
+    + getNombre() : String
+    + getSaldo() : double
+    + getPosicionActual() : int
+    + esActivo() : boolean
+
+    + modificarSaldo(monto : double) : void
+    + setPosicionActual(nuevaPosicion : int) : void
+    + eliminar() : void
+
+    + agregarPropiedad(propiedad : Propiedad) : void
+    + obtenerPropiedades() : ListaPropiedades
+    + calcularPatrimonio() : double
+}
+
+
+note right of Jugador
+  Propiedad, Casilla, Banco, HistorialTransacciones
+  y Transaccion aparecen aqui solo como referencia
+  (cajas vacias, sin atributos): todas siguen
+  preliminares/pendientes, no implementadas de verdad.
+end note
+
+
+' ==============================
+' LISTA DE PROPIEDADES
+' ==============================
+
+class ListaPropiedades {
+    - primero : NodoPropiedad
+
+    + agregar(propiedad : Propiedad) : void
+    + eliminar(propiedad : Propiedad) : void
+    + buscar(id : String) : Propiedad
+}
+
+
+class NodoPropiedad {
+    - propiedad : Propiedad
+    - siguiente : NodoPropiedad
+}
+
+
+' ==============================
+' CLASE JUEGO
+' ==============================
+
+class Juego {
+    - Jugadores : ColaCircular<Jugador>
+    - TurnoActual : Jugador
+    - NumTurno : int
+    - Curso : boolean
+    - MaxTurnos : int
+    - DadosLanzados : boolean
+    - Tablero : Tablero
+    - Banco : Banco
+    - Dado1 : Dado
+    - Dado2 : Dado
+    - Historial : HistorialTransacciones
+
+    + Juego(MaxTurnos : int)
+    + AgregarJugador(Jugador : Jugador) : void
+    + IniciarPartida() : void
+    + obtenerJugadorActual() : Jugador
+    + SiguienteTurno() : void
+    + finalizarTurno() : void
+    + lanzarDados() : int
+    + getDadosLanzadosEsteTurno() : boolean
+    + MoverJugador(Jugador : Jugador, Pos : int) : void
+    + RegistrarTransaccion(Transaccion : Transaccion) : void
+    + FinalizarPartida() : void
+    + isEnCurso() : boolean
+    + buscarJugadorPorIdentificador(identificador : String) : Jugador
+    + obtenerPropiedadActual(jugador : Jugador) : Propiedad
+    + comprarPropiedad(jugador : Jugador, propiedad : Propiedad) : void
+    + getNumTurno() : int
+    + getMaxTurnos() : int
+    + getDado1() : Dado
+    + getDado2() : Dado
+    + getHistorial() : HistorialTransacciones
+}
+
+
+' ==============================
+' COLA CIRCULAR (orden de turnos)
+' ==============================
+
+class ColaCircular<T> {
+    - Actual : Nodo
+    - Ultimo : Nodo
+    - Tamaño : int
+
+    + Agregar(Elemento : T) : void
+    + ObtenerActual() : T
+    + Avanzar() : T
+    + EliminarActual() : boolean
+    + Tamaño() : int
+    + Vacio() : boolean
+}
+
+
+' ==============================
+' CLASE TABLERO (Par 1)
+' ==============================
+
+class Tablero {
+    - Lista : ListaCircularDoble<NodoCasilla>
+
+    + Tablero()
+    + ObtenerNodoActual(Jugador : Jugador) : NodoCasilla
+    + ObtenerCasillaActual(Jugador : Jugador) : Casilla
+    + ObtenerSiguiente(Nodo : NodoCasilla, Pasos : int) : NodoCasilla
+    + getNumeroCasillas() : int
+    + MostrarTablero() : void
+}
+
+
+' ==============================
+' LISTA CIRCULAR DOBLE (estructura del tablero, Par 1)
+' ==============================
+
+class ListaCircularDoble<T> {
+    - Primero : Nodo
+    - Ultimo : Nodo
+    - Tamaño : int
+
+    + Agregar(Elemento : T) : void
+    + ObtenerPrimero() : T
+    + Tamaño() : int
+    + Vacio() : boolean
+}
+
+
+' ==============================
+' NODO CASILLA (Par 1)
+' ==============================
+
+class NodoCasilla {
+    - Casilla : Casilla
+    - Anterior : NodoCasilla
+    - Siguiente : NodoCasilla
+
+    + NodoCasilla(Casilla : Casilla)
+    + getCasilla() : Casilla
+    + getAnterior() : NodoCasilla
+    + getSiguiente() : NodoCasilla
+    + setAnterior(N : NodoCasilla) : void
+    + setSiguiente(N : NodoCasilla) : void
+}
+
+
+' ==============================
+' DADO
+' ==============================
+
+class Dado {
+    - Id : int
+    - Valor : int
+    - Generador : Random
+
+    + Dado(Id : int)
+    + getId() : int
+    + Lanzar() : int
+    + getValor() : int
+}
+
+
+' ==============================
+' CONSTANTES
+' ==============================
+
+class Constantes {
+    + {static} NUMERO_CASILLAS : int
+}
+
+
+' ==============================
+' RELACIONES - JUGADOR
+' ==============================
+
+Jugador *-- ListaPropiedades : propiedades
+ListaPropiedades *-- NodoPropiedad
+NodoPropiedad --> Propiedad : Propiedad (pendiente Par 2)
+
+
+' ==============================
+' RELACIONES - JUEGO
+' ==============================
+
+Juego *-- "1" ColaCircular : Jugadores
+Juego --> Jugador : TurnoActual
+Juego *-- "1" Tablero : Tablero
+Juego *-- "2" Dado : Dado1 / Dado2
+Juego ..> Banco : usa (pendiente Par 3)
+Juego ..> HistorialTransacciones : usa (pendiente)
+Juego ..> Transaccion : usa (pendiente)
+Juego ..> Propiedad : usa (pendiente Par 2)
+ColaCircular o-- Jugador : contiene (T = Jugador)
+
+
+' ==============================
+' RELACIONES - TABLERO
+' ==============================
+
+Tablero *-- ListaCircularDoble : Lista
+ListaCircularDoble o-- NodoCasilla : contiene (T = NodoCasilla)
+NodoCasilla --> Casilla : Casilla (pendiente Par 2)
+Tablero ..> Constantes : usa (NUMERO_CASILLAS)
+
+@enduml
