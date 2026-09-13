@@ -23,7 +23,7 @@ package src;
 
 public class Juego {
 
-    private ColaCircular<Jugador> Jugadores;   // Cola circular propia; "Jugador2 ya está lista
+    private ColaCircular<Jugador> Jugadores;   // Cola circular propia
     private Jugador TurnoActual;               // Referencia al "Jugador" con el turno actual
     private int NumTurno;                      // Número de turno actual de la partida
     private boolean Curso;                     // Indica si la partida está activa
