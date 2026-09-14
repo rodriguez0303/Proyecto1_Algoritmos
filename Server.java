@@ -55,12 +55,6 @@ public class Server {
     // La posición del PrintWriter coincide con la posición de su Socket.
     private PrintWriter[] salidas = new PrintWriter[4];
 
-    // Permite llevar el control de cuántos jugadores han sido aceptados por el servidor.
-        // Cada vez que se acepta un nuevo jugador, este valor aumentará en 1.
-            // También permite saber en qué posición de los arreglos se debe guardar el siguiente jugador.
-    private int cantidadJugadores = 0;
-
-
     // Arreglo que guardará los 4 jugadores que participan en el juego.
     // Cada posición guarda un objeto Jugador con su información, como saldo, posición y propiedades.
     // La posición del jugador coincide con la posición de su conexión en clientesSocket.
@@ -86,128 +80,214 @@ public class Server {
 
     // Método que permite iniciar el servidor
     public void iniciar() {
+
         try {
 
-            //// Se crea el servidor usando el puerto indicado
-                //Se utiliza el puerto guardado en la variable "puerto".
-                        // y queda a la espera de conexiones de los jugadores.
+            // Se crea el servidor usando el puerto indicado.
+                // Se utiliza el puerto guardado en la variable "puerto".
+                    // El servidor queda preparado para esperar conexiones de los jugadores.
             serverSocket = new ServerSocket(puerto);
 
-            // Se muestra la dirección IP que utilizará el servidor
+
+            // Se muestra la dirección IP que utilizará el servidor.
             System.out.println("IP del servidor: " + ip);
 
-            // Puerto que utilizará el servidor
+
+            // Se muestra el puerto que utilizará el servidor.
             System.out.println("Puerto del servidor: " + puerto);
 
-            // Mensaje que indica que el servidor ha sido iniciado
+
+            // Se muestra un mensaje indicando que el servidor fue iniciado correctamente.
             System.out.println("Servidor iniciado");
 
-            // Mientras no se hayan conectado los 4 jugadores,
-                // el servidor continuará esperando nuevas conexiones.
-                    // aceptarCliente() acepta un jugador y aumenta cantidadJugadores en 1.
-                        // Cuando cantidadJugadores llegue a 4, el ciclo termina.
-            while (cantidadJugadores < 4) {
+
+            // El servidor permanece esperando nuevas conexiones mientras continúe ejecutándose.
+                // aceptarCliente() se encarga de revisar si existe una posición disponible.
+                // De esta forma, si un jugador se desconecta, su espacio puede volver a utilizarse.
+            while (true) {
 
                 aceptarCliente();
             }
+
         }
 
-            catch (IOException e) {
+        catch (IOException e) {
 
-                // Se ejecuta si ocurrió un problema al iniciar el servidor
-                System.out.println("Error al iniciar el servidor");
-            }
+            // Se ejecuta si ocurre un problema al iniciar el servidor.
+                // Por ejemplo, si el puerto ya está siendo utilizado por otro programa.
+            System.out.println("Error al iniciar el servidor");
+        }
     }
 
     //*****************************************************
     //*****************************************************
-    // Método que permite esperar y aceptar la conexión de un jugador.
+
+    // Método que busca una posición disponible para guardar una nueva conexión.
+    public int buscarPosicionDisponible() {
+
+        //Si un jugador se desconecta debe quedar el espacio disponible nuevamente para volverse a conectar
+            // Se recorren las 4 posiciones posibles de los arreglos.
+                // Una posición está disponible cuando contiene null.
+                    // Esto significa que no existe una conexión guardada en esa posición.
+        for (int i = 0; i < clientesSocket.length; i++) {
+
+            // Se verifica si la posición está libre.
+                // Una posición contendrá el valor de null cuando no existe una conexión guardada en ella.
+                // Si la posición está libre, esta puede utilizarse para conectar a otro jugador.
+            if (clientesSocket[i] == null) {
+
+                return i;
+            }
+        }
+
+        // Si las 4 posiciones tienen conexiones activas,
+        // no existe espacio disponible para otro jugador.
+        return -1;
+    }
+    //*****************************************************
+    //*****************************************************
+    //*****************************************************
+//*****************************************************
+
+    // Método que permite aceptar la conexión de un jugador.
     public void aceptarCliente() {
 
         try {
 
-            // Se valida que existan máximo 4 jugadores.
-            if (cantidadJugadores < 4) {
+            // El servidor espera hasta que un cliente intente conectarse.
+                // accept() detiene momentáneamente esta parte del programa hasta recibir una conexión.
+                    // La nueva conexión se guarda temporalmente en la variable "nuevoSocket".
+            Socket nuevoSocket = serverSocket.accept();
 
-                // serverSocket → Es la puerta del servidor que está esperando a que los jugadores se conecten.
-                    // accept() espera hasta que un jugador intente conectarse.
-                        // La conexión que se crea se guarda en el arreglo clientesSocket.
-                            // cantidadJugadores indica en cuál posición del arreglo se debe guardar.
-                clientesSocket[cantidadJugadores] = serverSocket.accept();
 
-                // Se crea el BufferedReader que utilizará este jugador durante toda su conexión.
-                    // getInputStream() obtiene la información que llega desde el jugador por medio de su Socket.
-                        // El BufferedReader se guarda en la misma posición que la conexión del jugador.
-                entradas[cantidadJugadores] = new BufferedReader(
+            // Se busca una posición disponible dentro del arreglo de conexiones.
+                // buscarPosicionDisponible() revisa las 4 posiciones posibles.
+                // Si encuentra una posición libre devuelve 0, 1, 2 o 3; si no encuentra ninguna devuelve -1.
+            int posicionDisponible = buscarPosicionDisponible();
 
-                        // Se utiliza el Socket que acaba de ser aceptado.
-                            // cantidadJugadores indica cuál Socket del arreglo clientesSocket se debe utilizar.
-                                // getInputStream() obtiene los datos que ese jugador envía al servidor.
+            // Se guarda la conexión Socket que pertenece a este cliente.
+                // "nuevoSocket" contiene la conexión que acaba de aceptar el servidor.
+                    // Esta conexión se guarda en "socketJugador" para utilizarla dentro del Thread.
+            Socket socketJugador = nuevoSocket;
+
+
+            // Se verifica si existe una posición disponible.
+                // Una posición diferente de -1 significa que todavía hay espacio para aceptar al cliente.
+                    // En ese caso la nueva conexión puede guardarse dentro de los arreglos del servidor.
+            if (posicionDisponible != -1) {
+
+
+                // Se guarda el Socket del cliente en la posición disponible.
+                    // "posicionDisponible" indica cuál espacio del arreglo debe utilizarse.
+                         // La conexión queda asociada a esa posición mientras el cliente continúe conectado.
+                clientesSocket[posicionDisponible] = nuevoSocket;
+
+
+                // Se crea el lector que permitirá recibir mensajes enviados por este cliente.
+                    // getInputStream() obtiene la información que llega desde el cliente.
+                     // El BufferedReader se guarda en la misma posición que su Socket.
+                entradas[posicionDisponible] = new BufferedReader(
                         new InputStreamReader(
-                                clientesSocket[cantidadJugadores].getInputStream()
+                                clientesSocket[posicionDisponible].getInputStream()
                         )
                 );
 
-                // Se crea el PrintWriter que utilizará este jugador durante toda su conexión.
-                    // getOutputStream() permite enviar información desde el servidor hacia el jugador.
-                        // El PrintWriter se guarda en la misma posición que la conexión del jugador.
-                salidas[cantidadJugadores] = new PrintWriter(
 
-                        // Se utiliza el Socket que acaba de ser aceptado.
-                            // cantidadJugadores indica cuál Socket del arreglo clientesSocket se debe utilizar.
-                                // true permite enviar inmediatamente cada mensaje cuando se utiliza println().
-                        clientesSocket[cantidadJugadores].getOutputStream(),
+                // Se crea el escritor que permitirá enviar mensajes hacia este cliente.
+                    // getOutputStream() obtiene el canal de salida hacia el cliente.
+                        // true permite enviar inmediatamente cada mensaje escrito con println().
+                salidas[posicionDisponible] = new PrintWriter(
+                        clientesSocket[posicionDisponible].getOutputStream(),
                         true
                 );
 
-                // Se guarda la posición del jugador que acaba de conectarse.
-                    // Esta posición permitirá identificar posteriormente cuál de los 4 jugadores está siendo atendido.
-                    // Un jugador que no está en su turno puede hacer solicitudes de consultar sus saldos y propiedades.
-                int posicionJugador = cantidadJugadores;
+
+                // Se guarda la posición que utilizará este cliente.
+                    // Esta variable será utilizada dentro del Thread.
+                        // Cada cliente tendrá su propia posición dentro de los arreglos.
+                int posicionJugador = posicionDisponible;
 
 
-                // Mensaje que indica cuál jugador logró conectarse.
+                // Se informa en el servidor cuál espacio de conexión fue utilizado.
+                    // posicionJugador comienza en 0, por eso se suma 1 solamente para mostrarlo de forma más comprensible.
+                        // Este número representa la posición de conexión, no necesariamente el ID del jugador.
                 System.out.println(
-                        "Jugador " + (cantidadJugadores + 1) + " conectado"
+                        "Cliente " + (posicionJugador + 1) + " conectado"
                 );
 
 
-                // Se aumenta en 1 la cantidad de jugadores conectados.
-                cantidadJugadores++;
+                // Se crea un Thread para atender las solicitudes de los jugadores.
+                    // Cada jugador tendrá su propio Thread.
+                        // Esto permitirá atender varias conexiones al mismo tiempo.
+                Thread hiloCliente = new Thread(() -> {
 
-
-                // Se crea un Thread (hilo) para atender al jugador que acaba de conectarse.
-                Thread hiloJugador = new Thread(() -> {
-
-                    // Mientras el jugador continúe conectado, el servidor sigue escuchando sus solicitudes.
-                    while (clientesSocket[posicionJugador] != null && !clientesSocket[posicionJugador].isClosed()) {
+                    // El Thread continúa solamente mientras la posición siga perteneciendo al mismo Socket.
+                        // Si el jugador se desconecta y la posición es reutilizada,
+                            // el Thread anterior ya no podrá procesar las solicitudes del nuevo cliente.
+                    while (clientesSocket[posicionJugador] == socketJugador && !socketJugador.isClosed()) {
 
                         procesarSolicitud(posicionJugador);
+                    }
+
+                    // Se eliminan los datos que estaban asociados a la conexión de este jugador.
+                        // Los cuatro arreglos utilizan la misma posición para guardar los datos de una conexión.
+                            // Al colocar null, esta posición queda libre para que pueda conectarse otro jugador.
+                    if (clientesSocket[posicionJugador] == socketJugador) {
+
+                        clientesSocket[posicionJugador] = null;
+                        entradas[posicionJugador] = null;
+                        salidas[posicionJugador] = null;
+                        jugadoresConectados[posicionJugador] = null;
                     }
 
                 });
 
 
                 // Se inicia el Thread del jugador.
-                hiloJugador.start();
-
+                    // Desde este momento el Thread comienza a ejecutar su código.
+                        // El servidor principal puede continuar aceptando otras conexiones.
+                hiloCliente.start();
             }
 
-            // Si ya existen 4 jugadores conectados, no se acepta otro jugador.
+
+            // Si posicionDisponible contiene -1, significa que las 4 conexiones están ocupadas.
+                // El servidor no puede aceptar un quinto jugador simultáneamente.
+                    // La nueva conexión se rechaza y se cierra.
             else {
 
-                System.out.println("Ya están conectados los 4 jugadores");
+                // Se crea un escritor temporal para poder informar al cliente antes de cerrar su conexión.
+                    // Este PrintWriter solamente se utiliza para enviar el mensaje de rechazo.
+                        // No se guarda dentro del arreglo salidas porque no existe una posición disponible.
+                PrintWriter salidaTemporal = new PrintWriter(
+                        nuevoSocket.getOutputStream(),
+                        true
+                );
+
+
+                // Se informa al cliente que no existe espacio disponible.
+                salidaTemporal.println(
+                        "No se pueden conectar más de 4 jugadores"
+                );
+
+
+                // Se cierra la conexión que intentó entrar cuando ya había 4 clientes conectados.
+                    // De esta forma nunca existen más de 4 conexiones activas dentro del servidor.
+                nuevoSocket.close();
             }
 
-        } catch (IOException e) {
+        }
 
-            // Se ejecuta si ocurre un problema al aceptar la conexión.
-            System.out.println("Error al aceptar la conexión del jugador");
+        catch (IOException e) {
+
+            // Se ejecuta si ocurre un problema al aceptar o preparar la conexión del cliente.
+                // Puede ocurrir al crear el Socket, BufferedReader o PrintWriter.
+            System.out.println(
+                    "Error al aceptar la conexión del cliente"
+            );
         }
     }
     //*****************************************************
     //*****************************************************
-
     // Método que guarda un jugador dentro del arreglo de jugadores conectados.
     public void asignarJugador(int posicion, Jugador jugador) {
 
@@ -243,14 +323,14 @@ public class Server {
 
 
             // Se verifica si readLine() devolvió null.
-            // Esto ocurre cuando el jugador cerró su conexión y ya no puede enviar más solicitudes.
-            // Si esto sucede, se cierra el Socket y se termina esta ejecución del método.
+                // Esto ocurre cuando el jugador cerró su conexión y ya no puede enviar más solicitudes.
+                // Si esto sucede, se cierra el Socket y se termina esta ejecución del método.
             if (solicitud == null) {
 
                 // Se cierra la conexión Socket del jugador.
                 clientesSocket[posicion].close();
 
-                // La conexión ya terminó, por lo tanto no es necesario continuar ejecutando este método.
+                // La conexión ya terminó.
                 return;
             }
 
@@ -298,6 +378,27 @@ public class Server {
                     enviarRespuesta(posicion, "Jugador no encontrado");
 
                     return;
+                }
+
+                // Se recorren las posiciones del arreglo jugadoresConectados.
+                    // Cada posición puede contener un jugador que ya fue asociado a una conexión.
+                        // El ciclo permite verificar si el jugador encontrado ya está conectado.
+                            // El mismo jugador no debe aparecer dos veces conectados
+                for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                    // Se compara el jugador guardado en la posición actual con jugadorEncontrado.
+                        // Si ambos objetos son el mismo, significa que ese jugador ya tiene una conexión activa.
+                            // En ese caso no se debe permitir una segunda conexión con el mismo identificador.
+                    if (jugadoresConectados[i] == jugadorEncontrado
+                            && clientesSocket[i] != null
+                            && !clientesSocket[i].isClosed()) {
+
+                        // Se informa al jugador que intentó conectarse que ese id ya está siendo utilizado.
+                        enviarRespuesta(posicion, "El jugador " + (i + 1) + " ya está conectado"
+                        );
+
+                        return;
+                    }
                 }
 
 
@@ -477,12 +578,31 @@ public class Server {
         }
 
         catch (IOException e) {
-
             // Se ejecuta si ocurre un problema al recibir información del jugador.
-            // El servidor muestra un mensaje indicando que ocurrió un error.
+            // Esto puede suceder si el jugador cierra su conexión mientras el servidor esperaba una solicitud.
             System.out.println(
-                    "Error al recibir la solicitud del cliente"
+                    "Error al recibir la solicitud del cliente" + (posicion + 1)
             );
+
+            try {
+
+                // Se verifica que exista una conexión Socket para este jugador.
+                    // "posicion" indica cuál conexión del arreglo pertenece al jugador.
+                if (clientesSocket[posicion] != null) {
+
+                    // Se cierra la conexión Socket del jugador.
+                        // "posicion" indica cuál conexión pertenece al cliente que tuvo el error.
+                            // Después de cerrarla, esa conexión ya no puede seguir enviando solicitudes.
+                    clientesSocket[posicion].close();
+                }
+
+            } catch (IOException errorCierre) {
+
+                // Se ejecuta solamente si ocurre un problema al intentar cerrar la conexión.
+                System.out.println(
+                        "Error al cerrar la conexión del cliente" + (posicion + 1)
+                );
+            }
         }
     }
     //*****************************************************
@@ -620,10 +740,6 @@ public class Server {
         // NO_COMPRAR (a pesar de tener el dinero y estar en su turno)
         // -------------------------------------------------
 
-        // -------------------------------------------------
-        // NO_COMPRAR
-        // -------------------------------------------------
-
         else if (solicitud.equals("NO_COMPRAR")) {
 
             // Se verifica si el jugador NO tiene el turno actual.
@@ -741,4 +857,6 @@ public class Server {
 
     //*****************************************************
     // *****************************************************
+
+
 }
