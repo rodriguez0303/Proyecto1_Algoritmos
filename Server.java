@@ -620,15 +620,37 @@ public class Server {
         // NO_COMPRAR (a pesar de tener el dinero y estar en su turno)
         // -------------------------------------------------
 
+        // -------------------------------------------------
+        // NO_COMPRAR
+        // -------------------------------------------------
+
         else if (solicitud.equals("NO_COMPRAR")) {
 
-            // Verifica si el jugador NO tiene el turno actual.
+            // Se verifica si el jugador NO tiene el turno actual.
+            // El jugador solamente puede decidir no comprar durante su propio turno.
             if (jugador != juego.obtenerJugadorActual()) {
 
                 return false;
             }
 
-            // El jugador tiene el turno, pero decide no comprar.
+            // Se verifica que exista una propiedad en la posición actual del jugador.
+            // Si propiedad contiene null, significa que el jugador no está sobre una propiedad.
+            // En ese caso no existe ninguna propiedad que pueda decidir no comprar.
+            else if (propiedad == null) {
+
+                return false;
+            }
+
+            // Se verifica que la propiedad todavía esté disponible.
+            // Si la propiedad ya pertenece a un jugador, no se puede decidir no comprarla.
+            // Por lo tanto, la solicitud NO_COMPRAR no sería válida.
+            else if (!propiedad.isDisponible()) {
+
+                return false;
+            }
+
+            // Si el jugador tiene el turno y la propiedad está disponible,
+            // puede decidir no comprarla.
             else {
 
                 return true;
