@@ -234,10 +234,10 @@ public class Server {
                             // Al colocar null, esta posición queda libre para que pueda conectarse otro jugador.
                     if (clientesSocket[posicionJugador] == socketJugador) {
 
-                        clientesSocket[posicionJugador] = null;
                         entradas[posicionJugador] = null;
                         salidas[posicionJugador] = null;
                         jugadoresConectados[posicionJugador] = null;
+                        clientesSocket[posicionJugador] = null;
                     }
 
                 });
@@ -333,278 +333,295 @@ public class Server {
                 // La conexión ya terminó.
                 return;
             }
+            // "synchronized" es una palabra reservada de Java que permite controlar el acceso de varios Threads a un mismo objeto.
+                // En este caso se utiliza el objeto "juego", porque es compartido por los Threads de los diferentes jugadores.
+                    // Esto permite que solamente un Thread a la vez entre a este bloque y trabaje con el estado del juego.
+            synchronized (juego) {
 
-            // -------------------------------------------------
-            // CONECTAR, IDENTIFICADOR
-            // -------------------------------------------------
+                // -------------------------------------------------
+                // CONECTAR, IDENTIFICADOR
+                // -------------------------------------------------
 
-            // Se verifica si la solicitud enviada por el cliente comienza con CONECTAR.
-                // La solicitud también debe contener el identificador del jugador.
-                    // Por ejemplo: CONECTAR;ID001
-            if (solicitud.startsWith("CONECTAR;")) {
+                // Se verifica si la solicitud enviada por el cliente comienza con CONECTAR.
+                    // La solicitud también debe contener el identificador del jugador.
+                        // Por ejemplo: CONECTAR;ID001
+                if (solicitud.startsWith("CONECTAR;")) {
 
-                // Se divide la solicitud utilizando el punto y coma.
-                    // datosConexion[0] guardará "CONECTAR".
-                        // datosConexion[1] guardará el identificador enviado por el jugador.
-                String[] datosConexion = solicitud.split(";");
+                    // Se verifica si esta conexión ya tiene un jugador asignado.
+                        // "posicion" corresponde a la posición donde se encuentra guardado el Socket de este cliente.
+                            // Si ya existe un Jugador en esa posición, significa que este cliente ya se identificó anteriormente.
+                                // Evita que un cliente que ya tiene un jugador asignado pueda cambiarse a otro jugador.
+                    if (jugadoresConectados[posicion] != null) {
 
-
-                // Se verifica que la solicitud tenga exactamente las dos partes necesarias.
-                    // La primera parte corresponde a CONECTAR y la segunda al identificador.
-                        // Si no existen las dos partes, la solicitud de conexión no puede continuar.
-                if (datosConexion.length != 2) {
-
-                    enviarRespuesta(posicion, "Solicitud de conexión no válida");
-
-                    return;
-                }
-
-
-                // Se obtiene el identificador enviado por el jugador.
-                    // datosConexion[1] corresponde a la segunda parte de la solicitud.
-                        // El identificador se guarda en la variable "identificador".
-                String identificador = datosConexion[1];
-
-
-                // Se busca dentro de Juego el jugador que tiene ese identificador.
-                    // El jugador encontrado se guarda en la variable "jugadorEncontrado".
-                Jugador jugadorEncontrado = juego.buscarJugadorPorIdentificador(identificador);
-
-
-                // Se verifica si se encontró un jugador con ese identificador.
-                // Si jugadorEncontrado contiene null, significa que el identificador no pertenece a un jugador.
-                if (jugadorEncontrado == null) {
-
-                    enviarRespuesta(posicion, "Jugador no encontrado");
-
-                    return;
-                }
-
-                // Se recorren las posiciones del arreglo jugadoresConectados.
-                    // Cada posición puede contener un jugador que ya fue asociado a una conexión.
-                        // El ciclo permite verificar si el jugador encontrado ya está conectado.
-                            // El mismo jugador no debe aparecer dos veces conectados
-                for (int i = 0; i < jugadoresConectados.length; i++) {
-
-                    // Se compara el jugador guardado en la posición actual con jugadorEncontrado.
-                        // Si ambos objetos son el mismo, significa que ese jugador ya tiene una conexión activa.
-                            // En ese caso no se debe permitir una segunda conexión con el mismo identificador.
-                    if (jugadoresConectados[i] == jugadorEncontrado
-                            && clientesSocket[i] != null
-                            && !clientesSocket[i].isClosed()) {
-
-                        // Se informa al jugador que intentó conectarse que ese id ya está siendo utilizado.
-                        enviarRespuesta(posicion, "El jugador " + (i + 1) + " ya está conectado"
+                        // Se informa al cliente que no puede volver a asignarse otro jugador.
+                        enviarRespuesta(posicion, "Esta conexión ya tiene un jugador asignado"
                         );
 
+                        // Se termina esta solicitud sin modificar el jugador que ya estaba asociado con el Socket.
                         return;
+                    }
+
+                    // Se divide la solicitud utilizando el punto y coma.
+                        // datosConexion[0] guardará "CONECTAR".
+                            // datosConexion[1] guardará el identificador enviado por el jugador.
+                    String[] datosConexion = solicitud.split(";");
+
+
+                    // Se verifica que la solicitud tenga exactamente las dos partes necesarias.
+                        // La primera parte corresponde a CONECTAR y la segunda al identificador.
+                            // Si no existen las dos partes, la solicitud de conexión no puede continuar.
+                    if (datosConexion.length != 2) {
+
+                        enviarRespuesta(posicion, "Solicitud de conexión no válida");
+
+                        return;
+                    }
+
+
+                    // Se obtiene el identificador enviado por el jugador.
+                        // datosConexion[1] corresponde a la segunda parte de la solicitud.
+                            // El identificador se guarda en la variable "identificador".
+                    String identificador = datosConexion[1];
+
+
+                    // Se busca dentro de Juego el jugador que tiene ese identificador.
+                        // El jugador encontrado se guarda en la variable "jugadorEncontrado".
+                    Jugador jugadorEncontrado = juego.buscarJugadorPorIdentificador(identificador);
+
+
+                    // Se verifica si se encontró un jugador con ese identificador.
+                    // Si jugadorEncontrado contiene null, significa que el identificador no pertenece a un jugador.
+                    if (jugadorEncontrado == null) {
+
+                        enviarRespuesta(posicion, "Jugador no encontrado");
+
+                        return;
+                    }
+
+                    // Se recorren las posiciones del arreglo jugadoresConectados.
+                        // Cada posición puede contener un jugador que ya fue asociado a una conexión.
+                            // El ciclo permite verificar si el jugador encontrado ya está conectado.
+                                // El mismo jugador no debe aparecer dos veces conectados
+                    for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                        // Se compara el jugador guardado en la posición actual con jugadorEncontrado.
+                            // Si ambos objetos son el mismo, significa que ese jugador ya tiene una conexión activa.
+                                // En ese caso no se debe permitir una segunda conexión con el mismo identificador.
+                        if (jugadoresConectados[i] == jugadorEncontrado
+                                && clientesSocket[i] != null
+                                && !clientesSocket[i].isClosed()) {
+
+                            // Se informa al jugador que intentó conectarse que ese id ya está siendo utilizado.
+                            enviarRespuesta(posicion, "El jugador " + identificador + " ya está conectado"
+                            );
+
+                            return;
+                        }
+                    }
+
+
+                    // Se guarda el jugador encontrado dentro del arreglo jugadoresConectados.
+                        // "posicion" corresponde a la misma posición donde está guardado su Socket.
+                            // De esta forma el Socket y el objeto Jugador quedan asociados mediante la misma posición.
+                    asignarJugador(posicion, jugadorEncontrado);
+
+
+                    // Se informa al cliente que la conexión fue aceptada correctamente.
+                        // "posicion" identifica cuál conexión Socket se debe utilizar.
+                            // El mensaje se envía únicamente al jugador que realizó esta solicitud.
+                    enviarRespuesta(posicion, "Conexión válida");
+
+
+                    // La solicitud CONECTAR ya fue atendida completamente.
+                        // El jugador ya quedó asociado con su conexión Socket.
+                    return;
+                }
+
+
+                // Se busca el jugador dentro del arreglo jugadoresConectados.
+                    // "posicion" indica en cuál espacio del arreglo se debe buscar.
+                        // El jugador encontrado se guarda en la variable "jugador".
+                Jugador jugador = jugadoresConectados[posicion];
+
+
+                // Se verifica si existe un jugador guardado en esa posición.
+                    // Si jugador contiene null, significa que no existe un objeto Jugador asociado con esa conexión.
+                    // En ese caso no se puede continuar procesando la solicitud.
+                if (jugador == null) {
+
+                    // Se envía un mensaje al cliente que realizó la solicitud.
+                        // "posicion" permite identificar cuál conexión Socket se debe utilizar.
+                            // El mensaje indica que todavía no existe un jugador asignado a esa conexión.
+                    enviarRespuesta(posicion, "No existe un jugador asignado a esta conexión");
+
+
+                    // La solicitud no puede continuar sino existe un jugador asociado.
+                        // Por lo tanto, se termina esta ejecución de procesarSolicitud().
+                    return;
+                }
+
+
+                // Se obtiene la propiedad en la que se encuentra actualmente el jugador.
+                    // El objeto "jugador" se envía al método obtenerPropiedadActual() de Juego.
+                        // La propiedad encontrada se guarda en la variable "propiedad".
+                Propiedad propiedad = juego.obtenerPropiedadActual(jugador);
+
+
+                // Se valida si la solicitud realizada por el jugador puede ejecutarse.
+                    // Se envía la solicitud, el jugador que la realizó y la propiedad donde se encuentra.
+                        // El resultado true o false se guarda en la variable "accionValida".
+                boolean accionValida = validarAccion(solicitud, jugador, propiedad);
+
+
+
+                // Se verifica el resultado que devolvió el método validarAccion().
+                    // Si accionValida retorna true, significa que la solicitud puede ejecutarse.
+                        // Luego se identifica cuál acción solicitó el jugador.
+                if (accionValida) {
+
+
+                    // -------------------------------------------------
+                    // TIRAR_DADOS
+                    // -------------------------------------------------
+
+                    // Se verifica si la solicitud enviada por el jugador es TIRAR_DADOS.
+                        // Si la solicitud coincide, se llama al método lanzarDados() de juego.
+                            // El método lanzarDados() se encarga de realizar el lanzamiento de los dados.
+                    if (solicitud.equals("TIRAR_DADOS")) {
+
+                        juego.lanzarDados();
+
+                        // Se informa a todos los jugadores conectados que el estado del juego cambió.
+                        actualizarClientes();
+                    }
+
+
+                    // -------------------------------------------------
+                    // COMPRAR_PROPIEDAD
+                    // -------------------------------------------------
+
+                    // Se verifica si la solicitud enviada por el jugador es COMPRAR_PROPIEDAD.
+                        // Si la solicitud coincide, se llama al método comprarPropiedad() de juego.
+                            // Se envía el jugador que realiza la compra y la propiedad donde se encuentra.
+                    else if (solicitud.equals("COMPRAR_PROPIEDAD")) {
+
+                        juego.comprarPropiedad(
+                                                jugador,
+                                                propiedad
+                                        );
+                        // Se informa a todos los jugadores conectados que el estado del juego cambió.
+                        actualizarClientes();
+                    }
+
+
+                    // -------------------------------------------------
+                    // NO_COMPRAR
+                    // -------------------------------------------------
+
+                    // Se verifica si la solicitud enviada por el jugador es NO_COMPRAR.
+                        // Si la solicitud coincide, el jugador decidió no comprar la propiedad.
+                            // No se modifica la propiedad ni el saldo del jugador.
+                    else if (solicitud.equals("NO_COMPRAR")) {
+
+                        // Se envía una respuesta únicamente al jugador que realizó la solicitud.
+                            // "posicion" identifica cuál conexión Socket se debe utilizar.
+                                // El mensaje confirma que el jugador decidió no comprar.
+                        enviarRespuesta(posicion, "El jugador decidió no comprar la propiedad"
+                        );
+                    }
+
+
+                    // -------------------------------------------------
+                    // TERMINAR_TURNO
+                    // -------------------------------------------------
+
+                    // Se verifica si la solicitud enviada por el jugador es TERMINAR_TURNO.
+                        // Si la solicitud coincide, se llama al método finalizarTurno() de juego.
+                            // Juego se encarga de finalizar el turno del jugador actual.
+                    else if (solicitud.equals("TERMINAR_TURNO")) {
+
+                        juego.finalizarTurno();
+
+                        // Se informa a todos los jugadores conectados que el estado del juego cambió.
+                        actualizarClientes();
+                    }
+
+
+                    // -------------------------------------------------
+                    // CONSULTAR_ESTADO
+                    // -------------------------------------------------
+
+                    // Se verifica si la solicitud enviada por el jugador es CONSULTAR_ESTADO.
+                        // Esta solicitud permite consultar la información actual del jugador.
+                            // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
+                    else if (solicitud.equals("CONSULTAR_ESTADO")) {
+
+                        // Se envía una respuesta al jugador que realizó la consulta.
+                            // "posicion" identifica cuál conexión Socket pertenece al jugador.
+                                // enviarRespuesta() utiliza esa conexión para enviar el mensaje.
+                        enviarRespuesta(posicion, "Consulta de estado válida"
+                        );
+                    }
+
+
+                    // -------------------------------------------------
+                    // CONSULTAR_TRANSACCIONES
+                    // -------------------------------------------------
+
+                    // Se verifica si la solicitud enviada por el jugador es CONSULTAR_TRANSACCIONES.
+                        // Esta solicitud permite consultar la información del historial de transacciones.
+                         // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
+                    else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
+
+                        // Se envía una respuesta al jugador que realizó la consulta.
+                            // "posicion" identifica cuál conexión Socket pertenece al jugador.
+                            // enviarRespuesta() utiliza esa conexión para enviar el mensaje.
+                        enviarRespuesta(posicion, "Consulta de transacciones válida");
                     }
                 }
 
 
-                // Se guarda el jugador encontrado dentro del arreglo jugadoresConectados.
-                    // "posicion" corresponde a la misma posición donde está guardado su Socket.
-                        // De esta forma el Socket y el objeto Jugador quedan asociados mediante la misma posición.
-                asignarJugador(posicion, jugadorEncontrado);
+                // Si validarAccion() devolvió false,
+                    // significa que la acción solicitada no puede realizarse.
+                else {
 
-
-                // Se informa al cliente que la conexión fue aceptada correctamente.
-                    // "posicion" identifica cuál conexión Socket se debe utilizar.
-                        // El mensaje se envía únicamente al jugador que realizó esta solicitud.
-                enviarRespuesta(posicion, "Conexión válida");
-
-
-                // La solicitud CONECTAR ya fue atendida completamente.
-                    // El jugador ya quedó asociado con su conexión Socket.
-                return;
-            }
-
-
-            // Se busca el jugador dentro del arreglo jugadoresConectados.
-                // "posicion" indica en cuál espacio del arreglo se debe buscar.
-                    // El jugador encontrado se guarda en la variable "jugador".
-            Jugador jugador = jugadoresConectados[posicion];
-
-
-            // Se verifica si existe un jugador guardado en esa posición.
-                // Si jugador contiene null, significa que no existe un objeto Jugador asociado con esa conexión.
-                // En ese caso no se puede continuar procesando la solicitud.
-            if (jugador == null) {
-
-                // Se envía un mensaje al cliente que realizó la solicitud.
-                    // "posicion" permite identificar cuál conexión Socket se debe utilizar.
-                        // El mensaje indica que todavía no existe un jugador asignado a esa conexión.
-                enviarRespuesta(posicion, "No existe un jugador asignado a esta conexión");
-
-
-                // La solicitud no puede continuar sino existe un jugador asociado.
-                    // Por lo tanto, se termina esta ejecución de procesarSolicitud().
-                return;
-            }
-
-
-            // Se obtiene la propiedad en la que se encuentra actualmente el jugador.
-                // El objeto "jugador" se envía al método obtenerPropiedadActual() de Juego.
-                    // La propiedad encontrada se guarda en la variable "propiedad".
-            Propiedad propiedad = juego.obtenerPropiedadActual(jugador);
-
-
-            // Se valida si la solicitud realizada por el jugador puede ejecutarse.
-                // Se envía la solicitud, el jugador que la realizó y la propiedad donde se encuentra.
-                    // El resultado true o false se guarda en la variable "accionValida".
-            boolean accionValida = validarAccion(solicitud, jugador, propiedad);
-
-
-
-            // Se verifica el resultado que devolvió el método validarAccion().
-                // Si accionValida retorna true, significa que la solicitud puede ejecutarse.
-                    // Luego se identifica cuál acción solicitó el jugador.
-            if (accionValida) {
-
-
-                // -------------------------------------------------
-                // TIRAR_DADOS
-                // -------------------------------------------------
-
-                // Se verifica si la solicitud enviada por el jugador es TIRAR_DADOS.
-                    // Si la solicitud coincide, se llama al método lanzarDados() de juego.
-                        // El método lanzarDados() se encarga de realizar el lanzamiento de los dados.
-                if (solicitud.equals("TIRAR_DADOS")) {
-
-                    juego.lanzarDados();
-
-                    // Se informa a todos los jugadores conectados que el estado del juego cambió.
-                    actualizarClientes();
-                }
-
-
-                // -------------------------------------------------
-                // COMPRAR_PROPIEDAD
-                // -------------------------------------------------
-
-                // Se verifica si la solicitud enviada por el jugador es COMPRAR_PROPIEDAD.
-                    // Si la solicitud coincide, se llama al método comprarPropiedad() de juego.
-                        // Se envía el jugador que realiza la compra y la propiedad donde se encuentra.
-                else if (solicitud.equals("COMPRAR_PROPIEDAD")) {
-
-                    juego.comprarPropiedad(
-                                            jugador,
-                                            propiedad
-                                    );
-                    // Se informa a todos los jugadores conectados que el estado del juego cambió.
-                    actualizarClientes();
-                }
-
-
-                // -------------------------------------------------
-                // NO_COMPRAR
-                // -------------------------------------------------
-
-                // Se verifica si la solicitud enviada por el jugador es NO_COMPRAR.
-                    // Si la solicitud coincide, el jugador decidió no comprar la propiedad.
-                        // No se modifica la propiedad ni el saldo del jugador.
-                else if (solicitud.equals("NO_COMPRAR")) {
-
-                    // Se envía una respuesta únicamente al jugador que realizó la solicitud.
-                        // "posicion" identifica cuál conexión Socket se debe utilizar.
-                            // El mensaje confirma que el jugador decidió no comprar.
-                    enviarRespuesta(posicion, "El jugador decidió no comprar la propiedad"
-                    );
-                }
-
-
-                // -------------------------------------------------
-                // TERMINAR_TURNO
-                // -------------------------------------------------
-
-                // Se verifica si la solicitud enviada por el jugador es TERMINAR_TURNO.
-                    // Si la solicitud coincide, se llama al método finalizarTurno() de juego.
-                        // Juego se encarga de finalizar el turno del jugador actual.
-                else if (solicitud.equals("TERMINAR_TURNO")) {
-
-                    juego.finalizarTurno();
-
-                    // Se informa a todos los jugadores conectados que el estado del juego cambió.
-                    actualizarClientes();
-                }
-
-
-                // -------------------------------------------------
-                // CONSULTAR_ESTADO
-                // -------------------------------------------------
-
-                // Se verifica si la solicitud enviada por el jugador es CONSULTAR_ESTADO.
-                    // Esta solicitud permite consultar la información actual del jugador.
-                        // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
-                else if (solicitud.equals("CONSULTAR_ESTADO")) {
-
-                    // Se envía una respuesta al jugador que realizó la consulta.
-                        // "posicion" identifica cuál conexión Socket pertenece al jugador.
-                            // enviarRespuesta() utiliza esa conexión para enviar el mensaje.
-                    enviarRespuesta(
-                            posicion,
-                            "Consulta de estado válida"
-                    );
-                }
-
-
-                // -------------------------------------------------
-                // CONSULTAR_TRANSACCIONES
-                // -------------------------------------------------
-
-                // Se verifica si la solicitud enviada por el jugador es CONSULTAR_TRANSACCIONES.
-                    // Esta solicitud permite consultar la información del historial de transacciones.
-                     // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
-                else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
-
-                    // Se envía una respuesta al jugador que realizó la consulta.
-                        // "posicion" identifica cuál conexión Socket pertenece al jugador.
-                        // enviarRespuesta() utiliza esa conexión para enviar el mensaje.
-                    enviarRespuesta(posicion, "Consulta de transacciones válida");
+                    // Se informa al jugador que la solicitud que realizó no puede ejecutarse.
+                        // "posicion" identifica cuál jugador realizó la solicitud.
+                        // enviarRespuesta() envía el mensaje únicamente a ese jugador mediante su conexión Socket.
+                    enviarRespuesta(posicion, "La acción no es válida");
                 }
             }
 
-
-            // Si validarAccion() devolvió false,
-                // significa que la acción solicitada no puede realizarse.
-            else {
-
-                // Se informa al jugador que la solicitud que realizó no puede ejecutarse.
-                    // "posicion" identifica cuál jugador realizó la solicitud.
-                    // enviarRespuesta() envía el mensaje únicamente a ese jugador mediante su conexión Socket.
-                enviarRespuesta(posicion, "La acción no es válida");
             }
 
-        }
-
-        catch (IOException e) {
-            // Se ejecuta si ocurre un problema al recibir información del jugador.
-            // Esto puede suceder si el jugador cierra su conexión mientras el servidor esperaba una solicitud.
-            System.out.println(
-                    "Error al recibir la solicitud del cliente" + (posicion + 1)
-            );
-
-            try {
-
-                // Se verifica que exista una conexión Socket para este jugador.
-                    // "posicion" indica cuál conexión del arreglo pertenece al jugador.
-                if (clientesSocket[posicion] != null) {
-
-                    // Se cierra la conexión Socket del jugador.
-                        // "posicion" indica cuál conexión pertenece al cliente que tuvo el error.
-                            // Después de cerrarla, esa conexión ya no puede seguir enviando solicitudes.
-                    clientesSocket[posicion].close();
-                }
-
-            } catch (IOException errorCierre) {
-
-                // Se ejecuta solamente si ocurre un problema al intentar cerrar la conexión.
+            catch (IOException e) {
+                // Se ejecuta si ocurre un problema al recibir información del jugador.
+                // Esto puede suceder si el jugador cierra su conexión mientras el servidor esperaba una solicitud.
                 System.out.println(
-                        "Error al cerrar la conexión del cliente" + (posicion + 1)
+                        "Error al recibir la solicitud del cliente" + (posicion + 1)
                 );
+
+                try {
+
+                    // Se verifica que exista una conexión Socket para este jugador.
+                        // "posicion" indica cuál conexión del arreglo pertenece al jugador.
+                    if (clientesSocket[posicion] != null) {
+
+                        // Se cierra la conexión Socket del jugador.
+                            // "posicion" indica cuál conexión pertenece al cliente que tuvo el error.
+                                // Después de cerrarla, esa conexión ya no puede seguir enviando solicitudes.
+                        clientesSocket[posicion].close();
+                    }
+
+                } catch (IOException errorCierre) {
+
+                    // Se ejecuta solamente si ocurre un problema al intentar cerrar la conexión.
+                    System.out.println(
+                            "Error al cerrar la conexión del cliente" + (posicion + 1)
+                    );
+                }
             }
         }
-    }
     //*****************************************************
     // *****************************************************
 
