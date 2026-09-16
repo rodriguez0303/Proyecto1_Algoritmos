@@ -1,3 +1,7 @@
+#intelliJ
 .idea/
 out/
+
+#VS Code
 *.class
+bin/
