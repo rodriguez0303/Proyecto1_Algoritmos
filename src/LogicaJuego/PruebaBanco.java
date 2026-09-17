@@ -53,5 +53,21 @@ public class PruebaBanco {
         System.out.println("Recepción realizada: " + recepcionInvalida);
         System.out.println("Banco: " + banco.getSaldo());
         System.out.println("Luis: " + luis.getSaldo());
+
+        // Prueba de transferencia inválida
+        boolean pagoInvalido = banco.pagar(jose, 20000);
+
+        System.out.println("\n=== PAGO INVALIDO BANCO A JOSE ===");
+        System.out.println("Pago realizado: " + pagoInvalido);
+        System.out.println("Jose: " + jose.getSaldo());
+        System.out.println("Banco: " + banco.getSaldo());
+
+        // Prueba de transferencia inválida (Jugador a sí mismo)
+        boolean transferenciaMismoJugador = banco.transferir(jose, jose, 1000);
+
+        System.out.println("\n=== TRANSFERENCIA INVALIDA (Jugador a sí mismo) ===");
+        System.out.println("Transferencia realizada: " + transferenciaMismoJugador);
+        System.out.println("Jose: " + jose.getSaldo());
+        System.out.println("Banco: " + banco.getSaldo());
     }
 }

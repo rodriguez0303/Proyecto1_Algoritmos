@@ -76,7 +76,7 @@ public class Banco {
      */
     public boolean transferir(Jugador origen, Jugador destino, double monto) {
 
-        if (origen == null || destino == null || monto <= 0 || origen.getSaldo() < monto) {
+        if (origen == null || destino == null || monto <= 0 || origen.getSaldo() < monto || origen == destino) {
             return false;
         }
         origen.modificarSaldo(-monto);
