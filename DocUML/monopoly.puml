@@ -30,10 +30,8 @@ class Jugador {
 
 
 note right of Jugador
-  Propiedad, Casilla, Banco, HistorialTransacciones
-  y Transaccion aparecen aqui solo como referencia
-  (cajas vacias, sin atributos): todas siguen
-  preliminares/pendientes, no implementadas de verdad.
+  Propiedad y Casilla siguen siendo
+  dependencias pendientes de integración definitiva.
 end note
 
 
@@ -83,7 +81,7 @@ class Juego {
     + getDadosLanzadosEsteTurno() : boolean
     + MoverJugador(Jugador : Jugador, Pos : int) : void
     + RegistrarTransaccion(Transaccion : Transaccion) : void
-    + FinalizarPartida() : void
+    + finalizarPartida() : void
     + isEnCurso() : boolean
     + buscarJugadorPorIdentificador(identificador : String) : Jugador
     + obtenerPropiedadActual(jugador : Jugador) : Propiedad
@@ -169,16 +167,83 @@ class NodoCasilla {
 ' ==============================
 
 class Dado {
-    - Id : int
-    - Valor : int
-    - Generador : Random
+    - id : int
+    - valor : int
+    - generador : Random
 
-    + Dado(Id : int)
+    + Dado(id : int)
     + getId() : int
-    + Lanzar() : int
+    + lanzar() : int
     + getValor() : int
 }
 
+' ==============================
+' BANCO
+' =============================
+
+class Banco {
+    - saldo : double
+
+    + Banco()
+    + Banco(saldoInicial : double)
+    + pagar(jugador : Jugador, monto : double) : boolean
+    + getSaldo() : double
+    + recibir(jugador : Jugador, monto : double) : boolean
+    + transferir(origen : Jugador, destino : Jugador, monto : double) : boolean
+}
+
+
+
+' ===============================
+' TRANSACCION
+' ==============================
+
+class Transaccion {
+    - identificador : String
+    - numeroTurno : int
+    - tipo : String
+    - jugadorOrigen : String
+    - jugadorDestino : String
+    - monto : double
+    - descripcion : String
+
+    + Transaccion(identificador : String, numeroTurno : int, tipo : String,
+                  jugadorOrigen : String, jugadorDestino : String, monto : double, descripcion : String)
+    + getIdentificador() : String
+    + getNumeroTurno() : int
+    + getTipo() : String
+    + getJugadorOrigen() : String
+    + getJugadorDestino() : String
+    + getMonto() : double
+    + getDescripcion() : String
+    + toString() : String
+}
+
+
+'===============================
+' HISTORIAL DE TRANSACCIONES
+'=============================
+
+class HistorialTransacciones {
+    - primero : NodoHistorial
+    - ultimo : NodoHistorial
+    - tamaño : int
+
+    + agregar(transaccion : Transaccion) : void
+    + imprimirHistorial() : void
+    + imprimirHistorialInverso() : void
+    + buscarPorTipo(tipo : String) : void
+    + buscarPorJugador(jugador : String) : void
+    + getTamaño() : int
+}
+
+class NodoHistorial <<private>> {
+    - transaccion : Transaccion
+    - siguiente : NodoHistorial
+    - anterior : NodoHistorial
+
+    + NodoHistorial(transaccion : Transaccion)
+}
 
 ' ==============================
 ' CONSTANTES
@@ -206,12 +271,14 @@ Juego *-- "1" ColaCircular : Jugadores
 Juego --> Jugador : TurnoActual
 Juego *-- "1" Tablero : Tablero
 Juego *-- "2" Dado : Dado1 / Dado2
-Juego ..> Banco : usa (pendiente Par 3)
-Juego ..> HistorialTransacciones : usa (pendiente)
-Juego ..> Transaccion : usa (pendiente)
+Juego ..> Banco : usa
+Juego ..> HistorialTransacciones : usa
+Juego ..> Transaccion : usa
 Juego ..> Propiedad : usa (pendiente Par 2)
 ColaCircular o-- Jugador : contiene (T = Jugador)
-
+HistorialTransacciones *-- NodoHistorial : contiene
+NodoHistorial --> Transaccion : transaccion
+NodoHistorial --> NodoHistorial : siguiente / anterior
 
 ' ==============================
 ' RELACIONES - TABLERO
