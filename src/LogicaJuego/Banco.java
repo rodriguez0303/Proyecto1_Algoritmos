@@ -1,9 +1,86 @@
 package LogicaJuego;
+
 /**
- * NOTA: Versión preliminar/temporal. Existe solo para que Juego compile.
- * La versión real (saldo, pagar, recibir, transferir, registrarTransaccion)
- * le corresponde al Par 3.
+ * Representa el banco de la partida.
+ * Se encarga de administrar pagos y transferencias
+ * entre el banco y los jugadores.
  */
 public class Banco {
-    //
+
+    private double saldo;
+
+    /**
+     * Constructor por defecto.
+     * El saldo inicial se establece temporalmente en 0.
+     */
+    public Banco() {
+        this.saldo = 0;
+    }
+
+    /**
+     * Constructor que permite definir un saldo inicial.
+     *
+     * @param saldoInicial saldo inicial del banco
+     */
+    public Banco(double saldoInicial) {
+        this.saldo = saldoInicial;
+    }
+
+    public double getSaldo() {
+        return saldo;
+    }
+
+    /**
+     * El banco paga dinero a un jugador.
+     *
+     * @param jugador jugador que recibe el dinero
+     * @param monto cantidad a pagar
+     * @return true si el pago se realizó correctamente
+     */
+    public boolean pagar(Jugador jugador, double monto) {
+
+        if (jugador == null || monto <= 0 || saldo < monto) {
+            return false;
+        }
+
+        saldo -= monto;
+        jugador.modificarSaldo(monto);
+
+        return true;
+    }
+
+    /**
+     * El banco recibe dinero de un jugador.
+     *
+     * @param jugador jugador que realiza el pago
+     * @param monto cantidad recibida
+     */
+    public void recibir(Jugador jugador, double monto) {
+
+        if (jugador == null || monto <= 0 || jugador.getSaldo() < monto) {
+            return;
+        }
+
+        jugador.modificarSaldo(-monto);
+        saldo += monto;
+    }
+
+    /**
+     * Transfiere dinero de un jugador a otro.
+     *
+     * @param origen jugador que paga
+     * @param destino jugador que recibe
+     * @param monto cantidad transferida
+     * @return true si la transferencia se realizó correctamente
+     */
+    public boolean transferir(Jugador origen, Jugador destino, double monto) {
+
+        if (origen == null || destino == null || monto <= 0 || origen.getSaldo() < monto) {
+            return false;
+        }
+        origen.modificarSaldo(-monto);
+        destino.modificarSaldo(monto);
+
+        return true;
+    }
 }
