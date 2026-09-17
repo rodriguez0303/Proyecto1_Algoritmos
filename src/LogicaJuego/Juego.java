@@ -106,8 +106,8 @@ public class Juego {
     // Lanza los dos dados y devuelve la suma (Dado ya implementada; podría
     // conectarse más adelante al módulo RFID real del punto 14 sin cambiar esta firma)
     public int lanzarDados() {
-        int Valor1 = Dado1.Lanzar();
-        int Valor2 = Dado2.Lanzar();
+        int Valor1 = Dado1.lanzar();
+        int Valor2 = Dado2.lanzar();
         DadosLanzados = true;
         return Valor1 + Valor2;
     }

@@ -14,29 +14,29 @@ import java.util.Random;
 
 public class Dado {
 
-    private int Id;                  // Identifica cuál de los dados es (1 o 2)
-    private int Valor;               // Último valor obtenido al lanzar
-    private final Random Generador;  // Generador de números aleatorios, se crea una sola vez
+    private int id;                  // Identifica cuál de los dados es (1 o 2)
+    private int valor;               // Último valor obtenido al lanzar
+    private final Random generador;  // Generador de números aleatorios, se crea una sola vez
 
     // Constructor: Recibe el id del dado y prepara el generador aleatorio
-    public Dado(int Id) {
-        this.Id = Id;
-        this.Generador = new Random();
+    public Dado(int id) {
+        this.id = id;
+        this.generador = new Random();
     }
 
     public int getId() {
-        return Id;
+        return id;
     }
 
     // Simula el lanzamiento del dado: Genera un número entero al azar
-    // entre 1 y 6, lo guarda en Valor y lo devuelve
-    public int Lanzar() {
-        Valor = Generador.nextInt(6) + 1;
-        return Valor;
+    // entre 1 y 6, lo guarda en valor y lo devuelve
+    public int lanzar() {
+        valor = generador.nextInt(6) + 1;
+        return valor;
     }
 
     // Devuelve el último valor lanzado (sin volver a lanzar)
     public int getValor() {
-        return Valor;
+        return valor;
     }
 }
