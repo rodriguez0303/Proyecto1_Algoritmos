@@ -5,3 +5,4 @@ out/
 #VS Code
 *.class
 bin/
+historia_transacciones.txt
