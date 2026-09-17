@@ -23,9 +23,10 @@ public class PruebaBanco {
         System.out.println("Jose: " + jose.getSaldo());
 
         // Jose paga al banco
-        banco.recibir(jose, 300);
+        boolean recepcionRealizada = banco.recibir(jose, 300);
 
         System.out.println("\n=== JOSE PAGA 300 AL BANCO ===");
+        System.out.println("Recepción realizada: " + recepcionRealizada);
         System.out.println("Banco: " + banco.getSaldo());
         System.out.println("Jose: " + jose.getSaldo());
 
@@ -43,6 +44,14 @@ public class PruebaBanco {
         System.out.println("\n=== TRANSFERENCIA INVALIDA ===");
         System.out.println("Transferencia realizada: " + transferenciaInvalida);
         System.out.println("Jose: " + jose.getSaldo());
+        System.out.println("Luis: " + luis.getSaldo());
+        
+        // Prueba de recepción inválida
+        boolean recepcionInvalida = banco.recibir(luis, 2000);
+
+        System.out.println("\n=== RECEPCIÓN INVALIDA ===");
+        System.out.println("Recepción realizada: " + recepcionInvalida);
+        System.out.println("Banco: " + banco.getSaldo());
         System.out.println("Luis: " + luis.getSaldo());
     }
 }
