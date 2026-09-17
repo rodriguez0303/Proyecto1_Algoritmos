@@ -91,7 +91,7 @@ public class Juego {
         NumTurno++;
 
         if (MaxTurnos > 0 && NumTurno > MaxTurnos) {
-            FinalizarPartida();
+            finalizarPartida();
         }
     }
 
@@ -137,12 +137,12 @@ public class Juego {
 
     // * Guarda una transacción en el historial (depende de Transaccion e HistorialTransacciones, aún pendientes)
     public void RegistrarTransaccion(Transaccion Transaccion) {
-        Historial.Agregar(Transaccion);
+        Historial.agregar(Transaccion);
     }
 
     // Finaliza la partida
     // Al llegar al límite de turnos falta calcular el ganador por mayor patrimonio
-    public void FinalizarPartida() {
+    public void finalizarPartida() {
         Curso = false;
     }
 
