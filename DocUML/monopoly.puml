@@ -206,6 +206,7 @@ class Transaccion {
     - jugadorDestino : String
     - monto : double
     - descripcion : String
+    - fechaHora : LocalDateTime
 
     + Transaccion(identificador : String, numeroTurno : int, tipo : String,
                   jugadorOrigen : String, jugadorDestino : String, monto : double, descripcion : String)
@@ -217,6 +218,7 @@ class Transaccion {
     + getMonto() : double
     + getDescripcion() : String
     + toString() : String
+    + getFechaHora() : LocalDateTime
 }
 
 
@@ -235,6 +237,7 @@ class HistorialTransacciones {
     + buscarPorTipo(tipo : String) : void
     + buscarPorJugador(jugador : String) : void
     + getTamaño() : int
+    + exportarTXT(nombreArchivo : String) : boolean
 }
 
 class NodoHistorial <<private>> {

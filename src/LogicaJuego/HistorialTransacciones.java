@@ -1,5 +1,9 @@
 package LogicaJuego;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 public class HistorialTransacciones {
     private class Nodo {
         private Transaccion transaccion;
@@ -67,6 +71,19 @@ public class HistorialTransacciones {
     }
     public int getTamaño() {
         return tamaño;
+    }
+    public boolean exportarTXT(String nombreArchivo) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivo))) {
+            Nodo actual = primero;
+            while (actual != null) {
+                writer.println(actual.transaccion);
+                actual = actual.siguiente;
+            }
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error al exportar el historial a archivo TXT." + e.getMessage());
+            return false;
+        }
     }
 }
 

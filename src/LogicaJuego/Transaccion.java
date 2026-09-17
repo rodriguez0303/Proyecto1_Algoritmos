@@ -1,4 +1,8 @@
 package LogicaJuego;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Transaccion {
 
     private String identificador;
@@ -8,10 +12,11 @@ public class Transaccion {
     private String jugadorDestino;
     private double monto;
     private String descripcion;
+    private LocalDateTime fechaHora;
 
     public Transaccion(String identificador, int numeroTurno, String tipo,
                        String jugadorOrigen, String jugadorDestino,
-                       double monto, String descripcion) {
+                       double monto, String descripcion){
         this.identificador = identificador;
         this.numeroTurno = numeroTurno;
         this.tipo = tipo;
@@ -19,6 +24,7 @@ public class Transaccion {
         this.jugadorDestino = jugadorDestino;
         this.monto = monto;
         this.descripcion = descripcion;
+        this.fechaHora = LocalDateTime.now();
     }
     public String getIdentificador() {
         return identificador;
@@ -41,13 +47,18 @@ public class Transaccion {
     public String getDescripcion() {
         return descripcion;
     }
+    public LocalDateTime getFechaHora() {
+        return fechaHora;
+    }
     @Override
     public String toString() {
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return identificador + "|Turno: " + numeroTurno 
         + "|Tipo: " + tipo 
         + "|Origen: " + jugadorOrigen     
         + "|Destino: " + jugadorDestino 
         + "|Monto: " + monto 
-        + "|Descripcion: " + descripcion;
+        + "|Descripcion: " + descripcion
+        + "|FechaHora: " + fechaHora.format(formato);
     }
 }
