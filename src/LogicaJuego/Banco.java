@@ -55,14 +55,15 @@ public class Banco {
      * @param jugador jugador que realiza el pago
      * @param monto cantidad recibida
      */
-    public void recibir(Jugador jugador, double monto) {
+    public boolean recibir(Jugador jugador, double monto) {
 
         if (jugador == null || monto <= 0 || jugador.getSaldo() < monto) {
-            return;
+            return false;
         }
 
         jugador.modificarSaldo(-monto);
         saldo += monto;
+        return true;
     }
 
     /**
