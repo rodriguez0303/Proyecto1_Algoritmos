@@ -206,4 +206,7 @@ public class Juego {
     public HistorialTransacciones getHistorial() {
         return Historial;
     }
+    public Banco getBanco() {
+        return Banco;
+    }
 }
