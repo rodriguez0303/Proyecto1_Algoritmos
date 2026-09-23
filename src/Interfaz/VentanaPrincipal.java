@@ -13,10 +13,17 @@ import javax.swing.BorderFactory;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.Color;
+
+import java.util.Random;
 
 
 // Clase principal de la interfaz gráfica del juego
 public class VentanaPrincipal extends JFrame {
+    private JPanel [] casillasVisuales = new JPanel[24];
+    private int posicionVisualActual = -1;
+    private int posicionJugadorSimulado = 0;
+    private Random generador = new Random();
 
     // Constructor de la ventana principal
     public VentanaPrincipal() {
@@ -49,12 +56,26 @@ public class VentanaPrincipal extends JFrame {
         panelTablero.setBorder(BorderFactory.createTitledBorder("Tablero"));
         panelTablero.setLayout(new GridLayout(7, 7, 2, 2));
 
-        int numeroCasilla = 0;
-
         for(int fila = 0; fila < 7; fila++) {
             for (int columna = 0; columna < 7; columna++) {
                 if (fila == 0 || fila == 6 || columna == 0 || columna == 6) {
+
+                    int numeroCasilla;
+                    if (fila == 0) {
+                        numeroCasilla = columna;
+                    }
+                    else if (columna == 6) {
+                        numeroCasilla = 6 + fila;
+                    }
+                    else if (fila == 6) {
+                        numeroCasilla = 18 - columna;
+                    }
+                    else {
+                        numeroCasilla = 24 - fila;
+                    }
                     JPanel casilla = new JPanel();
+                    casillasVisuales[numeroCasilla] = casilla;
+
 
                     casilla.setBorder(BorderFactory.createEtchedBorder());
 
@@ -64,7 +85,6 @@ public class VentanaPrincipal extends JFrame {
 
                     panelTablero.add(casilla);
 
-                    numeroCasilla++;
                 } else {
                     JPanel espacioVacio = new JPanel();
                     panelTablero.add(espacioVacio);
@@ -72,6 +92,7 @@ public class VentanaPrincipal extends JFrame {
                 }
             }
         }
+        marcarPosicionJugador(0);
 
         // -------------------------------------------------
         // CONFIGURACIÓN DEL PANEL DEL JUGADOR
@@ -173,13 +194,22 @@ public class VentanaPrincipal extends JFrame {
         // -------------------------------------------------
 
         btnTirarDados.addActionListener(e -> {
-
             // Valores simulados temporalmente.
-            // Más adelante vendrán del servidor.
-            lblDado1.setText("Dado 1: 3");
-            lblDado2.setText("Dado 2: 5");
+            int dado1 = generador.nextInt(6) + 1;
+            int dado2 = generador.nextInt(6) + 1;
+            int total = dado1 + dado2;
 
-            lblEstado.setText("Resultado de los dados recibido.");
+            lblDado1.setText("Dado 1: " + dado1);
+            lblDado2.setText("Dado 2: " + dado2);
+
+            posicionJugadorSimulado = 
+            (posicionJugadorSimulado + total) % 24;
+
+            lblPosicion.setText("Posición: " + posicionJugadorSimulado);
+
+            marcarPosicionJugador(posicionJugadorSimulado);
+
+            lblEstado.setText("El jugador avanzó " + total + " posiciones.");
         });
 
 
@@ -206,6 +236,24 @@ public class VentanaPrincipal extends JFrame {
         add(panelTablero, BorderLayout.CENTER);
         add(panelJugador, BorderLayout.EAST);
     }
+    private void marcarPosicionJugador(int posicion) {
+
+    if (posicion < 0 || posicion >= casillasVisuales.length) {
+        return;
+    }
+
+    if (posicionVisualActual != -1) {
+        casillasVisuales[posicionVisualActual].setBorder(
+            BorderFactory.createEtchedBorder()
+        );
+    }
+
+    casillasVisuales[posicion].setBorder(
+        BorderFactory.createLineBorder(Color.YELLOW, 4)
+    );
+
+    posicionVisualActual = posicion;
+}
 
 
     // Método principal
