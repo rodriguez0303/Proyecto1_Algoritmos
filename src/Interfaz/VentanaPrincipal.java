@@ -9,12 +9,14 @@ import javax.swing.JButton;
 import javax.swing.BoxLayout;
 import javax.swing.Box;
 import javax.swing.BorderFactory;
+import javax.swing.JTextArea;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 
 import java.util.Random;
+import java.util.Arrays;
 
 
 // Clase principal de la interfaz gráfica del juego
@@ -22,22 +24,30 @@ public class VentanaPrincipal extends JFrame {
 
     private JPanel [] casillasVisuales = new JPanel[24];
     private JPanel[] panelesFichas = new JPanel[24];
+
+    private JLabel[] etiquetasPropietarios = new JLabel[24];
     private JLabel[] fichasJugadores = new JLabel[4];
-    private int[] posicionesJugadoresSimulados = {0, 0, 0, 0};
+
     private Random generador = new Random();
+
+    private int[] posicionesJugadoresSimulados = {0, 0, 0, 0};
     private int [] posicionesVisuales = {-1, -1, -1, -1};
     private int jugadorActualSimulado = 0;
+    private int[] propietariosSimulados = new int[24];
+
     private boolean dadosLanzadosSimulados = false;
 
     // Constructor de la ventana principal
     public VentanaPrincipal() {
+
+        Arrays.fill(propietariosSimulados, -1);
 
         // -------------------------------------------------
         // CONFIGURACIÓN DE LA VENTANA
         // -------------------------------------------------
 
         setTitle("Monopoly TEC");
-        setSize(1000, 700);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -86,13 +96,17 @@ public class VentanaPrincipal extends JFrame {
 
                     casillasVisuales[numeroCasilla] = casilla;
                     panelesFichas[numeroCasilla] = panelFichas;
-
+                    
                     casilla.setBorder(BorderFactory.createEtchedBorder());
 
                     JLabel textoCasilla = new JLabel("Casilla " + numeroCasilla);
+                    JLabel lblPropietario = new JLabel("");
+
+                    etiquetasPropietarios[numeroCasilla] = lblPropietario;
 
                     casilla.add(textoCasilla, BorderLayout.NORTH);
                     casilla.add(panelFichas, BorderLayout.CENTER);
+                    casilla.add(lblPropietario, BorderLayout.SOUTH);
 
                     panelTablero.add(casilla);
 
@@ -123,7 +137,7 @@ public class VentanaPrincipal extends JFrame {
         );
 
         panelJugador.setPreferredSize(
-            new Dimension(300, 700)
+            new Dimension(300, 0)
         );
 
         panelJugador.setBorder(
@@ -174,7 +188,10 @@ public class VentanaPrincipal extends JFrame {
         // -------------------------------------------------
 
         JButton btnTirarDados = new JButton("Tirar dados");
+
         JButton btnComprar = new JButton("Comprar propiedad");
+        btnComprar.setEnabled(false);
+
         JButton btnTerminarTurno = new JButton("Terminar turno");
 
 
@@ -182,8 +199,15 @@ public class VentanaPrincipal extends JFrame {
         // ESTADO DEL JUEGO
         // -------------------------------------------------
 
-        JLabel lblEstado = new JLabel("Esperando acción...");
+        JTextArea lblEstado = new JTextArea("Esperando acción...");
 
+        lblEstado.setEditable(false);
+        lblEstado.setLineWrap(true);
+        lblEstado.setWrapStyleWord(true);
+        lblEstado.setOpaque(false);
+        lblEstado.setFocusable(false);
+
+        lblEstado.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         // -------------------------------------------------
         // ORGANIZACIÓN DEL PANEL DEL JUGADOR
@@ -233,6 +257,31 @@ public class VentanaPrincipal extends JFrame {
 
             int nuevaPosicion = posicionesJugadoresSimulados[jugadorActualSimulado];
 
+            String mensajeCasilla;
+
+            int propietario = propietariosSimulados[nuevaPosicion];
+
+            if (!esPropiedadSimulada(nuevaPosicion)) {
+                btnComprar.setEnabled(false);
+
+                mensajeCasilla = "Cayó en una casilla especial.";
+            }
+            else if (propietario == -1) {
+                btnComprar.setEnabled(true);
+
+                mensajeCasilla = "La propiedad esta disponible.";
+            }
+            else if (propietario == jugadorActualSimulado) {
+                btnComprar.setEnabled(false);
+
+                mensajeCasilla = "Cayó en su propia propiedad.";
+            }
+            else { 
+                btnComprar.setEnabled(false);
+
+                mensajeCasilla = "La propiedad pertenece a J" + (propietario + 1) + ".";
+            }
+
             lblPosicion.setText("Posición: " + nuevaPosicion);
 
             marcarPosicionJugador(jugadorActualSimulado, nuevaPosicion);
@@ -241,15 +290,29 @@ public class VentanaPrincipal extends JFrame {
 
             btnTirarDados.setEnabled(false);
 
-            lblEstado.setText("J" + (jugadorActualSimulado + 1) + " avanzó " + total + " posiciones.");
+            lblEstado.setText("J" + (jugadorActualSimulado + 1) + " avanzó " + total + " posiciones. " + mensajeCasilla);
         });
 
 
         btnComprar.addActionListener(e -> {
 
-            lblEstado.setText(
-                "Esperando acción de compra..."
-            );
+            int posicionActual = posicionesJugadoresSimulados[jugadorActualSimulado];
+
+            if (!esPropiedadSimulada(posicionActual)) {
+                lblEstado.setText("Esta casilla no se puede comprar.");
+                return;
+            }
+            if (propietariosSimulados[posicionActual] != -1) {
+                lblEstado.setText("Esta propiedad ya tiene propietario.");
+                return;
+            }
+            propietariosSimulados[posicionActual] = jugadorActualSimulado;
+
+            etiquetasPropietarios[posicionActual].setText("Dueño: J" + (jugadorActualSimulado + 1));
+
+            lblEstado.setText("J" + (jugadorActualSimulado +1) + " compró la Casilla " + posicionActual + ".");
+
+            btnComprar.setEnabled(false);
         });
 
 
@@ -257,6 +320,7 @@ public class VentanaPrincipal extends JFrame {
             jugadorActualSimulado = (jugadorActualSimulado + 1) % 4;
             dadosLanzadosSimulados = false;
             btnTirarDados.setEnabled(true);
+            btnComprar.setEnabled(false);
 
             lblTurno.setText("Turno actual: J" + (jugadorActualSimulado + 1));
 
@@ -276,6 +340,18 @@ public class VentanaPrincipal extends JFrame {
         add(panelTablero, BorderLayout.CENTER);
         add(panelJugador, BorderLayout.EAST);
     }
+
+    private boolean esPropiedadSimulada(int posicion) {
+        return posicion != 0 &&
+        posicion != 3 &&
+        posicion != 6 &&
+        posicion != 9 &&
+        posicion != 12 &&
+        posicion != 15 &&
+        posicion != 18 &&
+        posicion != 21;
+    }
+
     private void marcarPosicionJugador(int jugador, int posicion) {
         if (jugador < 0 || jugador >= fichasJugadores.length) {
         return;
@@ -285,10 +361,10 @@ public class VentanaPrincipal extends JFrame {
         }
         JLabel ficha = fichasJugadores[jugador];
 
-        int PosicionAnterior = posicionesVisuales[jugador];
+        int posicionAnterior = posicionesVisuales[jugador];
 
-        if (PosicionAnterior != -1) {
-            JPanel panelAnterior = panelesFichas[PosicionAnterior];
+        if (posicionAnterior != -1) {
+            JPanel panelAnterior = panelesFichas[posicionAnterior];
             panelAnterior.remove(ficha);
 
             panelAnterior.revalidate();
