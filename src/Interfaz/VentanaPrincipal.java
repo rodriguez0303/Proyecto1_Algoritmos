@@ -41,6 +41,7 @@ public class VentanaPrincipal extends JFrame {
     private static final double ALQUILER_SIMULADO = 100;
 
     private boolean dadosLanzadosSimulados = false;
+    private boolean[] jugadoresActivosSimulados = { true, true, true, true};
 
     // Constructor de la ventana principal
     public VentanaPrincipal() {
@@ -284,8 +285,6 @@ public class VentanaPrincipal extends JFrame {
             else { 
                 btnComprar.setEnabled(false);
 
-                mensajeCasilla = "La propiedad pertenece a J" + (propietario + 1) + ".";
-
                 if (saldosJugadoresSimulados[jugadorActualSimulado] >= ALQUILER_SIMULADO) {
                     saldosJugadoresSimulados[jugadorActualSimulado] -= ALQUILER_SIMULADO;
                     saldosJugadoresSimulados[propietario] += ALQUILER_SIMULADO;
@@ -295,7 +294,9 @@ public class VentanaPrincipal extends JFrame {
                     mensajeCasilla = "Pagó ₡" + ALQUILER_SIMULADO + " de alquiler a J" + (propietario + 1) + ".";
                 }
                 else {
-                    mensajeCasilla = "No tiene saldo suficiente para pagar el alquiler.";
+                    jugadoresActivosSimulados[jugadorActualSimulado] = false;
+
+                    mensajeCasilla = "J" + (jugadorActualSimulado + 1) + " no pudo pagar alquiler y fue eliminado.";
                 }
             }
 
@@ -341,7 +342,12 @@ public class VentanaPrincipal extends JFrame {
 
 
         btnTerminarTurno.addActionListener(e -> {
-            jugadorActualSimulado = (jugadorActualSimulado + 1) % 4;
+            int intentos = 0;
+
+            do {jugadorActualSimulado = (jugadorActualSimulado + 1 ) % 4;
+                intentos++;
+            } while (!jugadoresActivosSimulados[jugadorActualSimulado] && intentos < 4);
+        
             dadosLanzadosSimulados = false;
             btnTirarDados.setEnabled(true);
             btnComprar.setEnabled(false);
