@@ -35,6 +35,11 @@ public class VentanaPrincipal extends JFrame {
     private int jugadorActualSimulado = 0;
     private int[] propietariosSimulados = new int[24];
 
+    private double[] saldosJugadoresSimulados = {1500, 1500, 1500, 1500};
+
+    private static final double PRECIO_PROPIEDAD_SIMULADO = 200;
+    private static final double ALQUILER_SIMULADO = 100;
+
     private boolean dadosLanzadosSimulados = false;
 
     // Constructor de la ventana principal
@@ -280,6 +285,18 @@ public class VentanaPrincipal extends JFrame {
                 btnComprar.setEnabled(false);
 
                 mensajeCasilla = "La propiedad pertenece a J" + (propietario + 1) + ".";
+
+                if (saldosJugadoresSimulados[jugadorActualSimulado] >= ALQUILER_SIMULADO) {
+                    saldosJugadoresSimulados[jugadorActualSimulado] -= ALQUILER_SIMULADO;
+                    saldosJugadoresSimulados[propietario] += ALQUILER_SIMULADO;
+
+                    lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+                    mensajeCasilla = "Pagó ₡" + ALQUILER_SIMULADO + " de alquiler a J" + (propietario + 1) + ".";
+                }
+                else {
+                    mensajeCasilla = "No tiene saldo suficiente para pagar el alquiler.";
+                }
             }
 
             lblPosicion.setText("Posición: " + nuevaPosicion);
@@ -287,12 +304,10 @@ public class VentanaPrincipal extends JFrame {
             marcarPosicionJugador(jugadorActualSimulado, nuevaPosicion);
 
             dadosLanzadosSimulados = true;
-
             btnTirarDados.setEnabled(false);
 
             lblEstado.setText("J" + (jugadorActualSimulado + 1) + " avanzó " + total + " posiciones. " + mensajeCasilla);
         });
-
 
         btnComprar.addActionListener(e -> {
 
@@ -306,6 +321,15 @@ public class VentanaPrincipal extends JFrame {
                 lblEstado.setText("Esta propiedad ya tiene propietario.");
                 return;
             }
+            if (saldosJugadoresSimulados[jugadorActualSimulado] < PRECIO_PROPIEDAD_SIMULADO) {
+                lblEstado.setText("J" + (jugadorActualSimulado + 1) + " no tiene saldo suficiente.");
+                return;
+            }
+
+            saldosJugadoresSimulados[jugadorActualSimulado] -= PRECIO_PROPIEDAD_SIMULADO;
+
+            lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
             propietariosSimulados[posicionActual] = jugadorActualSimulado;
 
             etiquetasPropietarios[posicionActual].setText("Dueño: J" + (jugadorActualSimulado + 1));
@@ -323,6 +347,8 @@ public class VentanaPrincipal extends JFrame {
             btnComprar.setEnabled(false);
 
             lblTurno.setText("Turno actual: J" + (jugadorActualSimulado + 1));
+
+            lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
 
             lblPosicion.setText("Posición: " + posicionesJugadoresSimulados[jugadorActualSimulado]);
 
