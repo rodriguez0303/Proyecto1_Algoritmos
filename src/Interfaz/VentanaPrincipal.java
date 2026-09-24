@@ -347,7 +347,25 @@ public class VentanaPrincipal extends JFrame {
             do {jugadorActualSimulado = (jugadorActualSimulado + 1 ) % 4;
                 intentos++;
             } while (!jugadoresActivosSimulados[jugadorActualSimulado] && intentos < 4);
-        
+            
+            if (contarJugadoresActivos() == 1) {
+                int ganador = -1;
+
+                for (int i = 0; i < jugadoresActivosSimulados.length; i++) {
+                    if (jugadoresActivosSimulados[i]) {
+                        ganador = i;
+                        break;
+                    }
+                }
+                lblEstado.setText("La partida terminó. El ganador fue J" + (ganador + 1) + ".");
+
+                btnTirarDados.setEnabled(false);
+                btnComprar.setEnabled(false);
+                btnTerminarTurno.setEnabled(false);
+
+                return;
+            }
+
             dadosLanzadosSimulados = false;
             btnTirarDados.setEnabled(true);
             btnComprar.setEnabled(false);
@@ -382,6 +400,17 @@ public class VentanaPrincipal extends JFrame {
         posicion != 15 &&
         posicion != 18 &&
         posicion != 21;
+    }
+
+    private int contarJugadoresActivos() {
+        int cantidad = 0;
+
+        for (boolean activo : jugadoresActivosSimulados) {
+            if (activo){
+                cantidad++;
+            }
+        }
+        return cantidad;
     }
 
     private void marcarPosicionJugador(int jugador, int posicion) {
