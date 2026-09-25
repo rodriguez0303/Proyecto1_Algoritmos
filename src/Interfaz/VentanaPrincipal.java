@@ -14,6 +14,11 @@ import javax.swing.JTextArea;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Component;
+import java.awt.Color;
+import java.awt.Font;
 
 import java.util.Random;
 import java.util.Arrays;
@@ -29,6 +34,33 @@ public class VentanaPrincipal extends JFrame {
     private JLabel[] fichasJugadores = new JLabel[4];
 
     private Random generador = new Random();
+
+    private String[] nombresCasillas = {
+    "Salida",        // 0
+    "Propiedad 1",   // 1
+    "Propiedad 2",   // 2
+    "Evento",        // 3
+    "Propiedad 3",   // 4
+    "Propiedad 4",   // 5
+    "Especial",      // 6
+    "Propiedad 5",   // 7
+    "Propiedad 6",   // 8
+    "Evento",        // 9
+    "Propiedad 7",  // 10
+    "Propiedad 8",  // 11
+    "Especial",      // 12
+    "Propiedad 9",  // 13
+    "Propiedad 10",  // 14
+    "Evento",        // 15
+    "Propiedad 11",  // 16
+    "Propiedad 12",  // 17
+    "Especial",      // 18
+    "Propiedad 13",  // 19
+    "Propiedad 14",  // 20
+    "Evento",        // 21
+    "Propiedad 15",  // 22
+    "Propiedad 16"   // 23
+    };
 
     private int[] posicionesJugadoresSimulados = {0, 0, 0, 0};
     private int [] posicionesVisuales = {-1, -1, -1, -1};
@@ -74,7 +106,12 @@ public class VentanaPrincipal extends JFrame {
         // -------------------------------------------------
 
         panelTablero.setBorder(BorderFactory.createTitledBorder("Tablero"));
-        panelTablero.setLayout(new GridLayout(7, 7, 2, 2));
+        panelTablero.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
 
         for(int fila = 0; fila < 7; fila++) {
             for (int columna = 0; columna < 7; columna++) {
@@ -95,17 +132,35 @@ public class VentanaPrincipal extends JFrame {
                     }
 
                     JPanel casilla = new JPanel();
-
                     casilla.setLayout(new BorderLayout());
 
                     JPanel panelFichas = new JPanel();
+                    panelFichas.setOpaque(false);
+
+                    if (numeroCasilla == 0) {
+                        casilla.setBackground(new Color(180, 230, 180));
+                    }
+                    else if (numeroCasilla == 3 ||
+                            numeroCasilla == 9 ||
+                            numeroCasilla == 15 ||
+                            numeroCasilla == 21) {
+                        casilla.setBackground(new Color(255, 230, 160));
+                    }
+                    else if (numeroCasilla == 6 ||
+                            numeroCasilla == 12 ||
+                            numeroCasilla == 18) {
+                        casilla.setBackground(new Color(180, 220, 245));
+                    }
+                    else {
+                        casilla.setBackground(new Color(235, 235, 235));
+                    }
 
                     casillasVisuales[numeroCasilla] = casilla;
                     panelesFichas[numeroCasilla] = panelFichas;
                     
                     casilla.setBorder(BorderFactory.createEtchedBorder());
 
-                    JLabel textoCasilla = new JLabel("Casilla " + numeroCasilla);
+                    JLabel textoCasilla = new JLabel(nombresCasillas[numeroCasilla]);
                     JLabel lblPropietario = new JLabel("");
 
                     etiquetasPropietarios[numeroCasilla] = lblPropietario;
@@ -114,12 +169,29 @@ public class VentanaPrincipal extends JFrame {
                     casilla.add(panelFichas, BorderLayout.CENTER);
                     casilla.add(lblPropietario, BorderLayout.SOUTH);
 
-                    panelTablero.add(casilla);
+                    gbc.gridx = columna;
+                    gbc.gridy = fila;
+                    gbc.gridwidth = 1;
+                    gbc.gridheight = 1;
 
-                } else {
-                    JPanel espacioVacio = new JPanel();
-                    panelTablero.add(espacioVacio);
+                    panelTablero.add(casilla, gbc);
 
+                    JPanel panelCentro = new JPanel();
+
+                    gbc.gridx = 1;
+                    gbc.gridy = 1;
+
+                    gbc.gridwidth = 5;
+                    gbc.gridheight = 5;
+
+                    gbc.weightx = 5.0;
+                    gbc.weighty = 5.0;
+
+                    panelTablero.add(panelCentro, gbc);
+
+                    panelCentro.setBackground(new Color(225, 215, 185));
+
+                    panelCentro.setBorder(BorderFactory.createTitledBorder("Monopoly TEC"));
                 }
             }
         }
@@ -128,6 +200,19 @@ public class VentanaPrincipal extends JFrame {
         fichasJugadores[1] = new JLabel("J2");
         fichasJugadores[2] = new JLabel("J3");
         fichasJugadores[3] = new JLabel("J4");
+        
+        fichasJugadores[0].setBackground(new Color(210, 60, 60));
+        fichasJugadores[1].setBackground(new Color(60, 100, 210));
+        fichasJugadores[2].setBackground(new Color(60, 160, 90));
+        fichasJugadores[3].setBackground(new Color(230, 160, 50));
+
+        for (JLabel ficha : fichasJugadores) {
+            ficha.setOpaque(true);
+            ficha.setForeground(Color.WHITE);
+
+            ficha.setBorder(BorderFactory.createEmptyBorder(4, 7, 4, 7));
+            ficha.setFont(ficha.getFont().deriveFont(Font.BOLD));
+        }
 
         marcarPosicionJugador(0, 0);
         marcarPosicionJugador(1,0);
@@ -194,12 +279,15 @@ public class VentanaPrincipal extends JFrame {
         // -------------------------------------------------
 
         JButton btnTirarDados = new JButton("Tirar dados");
-
         JButton btnComprar = new JButton("Comprar propiedad");
         btnComprar.setEnabled(false);
-
         JButton btnTerminarTurno = new JButton("Terminar turno");
 
+        Dimension tamanoBoton = new Dimension(180, 30);
+
+        btnTirarDados.setMaximumSize(tamanoBoton);
+        btnComprar.setMaximumSize(tamanoBoton);
+        btnTerminarTurno.setMaximumSize(tamanoBoton);
 
         // -------------------------------------------------
         // ESTADO DEL JUEGO
@@ -214,6 +302,23 @@ public class VentanaPrincipal extends JFrame {
         lblEstado.setFocusable(false);
 
         lblEstado.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+
+        // -------------------------------------------------
+        // ALINEACION DE COMPONENTES
+        // -------------------------------------------------
+        
+        lblNombre.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblSaldo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblPosicion.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblTurno.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        panelDados.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        btnTirarDados.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnComprar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnTerminarTurno.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        lblEstado.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // -------------------------------------------------
         // ORGANIZACIÓN DEL PANEL DEL JUGADOR
@@ -334,8 +439,14 @@ public class VentanaPrincipal extends JFrame {
             propietariosSimulados[posicionActual] = jugadorActualSimulado;
 
             etiquetasPropietarios[posicionActual].setText("Dueño: J" + (jugadorActualSimulado + 1));
+            etiquetasPropietarios[posicionActual].setOpaque(true);
+        
+            etiquetasPropietarios[posicionActual].setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
+            etiquetasPropietarios[posicionActual].setForeground(Color.WHITE);
 
-            lblEstado.setText("J" + (jugadorActualSimulado +1) + " compró la Casilla " + posicionActual + ".");
+            etiquetasPropietarios[posicionActual].setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
+
+            lblEstado.setText("J" + (jugadorActualSimulado +1) + " compró " + nombresCasillas[posicionActual] + ".");
 
             btnComprar.setEnabled(false);
         });
