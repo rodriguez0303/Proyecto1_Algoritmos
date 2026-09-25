@@ -178,6 +178,8 @@ public class VentanaPrincipal extends JFrame {
 
                     JPanel panelCentro = new JPanel();
 
+                    panelCentro.setBorder(BorderFactory.createEtchedBorder());
+
                     gbc.gridx = 1;
                     gbc.gridy = 1;
 
@@ -189,9 +191,17 @@ public class VentanaPrincipal extends JFrame {
 
                     panelTablero.add(panelCentro, gbc);
 
+                    panelCentro.setLayout(new BorderLayout());
+
                     panelCentro.setBackground(new Color(225, 215, 185));
 
-                    panelCentro.setBorder(BorderFactory.createTitledBorder("Monopoly TEC"));
+                    panelCentro.setBorder(BorderFactory.createEtchedBorder());
+
+                    JLabel lblTituloCentro = new JLabel("Monopoly TEC", JLabel.CENTER);
+
+                    lblTituloCentro.setFont(new Font("Serif", Font.BOLD, 42));
+
+                    panelCentro.add(lblTituloCentro, BorderLayout.CENTER);
                 }
             }
         }
@@ -260,8 +270,14 @@ public class VentanaPrincipal extends JFrame {
         JLabel lblNombre = new JLabel("Jugador: José");
         JLabel lblSaldo = new JLabel("Saldo: ₡1500");
         JLabel lblPosicion = new JLabel("Posición: 0");
-        JLabel lblTurno = new JLabel("Turno actual: José");
+        JLabel lblTurno = new JLabel("Turno actual: J1");
 
+        lblTurno.setOpaque(true);
+        lblTurno.setForeground(Color.WHITE);
+
+        lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
+
+        lblTurno.setBorder(BorderFactory.createEmptyBorder(4, 7, 4, 7));
 
         // -------------------------------------------------
         // INFORMACIÓN DE LOS DADOS
@@ -482,6 +498,8 @@ public class VentanaPrincipal extends JFrame {
             btnComprar.setEnabled(false);
 
             lblTurno.setText("Turno actual: J" + (jugadorActualSimulado + 1));
+
+            lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
 
             lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
 
