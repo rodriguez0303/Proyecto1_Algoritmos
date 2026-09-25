@@ -3,6 +3,7 @@ package Interfaz;
 // Importaciones necesarias para la interfaz gráfica
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JButton;
@@ -113,6 +114,10 @@ public class VentanaPrincipal extends JFrame {
         gbc.weightx = 1.0;
         gbc.weighty = 1.0;
 
+        Dimension tamanoCasilla = new Dimension(145, 105);
+        Dimension tamanoPanelFichas = new Dimension(110, 45);
+        Dimension tamanoPropietario = new Dimension(110, 22);
+
         for(int fila = 0; fila < 7; fila++) {
             for (int columna = 0; columna < 7; columna++) {
                 if (fila == 0 || fila == 6 || columna == 0 || columna == 6) {
@@ -134,8 +139,14 @@ public class VentanaPrincipal extends JFrame {
                     JPanel casilla = new JPanel();
                     casilla.setLayout(new BorderLayout());
 
+                    casilla.setPreferredSize(tamanoCasilla);
+                    casilla.setMinimumSize(tamanoCasilla);
+
                     JPanel panelFichas = new JPanel();
                     panelFichas.setOpaque(false);
+
+                    panelFichas.setPreferredSize(tamanoPanelFichas);
+                    panelFichas.setMinimumSize(tamanoPanelFichas);
 
                     if (numeroCasilla == 0) {
                         casilla.setBackground(new Color(180, 230, 180));
@@ -161,7 +172,10 @@ public class VentanaPrincipal extends JFrame {
                     casilla.setBorder(BorderFactory.createEtchedBorder());
 
                     JLabel textoCasilla = new JLabel(nombresCasillas[numeroCasilla]);
-                    JLabel lblPropietario = new JLabel("");
+                    JLabel lblPropietario = new JLabel(" ");
+
+                    lblPropietario.setPreferredSize(tamanoPropietario);
+                    lblPropietario.setMinimumSize(tamanoPropietario);
 
                     etiquetasPropietarios[numeroCasilla] = lblPropietario;
 
@@ -175,36 +189,39 @@ public class VentanaPrincipal extends JFrame {
                     gbc.gridheight = 1;
 
                     panelTablero.add(casilla, gbc);
-
-                    JPanel panelCentro = new JPanel();
-
-                    panelCentro.setBorder(BorderFactory.createEtchedBorder());
-
-                    gbc.gridx = 1;
-                    gbc.gridy = 1;
-
-                    gbc.gridwidth = 5;
-                    gbc.gridheight = 5;
-
-                    gbc.weightx = 5.0;
-                    gbc.weighty = 5.0;
-
-                    panelTablero.add(panelCentro, gbc);
-
-                    panelCentro.setLayout(new BorderLayout());
-
-                    panelCentro.setBackground(new Color(225, 215, 185));
-
-                    panelCentro.setBorder(BorderFactory.createEtchedBorder());
-
-                    JLabel lblTituloCentro = new JLabel("Monopoly TEC", JLabel.CENTER);
-
-                    lblTituloCentro.setFont(new Font("Serif", Font.BOLD, 42));
-
-                    panelCentro.add(lblTituloCentro, BorderLayout.CENTER);
                 }
             }
         }
+
+        // --------------------------------------------------
+        // PANEL CENTRAL
+        // --------------------------------------------------
+
+        JPanel panelCentro = new JPanel();
+
+        panelCentro.setBorder(BorderFactory.createEtchedBorder());
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+
+        gbc.gridwidth = 5;
+        gbc.gridheight = 5;
+
+        gbc.weightx = 5.0;
+        gbc.weighty = 5.0;
+
+        panelTablero.add(panelCentro, gbc);
+
+        panelCentro.setLayout(new BorderLayout());
+
+        panelCentro.setBackground(new Color(225, 215, 185));
+
+        JLabel lblTituloCentro = new JLabel("Monopoly TEC", JLabel.CENTER);
+
+        lblTituloCentro.setFont(new Font("Serif", Font.BOLD, 42));
+
+        panelCentro.add(lblTituloCentro, BorderLayout.CENTER);
+
 
         fichasJugadores[0] = new JLabel("J1");
         fichasJugadores[1] = new JLabel("J2");
@@ -283,12 +300,26 @@ public class VentanaPrincipal extends JFrame {
         // INFORMACIÓN DE LOS DADOS
         // -------------------------------------------------
 
-        JLabel lblDado1 = new JLabel("Dado 1: -");
-        JLabel lblDado2 = new JLabel("Dado 2: -");
+        JPanel panelDado1 = new JPanel(new BorderLayout());
+        JPanel panelDado2 = new JPanel(new BorderLayout());
 
-        panelDados.add(lblDado1);
-        panelDados.add(lblDado2);
+        JLabel tituloDado1 = new JLabel("Dado 1", JLabel.CENTER);
+        JLabel tituloDado2 = new JLabel("Dado 1", JLabel.CENTER);
 
+        JLabel lblDado1 = new JLabel("-", JLabel.CENTER);
+        JLabel lblDado2 = new JLabel("-", JLabel.CENTER);
+
+        lblDado1.setFont(new Font("SansSerif", Font.BOLD, 42));
+        lblDado2.setFont(new Font("SansSerif", Font.BOLD, 42));
+
+        panelDado1.add(tituloDado1, BorderLayout.NORTH);
+        panelDado1.add(lblDado1, BorderLayout.CENTER);
+
+        panelDado2.add(tituloDado2, BorderLayout.NORTH);
+        panelDado2.add(lblDado2, BorderLayout.CENTER);
+
+        panelDados.add(panelDado1);
+        panelDados.add(panelDado2);
 
         // -------------------------------------------------
         // BOTONES
@@ -377,8 +408,8 @@ public class VentanaPrincipal extends JFrame {
             int dado2 = generador.nextInt(6) + 1;
             int total = dado1 + dado2;
 
-            lblDado1.setText("Dado 1: " + dado1);
-            lblDado2.setText("Dado 2: " + dado2);
+            lblDado1.setText(obtenerCaraDado(dado1));
+            lblDado2.setText(obtenerCaraDado(dado2));
 
             posicionesJugadoresSimulados[jugadorActualSimulado] = (posicionesJugadoresSimulados[jugadorActualSimulado] + total) % 24;
 
@@ -505,8 +536,8 @@ public class VentanaPrincipal extends JFrame {
 
             lblPosicion.setText("Posición: " + posicionesJugadoresSimulados[jugadorActualSimulado]);
 
-            lblDado1.setText("Dado 1: -");
-            lblDado2.setText("Dado 2: -");
+            lblDado1.setText("-");
+            lblDado2.setText("-");
 
             lblEstado.setText("Turno de J"+ (jugadorActualSimulado + 1));
         });
@@ -540,6 +571,25 @@ public class VentanaPrincipal extends JFrame {
             }
         }
         return cantidad;
+    }
+
+    private String obtenerCaraDado(int valor) {
+        switch (valor) {
+            case 1:
+                return "⚀";
+            case 2:
+                return "⚁";
+            case 3:
+                return "⚂";
+            case 4:
+                return "⚃";
+            case 5:
+                return "⚄";
+            case 6:
+                return "⚅";
+            default:
+                return "-";
+        }
     }
 
     private void marcarPosicionJugador(int jugador, int posicion) {
