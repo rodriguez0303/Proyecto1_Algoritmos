@@ -3,7 +3,6 @@ package Interfaz;
 // Importaciones necesarias para la interfaz gráfica
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
-import javax.swing.border.Border;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JButton;
@@ -262,7 +261,6 @@ public class VentanaPrincipal extends JFrame {
             BorderFactory.createTitledBorder("Jugador")
         );
 
-
         // -------------------------------------------------
         // CONFIGURACIÓN DEL PANEL DE DADOS
         // -------------------------------------------------
@@ -284,10 +282,23 @@ public class VentanaPrincipal extends JFrame {
         // INFORMACIÓN DEL JUGADOR
         // -------------------------------------------------
 
-        JLabel lblNombre = new JLabel("Jugador: José");
+        JLabel lblNombre = new JLabel("Jugador actual: J1");
         JLabel lblSaldo = new JLabel("Saldo: ₡1500");
+        JLabel lblPatrimonio = new JLabel("Patrimonio: ₡1500");
         JLabel lblPosicion = new JLabel("Posición: 0");
         JLabel lblTurno = new JLabel("Turno actual: J1");
+
+        JTextArea lblPropiedades = new JTextArea("Propiedades: ninguna");
+
+        lblPropiedades.setEditable(false);
+        lblPropiedades.setLineWrap(true);
+        lblPropiedades.setWrapStyleWord(true);
+        lblPropiedades.setOpaque(false);
+        lblPropiedades.setFocusable(false);
+        lblPropiedades.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        lblPropiedades.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        lblPatrimonio.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         lblTurno.setOpaque(true);
         lblTurno.setForeground(Color.WHITE);
@@ -304,7 +315,7 @@ public class VentanaPrincipal extends JFrame {
         JPanel panelDado2 = new JPanel(new BorderLayout());
 
         JLabel tituloDado1 = new JLabel("Dado 1", JLabel.CENTER);
-        JLabel tituloDado2 = new JLabel("Dado 1", JLabel.CENTER);
+        JLabel tituloDado2 = new JLabel("Dado 2", JLabel.CENTER);
 
         JLabel lblDado1 = new JLabel("-", JLabel.CENTER);
         JLabel lblDado2 = new JLabel("-", JLabel.CENTER);
@@ -373,8 +384,10 @@ public class VentanaPrincipal extends JFrame {
 
         panelJugador.add(lblNombre);
         panelJugador.add(lblSaldo);
+        panelJugador.add(lblPatrimonio);
         panelJugador.add(lblPosicion);
         panelJugador.add(lblTurno);
+        panelJugador.add(lblPropiedades);
 
         panelJugador.add(Box.createVerticalStrut(15));
 
@@ -443,6 +456,8 @@ public class VentanaPrincipal extends JFrame {
 
                     lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
 
+                    lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+
                     mensajeCasilla = "Pagó ₡" + ALQUILER_SIMULADO + " de alquiler a J" + (propietario + 1) + ".";
                 }
                 else {
@@ -485,6 +500,8 @@ public class VentanaPrincipal extends JFrame {
 
             propietariosSimulados[posicionActual] = jugadorActualSimulado;
 
+            lblPropiedades.setText(obtenerPropiedadesJugadorSim(jugadorActualSimulado));
+
             etiquetasPropietarios[posicionActual].setText("Dueño: J" + (jugadorActualSimulado + 1));
             etiquetasPropietarios[posicionActual].setOpaque(true);
         
@@ -494,6 +511,8 @@ public class VentanaPrincipal extends JFrame {
             etiquetasPropietarios[posicionActual].setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
 
             lblEstado.setText("J" + (jugadorActualSimulado +1) + " compró " + nombresCasillas[posicionActual] + ".");
+
+            lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
 
             btnComprar.setEnabled(false);
         });
@@ -529,8 +548,13 @@ public class VentanaPrincipal extends JFrame {
             btnComprar.setEnabled(false);
 
             lblTurno.setText("Turno actual: J" + (jugadorActualSimulado + 1));
+            lblNombre.setText("Jugador actual: J" + (jugadorActualSimulado + 1));
 
             lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
+
+            lblPropiedades.setText(obtenerPropiedadesJugadorSim(jugadorActualSimulado));
+
+            lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
 
             lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
 
@@ -549,6 +573,36 @@ public class VentanaPrincipal extends JFrame {
 
         add(panelTablero, BorderLayout.CENTER);
         add(panelJugador, BorderLayout.EAST);
+    }
+
+    private double calcularPatrimonioSim(int jugador) {
+        double patrimonio = saldosJugadoresSimulados[jugador];
+
+        for (int i = 0; i < propietariosSimulados.length; i++) {
+            if (propietariosSimulados[i] == jugador) {
+                patrimonio += PRECIO_PROPIEDAD_SIMULADO;
+            }
+        }
+        return patrimonio;
+    }
+
+    private String obtenerPropiedadesJugadorSim(int jugador) {
+        StringBuilder texto = new StringBuilder("Propiedades: ");
+        boolean tienePropiedades = false;
+
+        for (int i = 0; i < propietariosSimulados.length; i++) {
+            if (propietariosSimulados[i] == jugador) {
+                if (tienePropiedades) {
+                    texto.append(". ");
+                }
+                texto.append(nombresCasillas[i]);
+                tienePropiedades = true;
+            }
+        }
+        if (!tienePropiedades) {
+            texto.append("ninguna");
+        }
+        return texto.toString();
     }
 
     private boolean esPropiedadSimulada(int posicion) {
