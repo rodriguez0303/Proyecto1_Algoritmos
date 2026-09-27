@@ -63,7 +63,7 @@ public class VentanaPrincipal extends JFrame {
     };
     private String[] cartasEventoSimuladas = {
         "Recibe ₡100 por beca del TEC.",
-        "Paga ₡100 por romper algo de laboratio.",
+        "Paga ₡100 por romper algo de laboratorio.",
         "Avanza 3 posiciones.",
         "Vas directamente al Edificio D3.",
         "Vas directamente a la Salida."
@@ -80,6 +80,8 @@ public class VentanaPrincipal extends JFrame {
     private static final double PRECIO_PROPIEDAD_SIMULADO = 200;
     private static final double ALQUILER_SIMULADO = 100;
 
+
+    private boolean[] pierdeTurnoSimulado = {false, false, false, false};
     private boolean dadosLanzadosSimulados = false;
     private boolean[] jugadoresActivosSimulados = { true, true, true, true};
 
@@ -348,6 +350,7 @@ public class VentanaPrincipal extends JFrame {
         JButton btnComprar = new JButton("Comprar propiedad");
         btnComprar.setEnabled(false);
         JButton btnTerminarTurno = new JButton("Terminar turno");
+        btnTerminarTurno.setEnabled(false);
 
         Dimension tamanoBoton = new Dimension(180, 30);
 
@@ -446,12 +449,12 @@ public class VentanaPrincipal extends JFrame {
 
                 String carta = obtenerCartaEventosSimulada();
 
-                if (carta.equals("Recibe ₡100 por una beca del TEC.")) {
+                if (carta.equals("Recibe ₡100 por beca del TEC.")) {
                     saldosJugadoresSimulados[jugadorActualSimulado] += 100;
 
                     lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
 
-                    lblPatrimonio.setText("Patrimonio: " + calcularPatrimonioSim(jugadorActualSimulado));
+                    lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
             
                 }
 
@@ -469,6 +472,31 @@ public class VentanaPrincipal extends JFrame {
 
                         carta = "No pudo pagar ₡100 por lo que rompió y fue eliminado.";
                     }
+                }
+
+                else if (carta.equals("Avanza 3 posiciones.")) {
+                    nuevaPosicion = (nuevaPosicion + 3) % 24;
+
+                    posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+
+                    carta = "Avanza 3 posiciones. Ahora esta en " + nombresCasillas[nuevaPosicion] + ".";
+                }
+
+                else if (carta.equals("Vas directamente al Edificio D3.")) {
+                    nuevaPosicion = 6;
+
+                    posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+                    pierdeTurnoSimulado[jugadorActualSimulado] = true;
+
+                    carta = "Esta condenado a un turno en el D3.";
+                }
+
+                else if (carta.equals("Vas directamente a la Salida.")) {
+                    nuevaPosicion = 0;
+
+                    posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+
+                    carta = "Fue directamente a la Salida.";
                 }
 
                 mensajeCasilla = "Carta de evento: " + carta;
@@ -518,6 +546,7 @@ public class VentanaPrincipal extends JFrame {
 
             dadosLanzadosSimulados = true;
             btnTirarDados.setEnabled(false);
+            btnTerminarTurno.setEnabled(true);
 
             lblEstado.setText("J" + (jugadorActualSimulado + 1) + " avanzó " + total + " posiciones. " + mensajeCasilla);
         });
@@ -565,11 +594,27 @@ public class VentanaPrincipal extends JFrame {
 
         btnTerminarTurno.addActionListener(e -> {
             int intentos = 0;
+            String mensajeSalto = "";
 
-            do {jugadorActualSimulado = (jugadorActualSimulado + 1 ) % 4;
+            while(intentos < 4) {
+                jugadorActualSimulado = (jugadorActualSimulado + 1) % 4;
+
                 intentos++;
-            } while (!jugadoresActivosSimulados[jugadorActualSimulado] && intentos < 4);
-            
+
+                if (!jugadoresActivosSimulados[jugadorActualSimulado]) {
+                    continue;
+                }
+                if (pierdeTurnoSimulado[jugadorActualSimulado]) {
+
+                    pierdeTurnoSimulado[jugadorActualSimulado] = false;
+
+                    mensajeSalto = "J" + (jugadorActualSimulado + 1) + " perdió su turno por estar en el D3.";
+
+                    continue;
+                }
+                break;
+            }
+
             if (contarJugadoresActivos() == 1) {
                 int ganador = -1;
 
@@ -589,10 +634,12 @@ public class VentanaPrincipal extends JFrame {
             }
 
             dadosLanzadosSimulados = false;
+
+            btnTerminarTurno.setEnabled(false);
             btnTirarDados.setEnabled(true);
             btnComprar.setEnabled(false);
 
-            lblTurno.setText("Turno actual: J" + (jugadorActualSimulado + 1));
+            lblTurno.setText("Turno de J" + (jugadorActualSimulado + 1));
             lblNombre.setText("Jugador actual: J" + (jugadorActualSimulado + 1));
 
             lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
@@ -608,7 +655,7 @@ public class VentanaPrincipal extends JFrame {
             lblDado1.setText("-");
             lblDado2.setText("-");
 
-            lblEstado.setText("Turno de J"+ (jugadorActualSimulado + 1));
+            lblEstado.setText(mensajeSalto + "Turno de J" + (jugadorActualSimulado + 1));
         });
 
 
