@@ -42,7 +42,7 @@ public class VentanaPrincipal extends JFrame {
     "Evento",        // 3
     "Propiedad 3",   // 4
     "Propiedad 4",   // 5
-    "Especial",      // 6
+    "Edificio D3",      // 6
     "Propiedad 5",   // 7
     "Propiedad 6",   // 8
     "Evento",        // 9
@@ -61,7 +61,15 @@ public class VentanaPrincipal extends JFrame {
     "Propiedad 15",  // 22
     "Propiedad 16"   // 23
     };
+    private String[] cartasEventoSimuladas = {
+        "Recibe ₡100 por beca del TEC.",
+        "Paga ₡100 por romper algo de laboratio.",
+        "Avanza 3 posiciones.",
+        "Vas directamente al Edificio D3.",
+        "Vas directamente a la Salida."
+    };
 
+    private int indiceCartaEventosSimulada = 0;
     private int[] posicionesJugadoresSimulados = {0, 0, 0, 0};
     private int [] posicionesVisuales = {-1, -1, -1, -1};
     private int jugadorActualSimulado = 0;
@@ -432,21 +440,58 @@ public class VentanaPrincipal extends JFrame {
 
             int propietario = propietariosSimulados[nuevaPosicion];
 
-            if (!esPropiedadSimulada(nuevaPosicion)) {
+            if (esCasillaEventoSimulada(nuevaPosicion)) {
+
+                btnComprar.setEnabled(false);
+
+                String carta = obtenerCartaEventosSimulada();
+
+                if (carta.equals("Recibe ₡100 por una beca del TEC.")) {
+                    saldosJugadoresSimulados[jugadorActualSimulado] += 100;
+
+                    lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+                    lblPatrimonio.setText("Patrimonio: " + calcularPatrimonioSim(jugadorActualSimulado));
+            
+                }
+
+                else if (carta.equals("Paga ₡100 por romper algo de laboratorio.")) {
+
+                    if (saldosJugadoresSimulados[jugadorActualSimulado] >= 100) {
+                        saldosJugadoresSimulados[jugadorActualSimulado] -= 100;
+
+                        lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+                        lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+                    }
+                    else {
+                        jugadoresActivosSimulados[jugadorActualSimulado] = false;
+
+                        carta = "No pudo pagar ₡100 por lo que rompió y fue eliminado.";
+                    }
+                }
+
+                mensajeCasilla = "Carta de evento: " + carta;
+            }
+
+            else if (!esPropiedadSimulada(nuevaPosicion)) {
                 btnComprar.setEnabled(false);
 
                 mensajeCasilla = "Cayó en una casilla especial.";
             }
+
             else if (propietario == -1) {
                 btnComprar.setEnabled(true);
 
                 mensajeCasilla = "La propiedad esta disponible.";
             }
+
             else if (propietario == jugadorActualSimulado) {
                 btnComprar.setEnabled(false);
 
                 mensajeCasilla = "Cayó en su propia propiedad.";
             }
+
             else { 
                 btnComprar.setEnabled(false);
 
@@ -573,6 +618,21 @@ public class VentanaPrincipal extends JFrame {
 
         add(panelTablero, BorderLayout.CENTER);
         add(panelJugador, BorderLayout.EAST);
+    }
+
+    private String obtenerCartaEventosSimulada() {
+        String carta = cartasEventoSimuladas[indiceCartaEventosSimulada];
+
+        indiceCartaEventosSimulada = (indiceCartaEventosSimulada + 1) % cartasEventoSimuladas.length;
+
+        return carta;
+    }
+
+    private boolean esCasillaEventoSimulada(int posicion) {
+        return posicion == 3 ||
+        posicion == 9 ||
+        posicion == 15 ||
+        posicion == 21;
     }
 
     private double calcularPatrimonioSim(int jugador) {
