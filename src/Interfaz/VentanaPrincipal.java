@@ -32,34 +32,42 @@ public class VentanaPrincipal extends JFrame {
 
     private JLabel[] etiquetasPropietarios = new JLabel[24];
     private JLabel[] fichasJugadores = new JLabel[4];
+    private JLabel lblNombre;
+    private JLabel lblSaldo;
+    private JLabel lblPatrimonio;
+    private JLabel lblPosicion;
+    private JLabel lblTurno;
+    private JLabel lblNumeroTurno;
+
+    private JTextArea lblPropiedades;
 
     private Random generador = new Random();
 
     private String[] nombresCasillas = {
     "Salida",        // 0
-    "Propiedad 1",   // 1
-    "Propiedad 2",   // 2
+    "Comedor Institucional",   // 1
+    "Soda Forestal",   // 2
     "Evento",        // 3
-    "Propiedad 3",   // 4
-    "Propiedad 4",   // 5
+    "Biblioteca Figueres Ferrer",   // 4
+    "Learning Commons",   // 5
     "Edificio D3",      // 6
-    "Propiedad 5",   // 7
-    "Propiedad 6",   // 8
+    "ASETEC",   // 7
+    "Puesto Antonio",   // 8
     "Evento",        // 9
-    "Propiedad 7",  // 10
-    "Propiedad 8",  // 11
+    "Bosque de Bambúes",  // 10
+    "Lago",  // 11
     "Especial",      // 12
-    "Propiedad 9",  // 13
-    "Propiedad 10",  // 14
+    "GymTEC",  // 13
+    "Soda Deportiva",  // 14
     "Evento",        // 15
-    "Propiedad 11",  // 16
-    "Propiedad 12",  // 17
+    "Escuela de Computadores",  // 16
+    "Escuela de Electrónica",  // 17
     "Ir al D3",      // 18
-    "Propiedad 13",  // 19
-    "Propiedad 14",  // 20
+    "Cancha de fútbol",  // 19
+    "Cancha de béisbol",  // 20
     "Evento",        // 21
-    "Propiedad 15",  // 22
-    "Propiedad 16"   // 23
+    "BICITEC",  // 22
+    "UberTEC"   // 23
     };
     private String[] cartasEventoSimuladas = {
         "Recibe ₡100 por beca del TEC.",
@@ -74,10 +82,52 @@ public class VentanaPrincipal extends JFrame {
     private int [] posicionesVisuales = {-1, -1, -1, -1};
     private int jugadorActualSimulado = 0;
     private int[] propietariosSimulados = new int[24];
+    private int numeroTurnoSimulado = 1;
 
     private double[] saldosJugadoresSimulados = {1500, 1500, 1500, 1500};
+    private double[] preciosPropiedadesSimulados = {
+        0,      // 0 Salida
 
-    private static final double PRECIO_PROPIEDAD_SIMULADO = 200;
+        100,    // 1 Comedor Institucional
+        100,    // 2 Soda Forestal
+
+        0,      // 3 Evento
+
+        150,    // 4 Biblioteca Figueres Ferrer
+        150,    // 5 Learning Commons
+
+        0,      // 6 D3
+
+        200,    // 7 ASETEC
+        200,    // 8 Puesto Antonio
+
+        0,      // 9 Evento
+
+        250,    // 10 Bosque de Bambúes
+        250,    // 11 Lago
+
+        0,      // 12 Especial
+
+        300,    // 13 GymTEC
+        300,    // 14 Soda Deportiva
+
+        0,      // 15 Evento
+
+        350,    // 16 Escuela de Computadores
+        350,    // 17 Escuela de Electrónica
+
+        0,      // 18 Ir al D3
+
+        400,    // 19 Cancha de fútbol
+        400,    // 20 Cancha de béisbol
+
+        0,      // 21 Evento
+
+        450,    // 22 BICITEC
+        450     // 23 UberTEC
+    };
+
+    private static final int MAX_TURNOS_SIMULADO = 20;
     private static final double ALQUILER_SIMULADO = 100;
     private static final double PREMIO_SALIDA_SIMULADO = 200;
 
@@ -157,23 +207,7 @@ public class VentanaPrincipal extends JFrame {
                     panelFichas.setPreferredSize(tamanoPanelFichas);
                     panelFichas.setMinimumSize(tamanoPanelFichas);
 
-                    if (numeroCasilla == 0) {
-                        casilla.setBackground(new Color(180, 230, 180));
-                    }
-                    else if (numeroCasilla == 3 ||
-                            numeroCasilla == 9 ||
-                            numeroCasilla == 15 ||
-                            numeroCasilla == 21) {
-                        casilla.setBackground(new Color(255, 230, 160));
-                    }
-                    else if (numeroCasilla == 6 ||
-                            numeroCasilla == 12 ||
-                            numeroCasilla == 18) {
-                        casilla.setBackground(new Color(180, 220, 245));
-                    }
-                    else {
-                        casilla.setBackground(new Color(235, 235, 235));
-                    }
+                    casilla.setBackground(obtenerColorCasillaSimulada(numeroCasilla));
 
                     casillasVisuales[numeroCasilla] = casilla;
                     panelesFichas[numeroCasilla] = panelFichas;
@@ -181,6 +215,28 @@ public class VentanaPrincipal extends JFrame {
                     casilla.setBorder(BorderFactory.createEtchedBorder());
 
                     JLabel textoCasilla = new JLabel(nombresCasillas[numeroCasilla]);
+                    JPanel panelSuperior = new JPanel(new BorderLayout());
+                    panelSuperior.setOpaque(false);
+                    textoCasilla.setHorizontalAlignment((JLabel.CENTER));
+
+                    if (esPropiedadSimulada(numeroCasilla)) {
+                        JPanel franjaColor = new JPanel();
+
+                        franjaColor.setPreferredSize(new Dimension(0, 14));
+
+                        franjaColor.setBackground(obtenerColorGrupoPropiedadSimulada(numeroCasilla));
+
+                        panelSuperior.add(franjaColor, BorderLayout.NORTH);
+
+                        JLabel lblPrecio = new JLabel("₡" + (int) preciosPropiedadesSimulados[numeroCasilla], JLabel.CENTER);
+
+                        lblPrecio.setFont(lblPrecio.getFont().deriveFont(Font.PLAIN, 11f));
+
+                        panelSuperior.add(lblPrecio, BorderLayout.SOUTH);
+                    }
+
+                    panelSuperior.add(textoCasilla, BorderLayout.CENTER);
+
                     JLabel lblPropietario = new JLabel(" ");
 
                     lblPropietario.setPreferredSize(tamanoPropietario);
@@ -188,7 +244,7 @@ public class VentanaPrincipal extends JFrame {
 
                     etiquetasPropietarios[numeroCasilla] = lblPropietario;
 
-                    casilla.add(textoCasilla, BorderLayout.NORTH);
+                    casilla.add(panelSuperior, BorderLayout.NORTH);
                     casilla.add(panelFichas, BorderLayout.CENTER);
                     casilla.add(lblPropietario, BorderLayout.SOUTH);
 
@@ -292,13 +348,14 @@ public class VentanaPrincipal extends JFrame {
         // INFORMACIÓN DEL JUGADOR
         // -------------------------------------------------
 
-        JLabel lblNombre = new JLabel("Jugador actual: J1");
-        JLabel lblSaldo = new JLabel("Saldo: ₡1500");
-        JLabel lblPatrimonio = new JLabel("Patrimonio: ₡1500");
-        JLabel lblPosicion = new JLabel("Posición: 0");
-        JLabel lblTurno = new JLabel("Turno actual: J1");
+        lblNombre = new JLabel("Jugador actual: J1");
+        lblSaldo = new JLabel("Saldo: ₡1500");
+        lblPatrimonio = new JLabel("Patrimonio: ₡1500");
+        lblPosicion = new JLabel("Posición: 0 - Salida");
+        lblTurno = new JLabel("Turno actual: J1");
+        lblNumeroTurno = new JLabel("Número de turno: 1 / " + MAX_TURNOS_SIMULADO);
 
-        JTextArea lblPropiedades = new JTextArea("Propiedades: ninguna");
+        lblPropiedades = new JTextArea("Propiedades: ninguna");
 
         lblPropiedades.setEditable(false);
         lblPropiedades.setLineWrap(true);
@@ -310,11 +367,11 @@ public class VentanaPrincipal extends JFrame {
 
         lblPatrimonio.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        lblNumeroTurno.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         lblTurno.setOpaque(true);
         lblTurno.setForeground(Color.WHITE);
-
         lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
-
         lblTurno.setBorder(BorderFactory.createEmptyBorder(4, 7, 4, 7));
 
         // -------------------------------------------------
@@ -398,6 +455,7 @@ public class VentanaPrincipal extends JFrame {
         panelJugador.add(lblPatrimonio);
         panelJugador.add(lblPosicion);
         panelJugador.add(lblTurno);
+        panelJugador.add(lblNumeroTurno);
         panelJugador.add(lblPropiedades);
 
         panelJugador.add(Box.createVerticalStrut(15));
@@ -574,7 +632,7 @@ public class VentanaPrincipal extends JFrame {
                 }
             }
 
-            lblPosicion.setText("Posición: " + nuevaPosicion);
+            lblPosicion.setText("Posición: " + nuevaPosicion + " - " + nombresCasillas[nuevaPosicion]);
 
             marcarPosicionJugador(jugadorActualSimulado, nuevaPosicion);
 
@@ -589,6 +647,8 @@ public class VentanaPrincipal extends JFrame {
 
             int posicionActual = posicionesJugadoresSimulados[jugadorActualSimulado];
 
+            double precioActual = preciosPropiedadesSimulados[posicionActual];
+
             if (!esPropiedadSimulada(posicionActual)) {
                 lblEstado.setText("Esta casilla no se puede comprar.");
                 return;
@@ -597,12 +657,12 @@ public class VentanaPrincipal extends JFrame {
                 lblEstado.setText("Esta propiedad ya tiene propietario.");
                 return;
             }
-            if (saldosJugadoresSimulados[jugadorActualSimulado] < PRECIO_PROPIEDAD_SIMULADO) {
+            if (saldosJugadoresSimulados[jugadorActualSimulado] < precioActual) {
                 lblEstado.setText("J" + (jugadorActualSimulado + 1) + " no tiene saldo suficiente.");
                 return;
             }
 
-            saldosJugadoresSimulados[jugadorActualSimulado] -= PRECIO_PROPIEDAD_SIMULADO;
+            saldosJugadoresSimulados[jugadorActualSimulado] -= precioActual;
 
             lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
 
@@ -618,7 +678,7 @@ public class VentanaPrincipal extends JFrame {
 
             etiquetasPropietarios[posicionActual].setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
 
-            lblEstado.setText("J" + (jugadorActualSimulado +1) + " compró " + nombresCasillas[posicionActual] + ".");
+            lblEstado.setText("J" + (jugadorActualSimulado +1) + " compró " + nombresCasillas[posicionActual] + " por ₡" + precioActual + ".");
 
             lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
 
@@ -649,6 +709,8 @@ public class VentanaPrincipal extends JFrame {
                 break;
             }
 
+            numeroTurnoSimulado++;
+
             if (contarJugadoresActivos() == 1) {
                 int ganador = -1;
 
@@ -667,25 +729,30 @@ public class VentanaPrincipal extends JFrame {
                 return;
             }
 
+            if (numeroTurnoSimulado > MAX_TURNOS_SIMULADO) {
+                int ganador = obtenerGanadorPorPatrimonioSimulado();
+
+                double patrimonioGanador = calcularPatrimonioSim(ganador);
+
+                lblNumeroTurno.setText("Número de turno: " + MAX_TURNOS_SIMULADO + " / " + MAX_TURNOS_SIMULADO);
+
+                lblEstado.setText("Se alcanzó el límite de turnos. El ganador es J" + (ganador + 1) + " con un patrimonio de ₡" + patrimonioGanador + ".");
+
+                btnTerminarTurno.setEnabled(false);
+                btnComprar.setEnabled(false);
+                btnTirarDados.setEnabled(false);
+
+                return;
+            }
+
             dadosLanzadosSimulados = false;
 
             btnTerminarTurno.setEnabled(false);
             btnTirarDados.setEnabled(true);
             btnComprar.setEnabled(false);
 
-            lblTurno.setText("Turno de J" + (jugadorActualSimulado + 1));
-            lblNombre.setText("Jugador actual: J" + (jugadorActualSimulado + 1));
-
-            lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
-
-            lblPropiedades.setText(obtenerPropiedadesJugadorSim(jugadorActualSimulado));
-
-            lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
-
-            lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
-
-            lblPosicion.setText("Posición: " + posicionesJugadoresSimulados[jugadorActualSimulado]);
-
+            actualizarPanelJugadorSimulado();
+            
             lblDado1.setText("-");
             lblDado2.setText("-");
 
@@ -699,6 +766,102 @@ public class VentanaPrincipal extends JFrame {
 
         add(panelTablero, BorderLayout.CENTER);
         add(panelJugador, BorderLayout.EAST);
+    }
+
+    private Color obtenerColorGrupoPropiedadSimulada(int posicion) {
+        if (posicion == 1 || posicion == 2) {
+            return new Color(150, 95, 60);
+        }
+        if (posicion == 4 || posicion == 5) {
+            return new Color(120, 190, 220);
+        }
+        if (posicion == 7 || posicion == 8) {
+            return new Color(220, 130, 180);
+        }
+        if (posicion == 10 || posicion == 11) {
+            return new Color(230, 160, 70);
+        }
+        if (posicion == 13 || posicion == 14) {
+            return new Color(210, 80, 80);
+        }
+        if (posicion == 16 || posicion == 17) {
+            return new Color(230, 210, 80);
+        }
+        if (posicion == 19 || posicion == 20) {
+            return new Color(90, 170, 100);
+        }
+        if (posicion == 22 || posicion ==23) {
+            return new Color(70, 100, 170);
+        }
+        return new Color(200, 200, 200);
+    }
+
+    private Color obtenerColorCasillaSimulada(int posicion) {
+
+        if (posicion == 0) {
+            return new Color(190, 225, 190);   // Salida
+        }
+
+        if (esCasillaEventoSimulada(posicion)) {
+            return new Color(220, 205, 235);   // Evento
+        }
+
+        if (posicion == 6) {
+            return new Color(205, 220, 235);   // Edificio D3
+        }
+
+        if (posicion == 18) {
+            return new Color(235, 195, 195);   // Ir al D3
+        }
+
+        if (posicion == 12) {
+            return new Color(235, 225, 185);   // Especial
+        }
+
+        return new Color(240, 235, 220);       // Propiedades
+    }
+
+    private void actualizarPanelJugadorSimulado() {
+
+        lblNombre.setText("Jugador actual: J" + (jugadorActualSimulado + 1));
+
+        lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+        lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+
+        int posicionActual = posicionesJugadoresSimulados[jugadorActualSimulado];
+        lblPosicion.setText("Posición: " + posicionActual + " - " + nombresCasillas[posicionActual]);
+
+        lblTurno.setText("Turno actual: J" + (jugadorActualSimulado + 1));
+
+        lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
+
+        lblNumeroTurno.setText(
+            "Número de turno: "
+            + numeroTurnoSimulado
+            + " / "
+            + MAX_TURNOS_SIMULADO);
+
+        lblPropiedades.setText(obtenerPropiedadesJugadorSim(jugadorActualSimulado));
+    }
+
+    private int obtenerGanadorPorPatrimonioSimulado () {
+        int ganador = -1;
+        double mayorPatrimonio = -1;
+
+        for (int i =0; i < jugadoresActivosSimulados.length; i++) {
+
+            if (jugadoresActivosSimulados[i]) {
+
+                double patrimonio = calcularPatrimonioSim(i);
+
+                if (patrimonio > mayorPatrimonio) {
+                    mayorPatrimonio = patrimonio;
+                    ganador = i;
+                }
+            }
+        }
+        return ganador;
     }
 
     private String obtenerCartaEventosSimulada() {
@@ -721,7 +884,7 @@ public class VentanaPrincipal extends JFrame {
 
         for (int i = 0; i < propietariosSimulados.length; i++) {
             if (propietariosSimulados[i] == jugador) {
-                patrimonio += PRECIO_PROPIEDAD_SIMULADO;
+                patrimonio += preciosPropiedadesSimulados[i];
             }
         }
         return patrimonio;
