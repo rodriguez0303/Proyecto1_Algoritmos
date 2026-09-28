@@ -527,7 +527,7 @@ public class VentanaPrincipal extends JFrame {
 
                 pierdeTurnoSimulado[jugadorActualSimulado] = true;
 
-                mensajeCasilla = "Debe ir directamente al Edifcio D3 y esta condenado a perder un turno.";
+                mensajeCasilla = "Debe ir directamente al Edifcio D3 y está condenado a perder un turno.";
             }
 
             else if (nuevaPosicion == 6) {
@@ -689,7 +689,7 @@ public class VentanaPrincipal extends JFrame {
             lblDado1.setText("-");
             lblDado2.setText("-");
 
-            lblEstado.setText(mensajeSalto + "Turno de J" + (jugadorActualSimulado + 1));
+            lblEstado.setText(mensajeSalto + "\nTurno de J" + (jugadorActualSimulado + 1));
         });
 
 
