@@ -553,7 +553,7 @@ public class VentanaPrincipal extends JFrame {
 
                     posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
 
-                    carta = "Avanza 3 posiciones. Ahora esta en " + nombresCasillas[nuevaPosicion] + ".";
+                    carta = "Avanza 3 posiciones. Ahora está en " + nombresCasillas[nuevaPosicion] + ".";
                 }
 
                 else if (carta.equals("Vas directamente al Edificio D3.")) {
@@ -562,7 +562,7 @@ public class VentanaPrincipal extends JFrame {
                     posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
                     pierdeTurnoSimulado[jugadorActualSimulado] = true;
 
-                    carta = "Esta condenado a un turno en el D3.";
+                    carta = "Está condenado a un turno en el D3.";
                 }
 
                 else if (carta.equals("Vas directamente a la Salida.")) {
@@ -585,7 +585,7 @@ public class VentanaPrincipal extends JFrame {
 
                 pierdeTurnoSimulado[jugadorActualSimulado] = true;
 
-                mensajeCasilla = "Debe ir directamente al Edifcio D3 y está condenado a perder un turno.";
+                mensajeCasilla = "Debe ir directamente al Edificio D3 y está condenado a perder un turno.";
             }
 
             else if (nuevaPosicion == 6) {
@@ -603,7 +603,7 @@ public class VentanaPrincipal extends JFrame {
             else if (propietario == -1) {
                 btnComprar.setEnabled(true);
 
-                mensajeCasilla = "La propiedad esta disponible.";
+                mensajeCasilla = "La propiedad está disponible.";
             }
 
             else if (propietario == jugadorActualSimulado) {
