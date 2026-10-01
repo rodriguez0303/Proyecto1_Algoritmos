@@ -716,6 +716,7 @@ public class VentanaJuego extends JFrame {
             btnTirarDados.setEnabled(false);
             btnTerminarTurno.setEnabled(true);
 
+            actualizarTarjetasJugadoresSimulados();
             lblEstado.setText("J" + (jugadorActualSimulado + 1) + " avanzó " + total + " posiciones. " + mensajeSalida + " " + mensajeCasilla);
         });
 
@@ -761,6 +762,7 @@ public class VentanaJuego extends JFrame {
 
             lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
 
+            actualizarTarjetasJugadoresSimulados();
             btnComprar.setEnabled(false);
         });
 
