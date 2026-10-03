@@ -34,7 +34,7 @@ public class Juego {
     private Dado Dado2;                        // Dado ya implementada; el módulo RFID real (punto 14) podría integrarse más adelante
     private HistorialTransacciones Historial;  // * pendiente: implementación final del historial
 
-    // Constructor: Crea la partida y sus dependencias (varias aún temporales, ver "*")
+    // Constructor: Crea la partida y sus dependencias. (varias aún temporales, ver "*")
     public Juego(int MaxTurnos) {
         this.Jugadores = new ColaCircular<>();
         this.NumTurno = 0;
