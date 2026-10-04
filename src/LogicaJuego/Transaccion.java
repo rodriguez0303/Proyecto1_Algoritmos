@@ -1,4 +1,4 @@
-spackage LogicaJuego;
+package LogicaJuego;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

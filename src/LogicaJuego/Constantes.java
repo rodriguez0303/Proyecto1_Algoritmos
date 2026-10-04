@@ -21,4 +21,7 @@ public final class Constantes {
 
     // Posiciones fijas de las casillas de evento, una en el centro de cada lado.
     public static final int[] POSICIONES_EVENTO = {3, 9, 15, 21};
+
+    // Saldo con el que arranca el Banco, para que pueda pagar cartas de evento
+    public static final double SALDO_INICIAL_BANCO = 100000;
 }

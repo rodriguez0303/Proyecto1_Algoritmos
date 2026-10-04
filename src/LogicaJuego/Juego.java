@@ -27,7 +27,7 @@ public class Juego {
     private int MaxTurnos;                     // Límite de turnos configurable
     private boolean DadosLanzados;             // Indica si ya se lanzaron los dados en este turno (evita lanzar dos veces)
     private Tablero Tablero;                   // Estructura del tablero (24 casillas enlazadas en circulo doble)
-    private Banco Banco;                       // / * pendiente: saldo inicial y relación final con Server
+    private Banco Banco;                       // * pendiente: relación final con Server
     private Dado Dado1;                        // Dado ya implementada; el módulo RFID real (punto 14) podría integrarse más adelante
     private Dado Dado2;                        // Dado ya implementada; el módulo RFID real (punto 14) podría integrarse más adelante
     private HistorialTransacciones Historial;  // * pendiente: implementación final del historial
@@ -42,9 +42,7 @@ public class Juego {
         this.MaxTurnos = MaxTurnos;
         this.DadosLanzados = false;
         this.Tablero = new Tablero();
-        this.Banco = new Banco();                        // * pendiente: el Banco arranca con saldo 0, así que no puede pagar
-        // cartas de "recibir dinero". Cuando Banco tenga un constructor con
-        // saldo inicial, usar algo como: new Banco(Constantes.SALDO_INICIAL_BANCO)
+        this.Banco = new Banco(Constantes.SALDO_INICIAL_BANCO);
         this.Dado1 = new Dado(1);
         this.Dado2 = new Dado(2);
         this.Historial = new HistorialTransacciones();
