@@ -111,7 +111,9 @@ public class Propiedad extends Casilla {
             // "juego" contiene la información de la partida y permite utilizar el Banco.
     public boolean comprar(Jugador jugador, Juego juego) {
 
-        // Se verifica si la PROPIEDAD todavía está disponible para ser comprada.
+        //***********************************************************************
+        // CREACIÓN DE LA TRANSACCION DE COMPRA
+        //*********************************************************************** // Se verifica si la PROPIEDAD todavía está disponible para ser comprada.
         if (isDisponible() == true) {
 
             // Se obtiene el Banco que funciona como intermediario para realizar los pagos del Juego.
@@ -144,9 +146,7 @@ public class Propiedad extends Casilla {
                     jugador.agregarPropiedad(this);
 
 
-                    //***********************************************************************
-                    // CREACIÓN DE LA TRANSACCION DE COMPRA
-                    //***********************************************************************
+
 
                     // Se crea un identificador para la nueva Transaccion.
                         // Se utiliza el identificador de la PROPIEDAD para relacionarlo con la compra realizada.
@@ -346,4 +346,22 @@ public class Propiedad extends Casilla {
 
     //*******************************************************************************
     //*******************************************************************************
+
+    //*******************************************************************************
+    //*******************************************************************************
+
+    // Método propio de la clase PROPIEDAD que permite liberar una Propiedad
+    // cuando el Jugador que era su propietario queda eliminado de la partida.
+    public void liberarPropiedad() {
+
+        // "propietario" es un atributo que pertenece a la clase PROPIEDAD.
+            // Este atributo contiene al Jugador que compró anteriormente la Propiedad.
+                // Al asignarle null, la Propiedad deja de estar asociada a ese Jugador.
+        propietario = null;
+    }
+
+
+    //*******************************************************************************
+    //*******************************************************************************
 }
+
