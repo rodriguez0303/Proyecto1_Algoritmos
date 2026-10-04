@@ -18,4 +18,7 @@ public final class Constantes {
 
     // Cantidad mínima de casillas del tablero
     public static final int NUMERO_CASILLAS = 24;
+
+    // Posiciones fijas de las casillas de evento, una en el centro de cada lado.
+    public static final int[] POSICIONES_EVENTO = {3, 9, 15, 21};
 }

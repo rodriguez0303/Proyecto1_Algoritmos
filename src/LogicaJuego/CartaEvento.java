@@ -10,9 +10,9 @@ package LogicaJuego;
  *
  * Detalles a tener en cuenta:
  * Se coloco "*", indica que depende de un ajuste
- * que todavía no está hecho en otra clase (Juego, Tablero, Jugador o
- * Transaccion). Esas líneas quedan comentadas para que el proyecto compile;
- * cuando el ajuste esté listo, solo hay que descomentarlas.
+ * que todavía no está hecho en otra clase (por ahora solo Jugador, para perder
+ *  * un turno). Esa línea queda comentada para que el proyecto compile;
+ *  * cuando el ajuste esté listo, solo hay que descomentarla.
  *
  */
 
@@ -34,7 +34,7 @@ public class CartaEvento {
     // Aplica el efecto de la carta sobre el Jugador que la sacó.
     // Lo llama CasillaEvento.ejecutar() después de sacar la carta del mazo.
     public void Aplicar(Jugador Jugador, Juego Juego) {
-        System.out.println(Jugador.getNombre() + " Saca la carta " + Id + ": " + Descripcion);
+        System.out.println(Jugador.getNombre() + " saca la carta " + Id + ": " + Descripcion);
 
         switch (Tipo) {
             case RECIBIR_DINERO:
@@ -50,9 +50,7 @@ public class CartaEvento {
                 break;
 
             case RETROCEDER:
-                // * pendiente: crear Juego.RetrocederJugador() y Tablero.ObtenerAnterior()
-                // Juego.RetrocederJugador(Jugador, Valor);
-                System.out.println("Pendiente: retroceder " + Valor + " casillas");
+                Juego.RetrocederJugador(Jugador, Valor);
                 break;
 
             case PERDER_TURNO:
@@ -62,10 +60,9 @@ public class CartaEvento {
                 break;
 
             case IR_A_CASILLA:
-                // * pendiente: crear Juego.MoverJugadorA()
-                // Juego.MoverJugadorA(Jugador, Valor);
-                System.out.println("Pendiente: ir a la casilla " + Valor);
+                Juego.MoverJugadorA(Jugador, Valor);
                 break;
+
         }
     }
 
@@ -76,7 +73,7 @@ public class CartaEvento {
             Juego.RegistrarTransaccion(new Transaccion(
                     SiguienteId(Juego),
                     Juego.getNumTurno(),
-                    TipoTransaccion.GANANCIA_EVENTO.name(),   // * cuando Transaccion use el enum, quitar .name()
+                    TipoTransaccion.GANANCIA_EVENTO,
                     "BANCO",                                  // Origen: el banco
                     Jugador.getIdentificador(),               // Destino: el jugador
                     Valor,
@@ -85,14 +82,14 @@ public class CartaEvento {
     }
 
     // El Jugador le paga al banco y se registra una transacción PERDIDA_EVENTO.
-    // Si no le alcanza el saldo, queda eliminado (puntos 17 y 18 del enunciado).
+    // Si no le alcanza el saldo, queda eliminado.
     // Banco.recibir() ya valida el saldo, por eso no se repite la validación aquí.
     private void AplicarPerdida(Jugador Jugador, Juego Juego) {
         if (Juego.getBanco().recibir(Jugador, Valor)) {
             Juego.RegistrarTransaccion(new Transaccion(
                     SiguienteId(Juego),
                     Juego.getNumTurno(),
-                    TipoTransaccion.PERDIDA_EVENTO.name(),    // * cuando Transaccion use el enum, quitar .name()
+                    TipoTransaccion.PERDIDA_EVENTO,
                     Jugador.getIdentificador(),               // Origen: el jugador
                     "BANCO",                                  // Destino: el banco
                     Valor,
@@ -104,7 +101,6 @@ public class CartaEvento {
     }
 
     // Genera el número correlativo de la siguiente transacción: T1, T2, T3...
-    // (el punto 13 pide "número de transacción" en el reporte)
     private String SiguienteId(Juego Juego) {
         return "T" + (Juego.getHistorial().getTamaño() + 1);
     }

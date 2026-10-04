@@ -7,12 +7,6 @@ package LogicaJuego;
  * Hereda de Casilla y sobrescribe ejecutar(), Juego no
  * necesita saber qué tipo de casilla es, solo llama a ejecutar().
  *
- * Detalles a tener en cuenta:
- * Se coloco "*", indica que depende de un ajuste que
- * todavía no está hecho en Juego (el mazo de cartas). Esa línea queda
- * comentada para que el proyecto compile; cuando el ajuste esté listo,
- * solo hay que descomentarla.
- *
  * Nota sobre el diagrama:
  * En vez de tener una sola carta fija por casilla, el atributo Carta guarda
  * la ultima carta sacada aquí. El mazo real está en Juego, así se cumple que
@@ -33,8 +27,7 @@ public class CasillaEvento extends Casilla {
     // @Override hace que el compilador avise si el nombre no coincide con el de Casilla.
     @Override
     public void ejecutar(Jugador Jugador, Juego Juego) {
-        // * pendiente: crear el mazo ColaCircular<CartaEvento> y SacarCarta() en Juego
-        // Carta = Juego.SacarCarta();
+        Carta = Juego.SacarCarta();
 
         if (Carta != null) {
             Carta.Aplicar(Jugador, Juego);
