@@ -51,7 +51,7 @@ public class HistorialTransacciones {
             actual = actual.anterior;
         }
     }
-    public void buscarPorTipo(String tipo) {
+    public void buscarPorTipo(TipoTransaccion tipo) {
         Nodo actual = primero;
         while (actual != null) {
             if (actual.transaccion.getTipo().equals(tipo)) {
