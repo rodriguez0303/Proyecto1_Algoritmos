@@ -12,6 +12,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
 import javax.swing.JOptionPane;
+import javax.swing.ImageIcon;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -21,6 +22,8 @@ import java.awt.GridBagConstraints;
 import java.awt.Component;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Image;
 
 import java.util.Random;
 import java.util.Arrays;
@@ -32,6 +35,7 @@ public class VentanaJuego extends JFrame {
     private JPanel [] casillasVisuales = new JPanel[24];
     private JPanel[] panelesFichas = new JPanel[24];
     private JPanel[] tarjetasJugadores = new JPanel[4];
+    private JPanel panelContenidoCentro;
 
     private JLabel[] lblSaldoJugadores = new JLabel[4];
     private JLabel[] lblEstadoJugadores = new JLabel[4];
@@ -44,8 +48,13 @@ public class VentanaJuego extends JFrame {
     private JLabel lblTurno;
     private JLabel lblNumeroRonda;
 
+    private JButton btnTirarDados;
+    private JButton btnComprar;
+    private JButton btnTerminarTurno;
+
     private JTextArea lblPropiedades;
     private JTextArea areaHistorial;
+    private JTextArea lblEstado;
 
     private Random generador = new Random();
 
@@ -62,7 +71,7 @@ public class VentanaJuego extends JFrame {
     "Evento",        // 9
     "Bosque de Bambúes",  // 10
     "Lago",  // 11
-    "Especial",      // 12
+    "Paseo en el TEC",      // 12
     "GymTEC",  // 13
     "Soda Deportiva",  // 14
     "Evento",        // 15
@@ -295,12 +304,34 @@ public class VentanaJuego extends JFrame {
 
         panelCentro.setBackground(new Color(225, 215, 185));
 
-        JLabel lblTituloCentro = new JLabel("Monopoly TEC", JLabel.CENTER);
+        ImageIcon iconoMapa = new ImageIcon(getClass().getResource("/Interfaz/recursos/aerea_tec.jpg"));
 
-        lblTituloCentro.setFont(new Font("Serif", Font.BOLD, 42));
+        Image imagenMapa = iconoMapa.getImage();
 
-        panelCentro.add(lblTituloCentro, BorderLayout.CENTER);
+        panelContenidoCentro = new JPanel(new BorderLayout()) {
+            @Override 
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.drawImage(imagenMapa, 0, 0, getWidth(), getHeight(), this);
 
+            }
+        };
+
+        JLabel lblTituloCentro = new JLabel("MONOPOLY TEC", JLabel.CENTER);
+
+        lblTituloCentro.setFont(new Font("Serif", Font.BOLD, 48));
+
+        lblTituloCentro.setForeground((Color.WHITE));
+
+        lblTituloCentro.setOpaque(true);
+
+        lblTituloCentro.setBackground(new Color(35, 90, 65));
+
+        lblTituloCentro.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        panelContenidoCentro.add(lblTituloCentro, BorderLayout.NORTH);
+
+        panelCentro.add(panelContenidoCentro, BorderLayout.CENTER);
 
         fichasJugadores[0] = new JLabel("J1");
         fichasJugadores[1] = new JLabel("J2");
@@ -389,6 +420,17 @@ public class VentanaJuego extends JFrame {
         lblNumeroRonda = new JLabel();
         actualizarEtiquetaRonda();
 
+        JPanel panelInfoJugador = new JPanel();
+
+        panelInfoJugador.setLayout(new BoxLayout(panelInfoJugador, BoxLayout.Y_AXIS));
+
+        panelInfoJugador.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Estado actual"),
+                                    BorderFactory.createEmptyBorder(5, 8, 8, 8)));
+
+        panelInfoJugador.setMaximumSize(new Dimension(Integer.MAX_VALUE, 180));
+
+        panelInfoJugador.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         lblPropiedades = new JTextArea("Propiedades: ninguna");
 
         lblPropiedades.setEditable(false);
@@ -398,15 +440,42 @@ public class VentanaJuego extends JFrame {
         lblPropiedades.setFocusable(false);
         lblPropiedades.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
         lblPropiedades.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblPropiedades.setFont(lblPropiedades.getFont().deriveFont(Font.BOLD));
 
         lblPatrimonio.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblPatrimonio.setFont(new Font("SansSerif", Font.BOLD, 13));
 
         lblNumeroRonda.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblNumeroRonda.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        lblNombre.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        lblSaldo.setFont(new Font("SansSerif", Font.BOLD, 13));
 
         lblTurno.setOpaque(true);
         lblTurno.setForeground(Color.WHITE);
         lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
         lblTurno.setBorder(BorderFactory.createEmptyBorder(4, 7, 4, 7));
+
+        panelInfoJugador.add(lblNombre);
+
+        panelInfoJugador.add(Box.createVerticalStrut(4));
+
+        panelInfoJugador.add(lblSaldo);
+        panelInfoJugador.add(lblPatrimonio);
+        panelInfoJugador.add(lblPosicion);
+
+        panelInfoJugador.add(Box.createVerticalStrut(5));
+
+        panelInfoJugador.add(lblTurno);
+
+        panelInfoJugador.add(Box.createVerticalStrut(3));
+
+        panelInfoJugador.add(lblNumeroRonda);
+
+        panelInfoJugador.add(Box.createVerticalStrut(5));
+
+        panelInfoJugador.add(lblPropiedades);
 
         // -------------------------------------------------
         // INFORMACIÓN DE LOS DADOS
@@ -415,14 +484,25 @@ public class VentanaJuego extends JFrame {
         JPanel panelDado1 = new JPanel(new BorderLayout());
         JPanel panelDado2 = new JPanel(new BorderLayout());
 
+        panelDado1.setBackground(Color.WHITE);
+        panelDado2.setBackground(Color.WHITE);
+
+        panelDado1.setBorder(BorderFactory.createLineBorder(new Color(160, 160, 160), 1));
+
         JLabel tituloDado1 = new JLabel("Dado 1", JLabel.CENTER);
         JLabel tituloDado2 = new JLabel("Dado 2", JLabel.CENTER);
+
+        tituloDado1.setFont(new Font("SansSerif", Font.BOLD, 12));
+        tituloDado2.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         JLabel lblDado1 = new JLabel("-", JLabel.CENTER);
         JLabel lblDado2 = new JLabel("-", JLabel.CENTER);
 
         lblDado1.setFont(new Font("SansSerif", Font.BOLD, 42));
         lblDado2.setFont(new Font("SansSerif", Font.BOLD, 42));
+
+        lblDado1.setForeground(new Color(45, 45, 45));
+        lblDado2.setForeground(new Color(45, 45, 45));
 
         panelDado1.add(tituloDado1, BorderLayout.NORTH);
         panelDado1.add(lblDado1, BorderLayout.CENTER);
@@ -437,37 +517,67 @@ public class VentanaJuego extends JFrame {
         // BOTONES
         // -------------------------------------------------
 
-        JButton btnTirarDados = new JButton("Tirar dados");
-        JButton btnComprar = new JButton("Comprar propiedad");
+        btnTirarDados = new JButton("Tirar dados");
+        btnComprar = new JButton("Comprar propiedad");
         btnComprar.setEnabled(false);
-        JButton btnTerminarTurno = new JButton("Terminar turno");
+
+        btnTerminarTurno = new JButton("Terminar turno");
         btnTerminarTurno.setEnabled(false);
 
-        Dimension tamanoBoton = new Dimension(180, 30);
+        Dimension tamanoBoton = new Dimension(260, 38);
 
+        btnTirarDados.setPreferredSize(tamanoBoton);
         btnTirarDados.setMaximumSize(tamanoBoton);
+
+        btnComprar.setPreferredSize(tamanoBoton);
         btnComprar.setMaximumSize(tamanoBoton);
+
+        btnTerminarTurno.setPreferredSize(tamanoBoton);
         btnTerminarTurno.setMaximumSize(tamanoBoton);
+
+        Font fuenteBotones = new Font("SansSerif", Font.BOLD, 13);
+
+        btnTirarDados.setFont(fuenteBotones);
+        btnComprar.setFont(fuenteBotones);
+        btnTerminarTurno.setFont(fuenteBotones);
+
+        btnTirarDados.setBackground(new Color(45, 110, 75));
+        btnTirarDados.setForeground(Color.WHITE);
+
+        btnComprar.setBackground(new Color(225, 185, 75));
+        btnComprar.setForeground(Color.WHITE);
+
+        btnTerminarTurno.setBackground(new Color(90, 95, 100));
+        btnTerminarTurno.setForeground(Color.WHITE);
+
+        btnTirarDados.setFocusPainted(false);
+        btnComprar.setFocusPainted(false);
+        btnTerminarTurno.setFocusPainted(false);
 
         // -------------------------------------------------
         // ESTADO DEL JUEGO
         // -------------------------------------------------
 
-        JTextArea lblEstado = new JTextArea("Esperando acción...");
+        lblEstado = new JTextArea("Esperando acción...");
 
         lblEstado.setEditable(false);
         lblEstado.setLineWrap(true);
         lblEstado.setWrapStyleWord(true);
         lblEstado.setOpaque(false);
         lblEstado.setFocusable(false);
-
         lblEstado.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        lblEstado.setFont(new Font("SansSerif" , Font.BOLD, 13));
+        lblEstado.setBackground(new Color(245, 245, 245));
+        lblEstado.setOpaque(true);
+        lblEstado.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)), BorderFactory.createEmptyBorder(8, 8, 8,8)));
+
 
         // -------------------------------------------------
         // HISTORIAL VISIBLE DE ACCIONES
         // -------------------------------------------------
 
         areaHistorial = new JTextArea();
+        areaHistorial.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
         areaHistorial.setEditable(false);
         areaHistorial.setLineWrap(true);
@@ -483,6 +593,8 @@ public class VentanaJuego extends JFrame {
         scrollHistorial.setMaximumSize(new Dimension(Integer.MAX_VALUE, 170));
 
         scrollHistorial.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        scrollHistorial.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(160, 160, 160)), "Historial de acciones"));
 
         // -------------------------------------------------
         // ALINEACION DE COMPONENTES
@@ -505,13 +617,7 @@ public class VentanaJuego extends JFrame {
         // ORGANIZACIÓN DEL PANEL DEL JUGADOR
         // -------------------------------------------------
 
-        panelJugador.add(lblNombre);
-        panelJugador.add(lblSaldo);
-        panelJugador.add(lblPatrimonio);
-        panelJugador.add(lblPosicion);
-        panelJugador.add(lblTurno);
-        panelJugador.add(lblNumeroRonda);
-        panelJugador.add(lblPropiedades);
+        panelJugador.add(panelInfoJugador);
 
         panelJugador.add(Box.createVerticalStrut(15));
 
@@ -524,7 +630,13 @@ public class VentanaJuego extends JFrame {
         panelJugador.add(Box.createVerticalStrut(15));
 
         panelJugador.add(btnTirarDados);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
         panelJugador.add(btnComprar);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
         panelJugador.add(btnTerminarTurno);
 
         panelJugador.add(Box.createVerticalStrut(20));
@@ -808,11 +920,7 @@ public class VentanaJuego extends JFrame {
                         break;
                     }
                 }
-                lblEstado.setText("La partida terminó. El ganador fue J" + (ganador + 1) + ".");
-
-                btnTirarDados.setEnabled(false);
-                btnComprar.setEnabled(false);
-                btnTerminarTurno.setEnabled(false);
+                mostrarFinDePartidaSimulado("Solp queda un jugador activo.", ganador);
 
                 return;
             }
@@ -820,17 +928,9 @@ public class VentanaJuego extends JFrame {
             if (partidaPorRondas && numeroRondaSimulada > maxRondasSimulado) {
                 int ganador = obtenerGanadorPorPatrimonioSimulado();
 
-                double patrimonioGanador = calcularPatrimonioSim(ganador);
+                lblNumeroRonda.setText("Ronda: " + maxRondasSimulado + "/" + maxRondasSimulado);
 
-                lblNumeroRonda.setText("Ronda: " + maxRondasSimulado + " / " + maxRondasSimulado);
-
-                lblEstado.setText("Se alcanzó el límite de rondas. El ganador es J" + (ganador + 1) + " con un patrimonio de ₡" + patrimonioGanador + ".");
-
-                agregarHistorialSimulado("Partida finalizada por límite de rondas. " + "Ganador: J"+ (ganador + 1) + ".");
-
-                btnTerminarTurno.setEnabled(false);
-                btnComprar.setEnabled(false);
-                btnTirarDados.setEnabled(false);
+                mostrarFinDePartidaSimulado("Se completaron las " + maxRondasSimulado + " rondas de la partida.", ganador);
 
                 return;
             }
@@ -937,6 +1037,22 @@ public class VentanaJuego extends JFrame {
         lblPropiedades.setText(obtenerPropiedadesJugadorSim(jugadorActualSimulado));
 
         actualizarTarjetasJugadoresSimulados();
+    }
+
+    private void mostrarFinDePartidaSimulado(String motivo, int ganador) {
+        double patrimonioGanador = calcularPatrimonioSim(ganador);
+
+        String mensaje = motivo + "\n\nGanador: J"+ (ganador + 1) + "\nPatrimonio: ₡" + (int) patrimonioGanador;
+
+        lblEstado.setText("Partida finalizada. Ganador: J"+ (ganador + 1));
+
+        agregarHistorialSimulado("Partida finalizada. Ganador: J"+ (ganador + 1) + " con un patrimonio de ₡" + patrimonioGanador + ".");
+
+        btnTirarDados.setEnabled(false);
+        btnComprar.setEnabled(false);
+        btnTerminarTurno.setEnabled(false);
+
+        JOptionPane.showMessageDialog(this, mensaje, "Fin de la partida", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private int obtenerGanadorPorPatrimonioSimulado () {
@@ -1130,6 +1246,7 @@ public class VentanaJuego extends JFrame {
         casillasVisuales[posicionActual].setBorder(BorderFactory.createLineBorder(colorJugador, 4));
         
     }
+
     private void marcarPosicionJugador(int jugador, int posicion) {
         if (jugador < 0 || jugador >= fichasJugadores.length) {
         return;
