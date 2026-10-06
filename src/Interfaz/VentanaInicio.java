@@ -17,6 +17,7 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Color;
 
 
 public class VentanaInicio extends JFrame {
@@ -44,23 +45,23 @@ public class VentanaInicio extends JFrame {
 
         setLayout(new BorderLayout());
 
+        getContentPane().setBackground(new Color(225, 215, 185));
 
         // -------------------------------------------------
         // TÍTULO
         // -------------------------------------------------
 
-        JLabel lblTitulo =
-            new JLabel("MONOPOLY TEC", JLabel.CENTER);
+        JLabel lblTitulo = new JLabel("MONOPOLY TEC", JLabel.CENTER);
 
-        lblTitulo.setFont(
-            new Font("Serif", Font.BOLD, 32)
-        );
+        lblTitulo.setFont(new Font("Serif", Font.BOLD, 36));
 
-        lblTitulo.setBorder(
-            BorderFactory.createEmptyBorder(
-                25, 10, 20, 10
-            )
-        );
+        lblTitulo.setForeground(Color.WHITE);
+
+        lblTitulo.setOpaque(true);
+
+        lblTitulo.setBackground(new Color(35, 90, 65));
+
+        lblTitulo.setBorder(BorderFactory.createEmptyBorder(18, 10, 18, 10));
 
         add(lblTitulo, BorderLayout.NORTH);
 
@@ -71,46 +72,30 @@ public class VentanaInicio extends JFrame {
 
         JPanel panelOpciones = new JPanel();
 
-        panelOpciones.setLayout(
-            new BoxLayout(
-                panelOpciones,
-                BoxLayout.Y_AXIS
-            )
-        );
+        panelOpciones.setLayout(new BoxLayout(panelOpciones, BoxLayout.Y_AXIS));
 
-        panelOpciones.setBorder(
-            BorderFactory.createEmptyBorder(
-                10, 50, 10, 50
-            )
-        );
+        panelOpciones.setBorder(BorderFactory.createEmptyBorder(10, 50, 10, 50));
 
+        panelOpciones.setBackground(new Color(225, 215, 185));
 
-        JLabel lblModo =
-            new JLabel("Seleccione el modo de partida:");
+        JLabel lblModo = new JLabel("Seleccione el modo de partida:");
 
-        lblModo.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
+        lblModo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        rbPorRondas = new JRadioButton("Partida por rondas", true);
 
-        rbPorRondas =
-            new JRadioButton(
-                "Partida por rondas",
-                true
-            );
+        rbNormal = new JRadioButton("Partida normal - Hasta que haya un ganador");
 
-        rbNormal =
-            new JRadioButton(
-                "Partida normal - Hasta que haya un ganador"
-            );
+        rbPorRondas.setOpaque(false);
+        rbNormal.setOpaque(false);
 
-
-        ButtonGroup grupoModo =
-            new ButtonGroup();
+        ButtonGroup grupoModo = new ButtonGroup();
 
         grupoModo.add(rbPorRondas);
         grupoModo.add(rbNormal);
 
+        rbPorRondas.setFocusPainted(false);
+        rbNormal.setFocusPainted(false);
 
         // -------------------------------------------------
         // CANTIDAD DE RONDAS
@@ -118,73 +103,49 @@ public class VentanaInicio extends JFrame {
 
         JPanel panelRondas = new JPanel();
 
-        panelRondas.setLayout(
-            new BoxLayout(
-                panelRondas,
-                BoxLayout.X_AXIS
-            )
-        );
+        panelRondas.setLayout(new BoxLayout(panelRondas,BoxLayout.X_AXIS));
 
-        panelRondas.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
+        panelRondas.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        JLabel lblRondas = new JLabel("Número de rondas: ");
 
-        JLabel lblRondas =
-            new JLabel("Número de rondas: ");
+        spRondas =new JSpinner(new SpinnerNumberModel(5, 1, 100, 1));
 
-        spRondas =
-            new JSpinner(
-                new SpinnerNumberModel(
-                    5,
-                    1,
-                    100,
-                    1
-                )
-            );
-
-        spRondas.setMaximumSize(
-            new Dimension(70, 30)
-        );
-
+        spRondas.setMaximumSize(new Dimension(70, 30));
 
         panelRondas.add(lblRondas);
         panelRondas.add(spRondas);
-
+        panelRondas.setOpaque(false);
 
         // -------------------------------------------------
         // BOTÓN INICIAR
         // -------------------------------------------------
 
-        JButton btnIniciar =
-            new JButton("Iniciar partida");
+        JButton btnIniciar = new JButton("Iniciar partida");
 
-        btnIniciar.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
+        btnIniciar.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        btnIniciar.setMaximumSize(
-            new Dimension(180, 35)
-        );
+        btnIniciar.setMaximumSize(new Dimension(180, 35));
 
+        btnIniciar.setBackground(new Color(35, 90, 65));
+        
+        btnIniciar.setForeground(Color.WHITE);
+
+        btnIniciar.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        btnIniciar.setFocusPainted(false);
 
         // -------------------------------------------------
         // ACTIVAR / DESACTIVAR RONDAS
         // -------------------------------------------------
 
         rbPorRondas.addActionListener(e -> {
-
             spRondas.setEnabled(true);
-
         });
-
 
         rbNormal.addActionListener(e -> {
-
             spRondas.setEnabled(false);
-
         });
-
 
         // -------------------------------------------------
         // INICIAR PARTIDA

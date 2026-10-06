@@ -488,6 +488,7 @@ public class VentanaJuego extends JFrame {
         panelDado2.setBackground(Color.WHITE);
 
         panelDado1.setBorder(BorderFactory.createLineBorder(new Color(160, 160, 160), 1));
+        panelDado2.setBorder(BorderFactory.createLineBorder(new Color(160, 160, 160), 1));
 
         JLabel tituloDado1 = new JLabel("Dado 1", JLabel.CENTER);
         JLabel tituloDado2 = new JLabel("Dado 2", JLabel.CENTER);
@@ -563,7 +564,6 @@ public class VentanaJuego extends JFrame {
         lblEstado.setEditable(false);
         lblEstado.setLineWrap(true);
         lblEstado.setWrapStyleWord(true);
-        lblEstado.setOpaque(false);
         lblEstado.setFocusable(false);
         lblEstado.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
         lblEstado.setFont(new Font("SansSerif" , Font.BOLD, 13));
@@ -585,8 +585,6 @@ public class VentanaJuego extends JFrame {
         areaHistorial.setFocusable(false);
 
         JScrollPane scrollHistorial = new JScrollPane(areaHistorial);
-
-        scrollHistorial.setBorder(BorderFactory.createTitledBorder("Historial de acciones"));
 
         scrollHistorial.setPreferredSize(new Dimension(280, 170));
 
@@ -920,7 +918,7 @@ public class VentanaJuego extends JFrame {
                         break;
                     }
                 }
-                mostrarFinDePartidaSimulado("Solp queda un jugador activo.", ganador);
+                mostrarFinDePartidaSimulado("Solo queda un jugador activo.", ganador);
 
                 return;
             }
