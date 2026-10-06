@@ -69,7 +69,31 @@ public class Jugador {
     public void setPosicionActual(int nuevaPosicion) {
         this.posicionActual = nuevaPosicion;
     }
+
+    // Método que permite eliminar al Jugador de la partida.
+        // Antes de dejarlo inactivo, se liberan todas las Propiedades que había adquirido para que puedan volver a ser compradas.
     public void eliminar() {
+
+        // "propiedadesAdquiridas" pertenece a la clase Jugador y contiene las Propiedades que este Jugador compró.
+            // Tamaño() pertenece a ListaSimplePropiedad y permite conocer cuántas Propiedades debemos recorrer.
+        for (int i = 0; i < propiedadesAdquiridas.Tamaño(); i++) {
+
+            // Obtener() pertenece a la clase ListaSimplePropiedad.
+                // Permite obtener la Propiedad almacenada en la posición indicada por "i".
+            Propiedad propiedad = propiedadesAdquiridas.Obtener(i);
+
+            // liberarPropiedad() pertenece a la clase Propiedad.
+                // Cambia el propietario de esa Propiedad a null.
+                    // De esta forma la Propiedad vuelve a quedar disponible para que otro Jugador pueda comprarla.
+            propiedad.liberarPropiedad();
+        }
+
+        // Vaciar() pertenece a la clase ListaSimplePropiedad.
+            // se eliminan las referencias almacenadas en la lista de Propiedades del Jugador.
+        propiedadesAdquiridas.Vaciar();
+
+        // "activo" pertenece a la clase Jugador.
+            // false indica que el Jugador ya no continúa participando en la partida.
         this.activo = false;
     }
 }

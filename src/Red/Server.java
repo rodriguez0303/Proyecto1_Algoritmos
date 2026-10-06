@@ -3,6 +3,8 @@ package Red;
 import LogicaJuego.Juego;
 import LogicaJuego.Jugador;
 import LogicaJuego.Propiedad;
+// Permite acceder a la lista donde se encuentran guardadas las propiedades adquiridas por un jugador.
+import LogicaJuego.ListaSimplePropiedad;
 
 // Se usa para manejar errores que pueden ocurrir al iniciar el servidor o durante la comunicación por red.
 import java.io.IOException;
@@ -492,11 +494,17 @@ public class Server {
                     // -------------------------------------------------
 
                     // Se verifica si la solicitud enviada por el jugador es TIRAR_DADOS.
-                        // Si la solicitud coincide, se llama al método lanzarDados() de juego.
-                            // El método lanzarDados() se encarga de realizar el lanzamiento de los dados.
                     if (solicitud.equals("TIRAR_DADOS")) {
 
-                        juego.lanzarDados();
+                        // Se llama al método lanzarDados() de Juego.
+                            // Este método lanza los dos dados y devuelve la suma de sus valores.
+                                // La suma obtenida se guarda en la variable "pasos".
+                        int pasos = juego.lanzarDados();
+
+                        // Se mueve al jugador que realizó el lanzamiento.
+                         // "jugador" corresponde al jugador asociado con esta conexión.
+                            // "pasos" corresponde a la suma obtenida al lanzar los dos dados.
+                        juego.MoverJugador(jugador, pasos);
 
                         // Se informa a todos los jugadores conectados que el estado del juego cambió.
                         actualizarClientes();
@@ -559,15 +567,119 @@ public class Server {
                     // -------------------------------------------------
 
                     // Se verifica si la solicitud enviada por el jugador es CONSULTAR_ESTADO.
-                        // Esta solicitud permite consultar la información actual del jugador.
+                        // Permite consultar la información actual del jugador.
                             // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
                     else if (solicitud.equals("CONSULTAR_ESTADO")) {
 
-                        // Se envía una respuesta al jugador que realizó la consulta.
-                            // "posicion" identifica cuál conexión Socket pertenece al jugador.
-                                // enviarRespuesta() utiliza esa conexión para enviar el mensaje.
-                        enviarRespuesta(posicion, "Consulta de estado válida"
-                        );
+
+                        // Se obtiene la lista de propiedades que pertenece al jugador.
+                            // "jugador" es un objeto de la clase Jugador.
+                                // getPropiedadesAdquiridas() es un método de la clase Jugador que devuelve la ListaSimplePropiedad de ese jugador.
+                                    // La lista obtenida se guarda en la variable "propiedades".
+                        ListaSimplePropiedad propiedades = jugador.getPropiedadesAdquiridas();
+
+
+                        // Se obtiene la cantidad de propiedades que actualmente tiene el jugador.
+                            // "propiedades" es un objeto de la clase ListaSimplePropiedad.
+                                // Tamaño() es un método de la clase ListaSimplePropiedad que devuelve la cantidad de propiedades guardadas en la lista.
+                                    // La cantidad obtenida se guarda en la variable "cantidadPropiedades".
+                        int cantidadPropiedades = propiedades.Tamaño();
+
+                        // Sirve para guardar los identificadores de las propiedades que tiene el jugador.
+                        String propiedadesJugador = "";
+
+                        //  Se guarda un texto para indicar que el jugador todavía no tiene propiedades adquiridas.
+                        if (cantidadPropiedades == 0) {
+
+                            propiedadesJugador = "SIN_PROPIEDADES";
+                        }
+
+
+                        // Si el jugador tiene una o más propiedades, se recorre el listado para obtener sus identificadores.
+                        else {
+
+                            for (int i = 0; i < cantidadPropiedades; i++) {
+
+                                // "propiedades" es un objeto de la clase ListaSimplePropiedad.
+                                    // Obtener(i) es un método de la clase ListaSimplePropiedad que devuelve la Propiedad guardada en la posición indicada.
+                                        // La propiedad obtenida se guarda en la variable "propiedadJugador".
+                                Propiedad propiedadJugador = propiedades.Obtener(i);
+
+
+                                // Se obtiene el identificador de la propiedad.
+                                    // "propiedadJugador" es un objeto de la clase Propiedad.
+                                        // getIdentificador() es un método de la clase Propiedad que devuelve el identificador de esa propiedad.
+                                            // El identificador obtenido se guarda en la variable "identificadorPropiedad".
+                                String identificadorPropiedad = propiedadJugador.getIdentificador();
+
+
+                                // Se agrega el identificador de la propiedad al String "propiedadesJugador".
+                                propiedadesJugador = propiedadesJugador + identificadorPropiedad;
+
+                                // Si quedan más propiedades, se agrega una coma para separar sus identificadores.
+                                if (i < cantidadPropiedades - 1) {
+
+                                    propiedadesJugador = propiedadesJugador + ",";
+                                }
+                            }
+                        }
+
+
+                        // Se obtiene el identificador del jugador.
+                            // "jugador" es un objeto de la clase Jugador.
+                                // getIdentificador() es un método de la clase Jugador que devuelve el identificador guardado en ese jugador.
+                                    // El identificador obtenido se guarda en la variable "identificadorJugador".
+                        String identificadorJugador = jugador.getIdentificador();
+
+
+                        // Se obtiene el nombre del jugador.
+                            // "jugador" es un objeto de la clase Jugador.
+                                // getNombre() es un método de la clase Jugador que devuelve el nombre guardado en ese jugador.
+                                    // El nombre obtenido se guarda en la variable "nombreJugador".
+                        String nombreJugador = jugador.getNombre();
+
+
+                        // Se obtiene el saldo actual del jugador.
+                            // "jugador" es un objeto de la clase Jugador.
+                                // getSaldo() es un método de la clase Jugador que devuelve el saldo actual de ese jugador.
+                                    // El saldo obtenido se guarda en la variable "saldoJugador".
+                        double saldoJugador = jugador.getSaldo();
+
+
+                        // Se obtiene la posición actual del jugador en el tablero.
+                            // "jugador" es un objeto de la clase Jugador.
+                                // getPosicionActual() es un método de la clase Jugador que devuelve la posición actual de ese jugador en el tablero.
+                                    // La posición obtenida se guarda en la variable "posicionActualJugador".
+                        int posicionActualJugador = jugador.getPosicionActual();
+
+
+                        // Se inicia el mensaje que posteriormente será enviado hacia la clase el Cliente.
+                        // "ESTADO" permite identificar que la respuesta contiene la información del estado actual del jugador.
+                        String estado = "ESTADO";
+
+                        // El símbolo ";" permite separar este dato del siguiente dato.
+                        estado = estado + ";" + identificadorJugador;
+
+                        // Se agrega el nombre del jugador al mensaje.
+                        estado = estado + ";" + nombreJugador;
+
+                        // Se agrega el saldo actual del jugador al mensaje.
+                        estado = estado + ";" + saldoJugador;
+
+                        // Se agrega la posición actual del jugador al mensaje.
+                        estado = estado + ";" + posicionActualJugador;
+
+
+                        // Se agregan las propiedades adquiridas por el jugador al mensaje.
+                         // Si el jugador no tiene propiedades, este dato contendrá "SIN_PROPIEDADES".
+                        estado = estado + ";" + propiedadesJugador;
+
+
+                        // Se envía el estado únicamente al jugador que realizó la consulta.
+                            // enviarRespuesta() es un método de la clase Server.
+                                // "posicion" permite identificar cuál conexión Socket pertenece al jugador.
+                                    // "estado" contiene toda la información que se preparó anteriormente.
+                        enviarRespuesta(posicion, estado);
                     }
 
 
