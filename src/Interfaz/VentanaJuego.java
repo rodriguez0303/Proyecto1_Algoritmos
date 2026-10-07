@@ -1,0 +1,1285 @@
+package Interfaz;
+
+// Importaciones necesarias para la interfaz gráfica
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+import javax.swing.BoxLayout;
+import javax.swing.Box;
+import javax.swing.BorderFactory;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
+import javax.swing.JOptionPane;
+import javax.swing.ImageIcon;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Component;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Image;
+
+import java.util.Random;
+import java.util.Arrays;
+
+
+// Clase principal de la interfaz gráfica del juego
+public class VentanaJuego extends JFrame {
+
+    private JPanel [] casillasVisuales = new JPanel[24];
+    private JPanel[] panelesFichas = new JPanel[24];
+    private JPanel[] tarjetasJugadores = new JPanel[4];
+    private JPanel panelContenidoCentro;
+
+    private JLabel[] lblSaldoJugadores = new JLabel[4];
+    private JLabel[] lblEstadoJugadores = new JLabel[4];
+    private JLabel[] etiquetasPropietarios = new JLabel[24];
+    private JLabel[] fichasJugadores = new JLabel[4];
+    private JLabel lblNombre;
+    private JLabel lblSaldo;
+    private JLabel lblPatrimonio;
+    private JLabel lblPosicion;
+    private JLabel lblTurno;
+    private JLabel lblNumeroRonda;
+
+    private JButton btnTirarDados;
+    private JButton btnComprar;
+    private JButton btnTerminarTurno;
+
+    private JTextArea lblPropiedades;
+    private JTextArea areaHistorial;
+    private JTextArea lblEstado;
+
+    private Random generador = new Random();
+
+    private String[] nombresCasillas = {
+    "Salida",        // 0
+    "Comedor Institucional",   // 1
+    "Soda Forestal",   // 2
+    "Evento",        // 3
+    "Biblioteca Figueres Ferrer",   // 4
+    "Learning Commons",   // 5
+    "Edificio D3",      // 6
+    "ASETEC",   // 7
+    "Puesto Antonio",   // 8
+    "Evento",        // 9
+    "Bosque de Bambúes",  // 10
+    "Lago",  // 11
+    "Paseo en el TEC",      // 12
+    "GymTEC",  // 13
+    "Soda Deportiva",  // 14
+    "Evento",        // 15
+    "Escuela de Computadores",  // 16
+    "Escuela de Electrónica",  // 17
+    "Ir al D3",      // 18
+    "Cancha de fútbol",  // 19
+    "Cancha de béisbol",  // 20
+    "Evento",        // 21
+    "BICITEC",  // 22
+    "UberTEC"   // 23
+    };
+    private String[] cartasEventoSimuladas = {
+        "Recibe ₡100 por beca del TEC.",
+        "Paga ₡100 por romper algo de laboratorio.",
+        "Avanza 3 posiciones.",
+        "Vas directamente al Edificio D3.",
+        "Vas directamente a la Salida."
+    };
+
+    private int maxRondasSimulado;
+    private int numeroRondaSimulada = 1;
+    private int indiceCartaEventosSimulada = 0;
+    private int[] posicionesJugadoresSimulados = {0, 0, 0, 0};
+    private int [] posicionesVisuales = {-1, -1, -1, -1};
+    private int jugadorActualSimulado = 0;
+    private int[] propietariosSimulados = new int[24];
+
+    private double[] saldosJugadoresSimulados = {1500, 1500, 1500, 1500};
+    private double[] preciosPropiedadesSimulados = {
+        0,      // 0 Salida
+
+        100,    // 1 Comedor Institucional
+        100,    // 2 Soda Forestal
+
+        0,      // 3 Evento
+
+        150,    // 4 Biblioteca Figueres Ferrer
+        150,    // 5 Learning Commons
+
+        0,      // 6 D3
+
+        200,    // 7 ASETEC
+        200,    // 8 Puesto Antonio
+
+        0,      // 9 Evento
+
+        250,    // 10 Bosque de Bambúes
+        250,    // 11 Lago
+
+        0,      // 12 Especial
+
+        300,    // 13 GymTEC
+        300,    // 14 Soda Deportiva
+
+        0,      // 15 Evento
+
+        350,    // 16 Escuela de Computadores
+        350,    // 17 Escuela de Electrónica
+
+        0,      // 18 Ir al D3
+
+        400,    // 19 Cancha de fútbol
+        400,    // 20 Cancha de béisbol
+
+        0,      // 21 Evento
+
+        450,    // 22 BICITEC
+        450     // 23 UberTEC
+    };
+
+    private static final double ALQUILER_SIMULADO = 100;
+    private static final double PREMIO_SALIDA_SIMULADO = 200;
+
+    private boolean partidaPorRondas;
+    private boolean[] pierdeTurnoSimulado = {false, false, false, false};
+    private boolean dadosLanzadosSimulados = false;
+    private boolean[] jugadoresActivosSimulados = { true, true, true, true};
+
+    // Constructor de la ventana principal
+    public VentanaJuego() {
+        this(true, 5);
+    }
+
+    public VentanaJuego(boolean partidaPorRondas, int maxRondasSimulado) {
+
+        this.partidaPorRondas = partidaPorRondas;
+        this.maxRondasSimulado = maxRondasSimulado;
+
+        Arrays.fill(propietariosSimulados, -1);
+
+        // -------------------------------------------------
+        // CONFIGURACIÓN DE LA VENTANA
+        // -------------------------------------------------
+
+        setTitle("Monopoly TEC");
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        setLayout(new BorderLayout());
+
+
+        // -------------------------------------------------
+        // CREACIÓN DE PANELES
+        // -------------------------------------------------
+
+        JPanel panelTablero = new JPanel();
+        JPanel panelJugador = new JPanel();
+        JPanel panelDados = new JPanel();
+
+
+        // -------------------------------------------------
+        // CONFIGURACIÓN DEL PANEL DEL TABLERO
+        // -------------------------------------------------
+
+        panelTablero.setBorder(BorderFactory.createTitledBorder("Tablero"));
+        panelTablero.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+
+        Dimension tamanoCasilla = new Dimension(145, 105);
+        Dimension tamanoPanelFichas = new Dimension(110, 45);
+        Dimension tamanoPropietario = new Dimension(110, 22);
+
+        for(int fila = 0; fila < 7; fila++) {
+            for (int columna = 0; columna < 7; columna++) {
+                if (fila == 0 || fila == 6 || columna == 0 || columna == 6) {
+
+                    int numeroCasilla;
+                    if (fila == 0) {
+                        numeroCasilla = columna;
+                    }
+                    else if (columna == 6) {
+                        numeroCasilla = 6 + fila;
+                    }
+                    else if (fila == 6) {
+                        numeroCasilla = 18 - columna;
+                    }
+                    else {
+                        numeroCasilla = 24 - fila;
+                    }
+
+                    JPanel casilla = new JPanel();
+                    casilla.setLayout(new BorderLayout());
+
+                    casilla.setPreferredSize(tamanoCasilla);
+                    casilla.setMinimumSize(tamanoCasilla);
+
+                    JPanel panelFichas = new JPanel();
+                    panelFichas.setOpaque(false);
+
+                    panelFichas.setPreferredSize(tamanoPanelFichas);
+                    panelFichas.setMinimumSize(tamanoPanelFichas);
+
+                    casilla.setBackground(obtenerColorCasillaSimulada(numeroCasilla));
+
+                    casillasVisuales[numeroCasilla] = casilla;
+                    panelesFichas[numeroCasilla] = panelFichas;
+                    
+                    casilla.setBorder(BorderFactory.createEtchedBorder());
+
+                    JLabel textoCasilla = new JLabel(nombresCasillas[numeroCasilla]);
+                    JPanel panelSuperior = new JPanel(new BorderLayout());
+                    panelSuperior.setOpaque(false);
+                    textoCasilla.setHorizontalAlignment((JLabel.CENTER));
+
+                    if (esPropiedadSimulada(numeroCasilla)) {
+                        JPanel franjaColor = new JPanel();
+
+                        franjaColor.setPreferredSize(new Dimension(0, 14));
+
+                        franjaColor.setBackground(obtenerColorGrupoPropiedadSimulada(numeroCasilla));
+
+                        panelSuperior.add(franjaColor, BorderLayout.NORTH);
+
+                        JLabel lblPrecio = new JLabel("₡" + (int) preciosPropiedadesSimulados[numeroCasilla], JLabel.CENTER);
+
+                        lblPrecio.setFont(lblPrecio.getFont().deriveFont(Font.PLAIN, 11f));
+
+                        panelSuperior.add(lblPrecio, BorderLayout.SOUTH);
+                    }
+
+                    panelSuperior.add(textoCasilla, BorderLayout.CENTER);
+
+                    JLabel lblPropietario = new JLabel(" ");
+
+                    lblPropietario.setPreferredSize(tamanoPropietario);
+                    lblPropietario.setMinimumSize(tamanoPropietario);
+
+                    etiquetasPropietarios[numeroCasilla] = lblPropietario;
+
+                    casilla.add(panelSuperior, BorderLayout.NORTH);
+                    casilla.add(panelFichas, BorderLayout.CENTER);
+                    casilla.add(lblPropietario, BorderLayout.SOUTH);
+
+                    gbc.gridx = columna;
+                    gbc.gridy = fila;
+                    gbc.gridwidth = 1;
+                    gbc.gridheight = 1;
+
+                    panelTablero.add(casilla, gbc);
+                }
+            }
+        }
+
+        // --------------------------------------------------
+        // PANEL CENTRAL
+        // --------------------------------------------------
+
+        JPanel panelCentro = new JPanel();
+
+        panelCentro.setBorder(BorderFactory.createEtchedBorder());
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+
+        gbc.gridwidth = 5;
+        gbc.gridheight = 5;
+
+        gbc.weightx = 5.0;
+        gbc.weighty = 5.0;
+
+        panelTablero.add(panelCentro, gbc);
+
+        panelCentro.setLayout(new BorderLayout());
+
+        panelCentro.setBackground(new Color(225, 215, 185));
+
+        ImageIcon iconoMapa = new ImageIcon(getClass().getResource("/Interfaz/recursos/aerea_tec.jpg"));
+
+        Image imagenMapa = iconoMapa.getImage();
+
+        panelContenidoCentro = new JPanel(new BorderLayout()) {
+            @Override 
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.drawImage(imagenMapa, 0, 0, getWidth(), getHeight(), this);
+
+            }
+        };
+
+        JLabel lblTituloCentro = new JLabel("MONOPOLY TEC", JLabel.CENTER);
+
+        lblTituloCentro.setFont(new Font("Serif", Font.BOLD, 48));
+
+        lblTituloCentro.setForeground((Color.WHITE));
+
+        lblTituloCentro.setOpaque(true);
+
+        lblTituloCentro.setBackground(new Color(35, 90, 65));
+
+        lblTituloCentro.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        panelContenidoCentro.add(lblTituloCentro, BorderLayout.NORTH);
+
+        panelCentro.add(panelContenidoCentro, BorderLayout.CENTER);
+
+        fichasJugadores[0] = new JLabel("J1");
+        fichasJugadores[1] = new JLabel("J2");
+        fichasJugadores[2] = new JLabel("J3");
+        fichasJugadores[3] = new JLabel("J4");
+        
+        fichasJugadores[0].setBackground(new Color(210, 60, 60));
+        fichasJugadores[1].setBackground(new Color(60, 100, 210));
+        fichasJugadores[2].setBackground(new Color(60, 160, 90));
+        fichasJugadores[3].setBackground(new Color(230, 160, 50));
+
+        for (JLabel ficha : fichasJugadores) {
+            ficha.setOpaque(true);
+            ficha.setForeground(Color.WHITE);
+
+            ficha.setBorder(BorderFactory.createEmptyBorder(4, 7, 4, 7));
+            ficha.setFont(ficha.getFont().deriveFont(Font.BOLD));
+        }
+
+        marcarPosicionJugador(0, 0);
+        marcarPosicionJugador(1,0);
+        marcarPosicionJugador(2, 0);
+        marcarPosicionJugador(3,0);
+
+        resaltarCasillaJugadorActualSimulado();
+
+        // -------------------------------------------------
+        // CONFIGURACIÓN DEL PANEL DEL JUGADOR
+        // -------------------------------------------------
+
+        panelJugador.setLayout(
+            new BoxLayout(panelJugador, BoxLayout.Y_AXIS)
+        );
+
+        panelJugador.setPreferredSize(
+            new Dimension(300, 0)
+        );
+
+        panelJugador.setBorder(
+            BorderFactory.createTitledBorder("Jugador")
+        );
+
+        // -------------------------------------------------
+        // RESUMEN DE LOS JUGADORES
+        // -----------------------------------------------
+
+        JPanel panelResumenJugadores = new JPanel(new GridLayout(2, 2, 5, 5));
+
+        panelResumenJugadores.setBorder(BorderFactory.createTitledBorder("Jugadores"));
+
+        panelResumenJugadores.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
+
+        panelResumenJugadores.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        for (int i = 0; i < 4; i++) {
+            panelResumenJugadores.add(crearTarjetaJugador(i));
+        }
+        actualizarTarjetasJugadoresSimulados();
+
+        // -------------------------------------------------
+        // CONFIGURACIÓN DEL PANEL DE DADOS
+        // -------------------------------------------------
+
+        panelDados.setLayout(
+            new GridLayout(1, 2, 10, 0)
+        );
+
+        panelDados.setBorder(
+            BorderFactory.createTitledBorder("Dados")
+        );
+
+        panelDados.setMaximumSize(
+            new Dimension(Integer.MAX_VALUE, 70)
+        );
+
+
+        // -------------------------------------------------
+        // INFORMACIÓN DEL JUGADOR
+        // -------------------------------------------------
+
+        lblNombre = new JLabel("Jugador actual: J1");
+        lblSaldo = new JLabel("Saldo: ₡1500");
+        lblPatrimonio = new JLabel("Patrimonio: ₡1500");
+        lblPosicion = new JLabel("Posición: 0 - Salida");
+        lblTurno = new JLabel("Turno actual: J1");
+        lblNumeroRonda = new JLabel();
+        actualizarEtiquetaRonda();
+
+        JPanel panelInfoJugador = new JPanel();
+
+        panelInfoJugador.setLayout(new BoxLayout(panelInfoJugador, BoxLayout.Y_AXIS));
+
+        panelInfoJugador.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Estado actual"),
+                                    BorderFactory.createEmptyBorder(5, 8, 8, 8)));
+
+        panelInfoJugador.setMaximumSize(new Dimension(Integer.MAX_VALUE, 180));
+
+        panelInfoJugador.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        lblPropiedades = new JTextArea("Propiedades: ninguna");
+
+        lblPropiedades.setEditable(false);
+        lblPropiedades.setLineWrap(true);
+        lblPropiedades.setWrapStyleWord(true);
+        lblPropiedades.setOpaque(false);
+        lblPropiedades.setFocusable(false);
+        lblPropiedades.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        lblPropiedades.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblPropiedades.setFont(lblPropiedades.getFont().deriveFont(Font.BOLD));
+
+        lblPatrimonio.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblPatrimonio.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        lblNumeroRonda.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblNumeroRonda.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        lblNombre.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        lblSaldo.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        lblTurno.setOpaque(true);
+        lblTurno.setForeground(Color.WHITE);
+        lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
+        lblTurno.setBorder(BorderFactory.createEmptyBorder(4, 7, 4, 7));
+
+        panelInfoJugador.add(lblNombre);
+
+        panelInfoJugador.add(Box.createVerticalStrut(4));
+
+        panelInfoJugador.add(lblSaldo);
+        panelInfoJugador.add(lblPatrimonio);
+        panelInfoJugador.add(lblPosicion);
+
+        panelInfoJugador.add(Box.createVerticalStrut(5));
+
+        panelInfoJugador.add(lblTurno);
+
+        panelInfoJugador.add(Box.createVerticalStrut(3));
+
+        panelInfoJugador.add(lblNumeroRonda);
+
+        panelInfoJugador.add(Box.createVerticalStrut(5));
+
+        panelInfoJugador.add(lblPropiedades);
+
+        // -------------------------------------------------
+        // INFORMACIÓN DE LOS DADOS
+        // -------------------------------------------------
+
+        JPanel panelDado1 = new JPanel(new BorderLayout());
+        JPanel panelDado2 = new JPanel(new BorderLayout());
+
+        panelDado1.setBackground(Color.WHITE);
+        panelDado2.setBackground(Color.WHITE);
+
+        panelDado1.setBorder(BorderFactory.createLineBorder(new Color(160, 160, 160), 1));
+        panelDado2.setBorder(BorderFactory.createLineBorder(new Color(160, 160, 160), 1));
+
+        JLabel tituloDado1 = new JLabel("Dado 1", JLabel.CENTER);
+        JLabel tituloDado2 = new JLabel("Dado 2", JLabel.CENTER);
+
+        tituloDado1.setFont(new Font("SansSerif", Font.BOLD, 12));
+        tituloDado2.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JLabel lblDado1 = new JLabel("-", JLabel.CENTER);
+        JLabel lblDado2 = new JLabel("-", JLabel.CENTER);
+
+        lblDado1.setFont(new Font("SansSerif", Font.BOLD, 42));
+        lblDado2.setFont(new Font("SansSerif", Font.BOLD, 42));
+
+        lblDado1.setForeground(new Color(45, 45, 45));
+        lblDado2.setForeground(new Color(45, 45, 45));
+
+        panelDado1.add(tituloDado1, BorderLayout.NORTH);
+        panelDado1.add(lblDado1, BorderLayout.CENTER);
+
+        panelDado2.add(tituloDado2, BorderLayout.NORTH);
+        panelDado2.add(lblDado2, BorderLayout.CENTER);
+
+        panelDados.add(panelDado1);
+        panelDados.add(panelDado2);
+
+        // -------------------------------------------------
+        // BOTONES
+        // -------------------------------------------------
+
+        btnTirarDados = new JButton("Tirar dados");
+        btnComprar = new JButton("Comprar propiedad");
+        btnComprar.setEnabled(false);
+
+        btnTerminarTurno = new JButton("Terminar turno");
+        btnTerminarTurno.setEnabled(false);
+
+        Dimension tamanoBoton = new Dimension(260, 38);
+
+        btnTirarDados.setPreferredSize(tamanoBoton);
+        btnTirarDados.setMaximumSize(tamanoBoton);
+
+        btnComprar.setPreferredSize(tamanoBoton);
+        btnComprar.setMaximumSize(tamanoBoton);
+
+        btnTerminarTurno.setPreferredSize(tamanoBoton);
+        btnTerminarTurno.setMaximumSize(tamanoBoton);
+
+        Font fuenteBotones = new Font("SansSerif", Font.BOLD, 13);
+
+        btnTirarDados.setFont(fuenteBotones);
+        btnComprar.setFont(fuenteBotones);
+        btnTerminarTurno.setFont(fuenteBotones);
+
+        btnTirarDados.setBackground(new Color(45, 110, 75));
+        btnTirarDados.setForeground(Color.WHITE);
+
+        btnComprar.setBackground(new Color(225, 185, 75));
+        btnComprar.setForeground(Color.WHITE);
+
+        btnTerminarTurno.setBackground(new Color(90, 95, 100));
+        btnTerminarTurno.setForeground(Color.WHITE);
+
+        btnTirarDados.setFocusPainted(false);
+        btnComprar.setFocusPainted(false);
+        btnTerminarTurno.setFocusPainted(false);
+
+        // -------------------------------------------------
+        // ESTADO DEL JUEGO
+        // -------------------------------------------------
+
+        lblEstado = new JTextArea("Esperando acción...");
+
+        lblEstado.setEditable(false);
+        lblEstado.setLineWrap(true);
+        lblEstado.setWrapStyleWord(true);
+        lblEstado.setFocusable(false);
+        lblEstado.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        lblEstado.setFont(new Font("SansSerif" , Font.BOLD, 13));
+        lblEstado.setBackground(new Color(245, 245, 245));
+        lblEstado.setOpaque(true);
+        lblEstado.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)), BorderFactory.createEmptyBorder(8, 8, 8,8)));
+
+
+        // -------------------------------------------------
+        // HISTORIAL VISIBLE DE ACCIONES
+        // -------------------------------------------------
+
+        areaHistorial = new JTextArea();
+        areaHistorial.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        areaHistorial.setEditable(false);
+        areaHistorial.setLineWrap(true);
+        areaHistorial.setWrapStyleWord(true);
+        areaHistorial.setFocusable(false);
+
+        JScrollPane scrollHistorial = new JScrollPane(areaHistorial);
+
+        scrollHistorial.setPreferredSize(new Dimension(280, 170));
+
+        scrollHistorial.setMaximumSize(new Dimension(Integer.MAX_VALUE, 170));
+
+        scrollHistorial.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        scrollHistorial.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(160, 160, 160)), "Historial de acciones"));
+
+        // -------------------------------------------------
+        // ALINEACION DE COMPONENTES
+        // -------------------------------------------------
+        
+        lblNombre.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblSaldo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblPosicion.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblTurno.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        panelDados.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        btnTirarDados.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnComprar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnTerminarTurno.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        lblEstado.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // -------------------------------------------------
+        // ORGANIZACIÓN DEL PANEL DEL JUGADOR
+        // -------------------------------------------------
+
+        panelJugador.add(panelInfoJugador);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
+        panelJugador.add(panelResumenJugadores);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
+        panelJugador.add(panelDados);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
+        panelJugador.add(btnTirarDados);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
+        panelJugador.add(btnComprar);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
+        panelJugador.add(btnTerminarTurno);
+
+        panelJugador.add(Box.createVerticalStrut(20));
+
+        panelJugador.add(lblEstado);
+
+        panelJugador.add(Box.createVerticalStrut(15));
+
+        panelJugador.add(scrollHistorial);
+
+        // -------------------------------------------------
+        // EVENTOS DE LOS BOTONES
+        // -------------------------------------------------
+
+        btnTirarDados.addActionListener(e -> {
+
+            if (dadosLanzadosSimulados) {
+                lblEstado.setText("J" + (jugadorActualSimulado + 1)
+                                    + " ya lanzó los dados en este turno.");
+                return;
+            }
+
+            // Valores simulados temporalmente.
+            int dado1 = generador.nextInt(6) + 1;
+            int dado2 = generador.nextInt(6) + 1;
+            int total = dado1 + dado2;
+            agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " lanzó " + dado1 + " y " + dado2 + " (total: " + total + ").");
+
+            lblDado1.setText(obtenerCaraDado(dado1));
+            lblDado2.setText(obtenerCaraDado(dado2));
+
+            int posicionAnterior = posicionesJugadoresSimulados[jugadorActualSimulado];
+
+            int nuevaPosicion = (posicionAnterior + total) % 24;
+
+            posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+
+            boolean pasoPorsalida = posicionAnterior + total >= 24;
+
+            String mensajeSalida = "";
+
+            if (pasoPorsalida) {
+                saldosJugadoresSimulados[jugadorActualSimulado] += PREMIO_SALIDA_SIMULADO;
+
+                lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+                lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+
+                mensajeSalida = " Recibió ₡" + PREMIO_SALIDA_SIMULADO + " por pasar por Salida.";
+            }
+
+            String mensajeCasilla;
+
+            int propietario = propietariosSimulados[nuevaPosicion];
+
+            if (esCasillaEventoSimulada(nuevaPosicion)) {
+
+                btnComprar.setEnabled(false);
+
+                String carta = obtenerCartaEventosSimulada();
+
+                if (carta.equals("Recibe ₡100 por beca del TEC.")) {
+                    saldosJugadoresSimulados[jugadorActualSimulado] += 100;
+
+                    lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+                    lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+            
+                }
+
+                else if (carta.equals("Paga ₡100 por romper algo de laboratorio.")) {
+
+                    if (saldosJugadoresSimulados[jugadorActualSimulado] >= 100) {
+                        saldosJugadoresSimulados[jugadorActualSimulado] -= 100;
+
+                        lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+                        lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+                    }
+                    else {
+                        jugadoresActivosSimulados[jugadorActualSimulado] = false;
+
+                        carta = "No pudo pagar ₡100 por lo que rompió y fue eliminado.";
+                    }
+                }
+
+                else if (carta.equals("Avanza 3 posiciones.")) {
+                    nuevaPosicion = (nuevaPosicion + 3) % 24;
+
+                    posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+
+                    carta = "Avanza 3 posiciones. Ahora está en " + nombresCasillas[nuevaPosicion] + ".";
+                }
+
+                else if (carta.equals("Vas directamente al Edificio D3.")) {
+                    nuevaPosicion = 6;
+
+                    posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+                    pierdeTurnoSimulado[jugadorActualSimulado] = true;
+
+                    carta = "Está condenado a un turno en el D3.";
+                }
+
+                else if (carta.equals("Vas directamente a la Salida.")) {
+                    nuevaPosicion = 0;
+
+                    posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+
+                    carta = "Fue directamente a la Salida.";
+                }
+
+                mensajeCasilla = "Carta de evento: " + carta;
+
+                agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " recibió una carta de Evento: " + carta);
+
+                JOptionPane.showMessageDialog(this, carta, "Carta de Evento", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+            else if (nuevaPosicion == 18) {
+                btnComprar.setEnabled(false);
+
+                nuevaPosicion = 6;
+
+                posicionesJugadoresSimulados[jugadorActualSimulado] = nuevaPosicion;
+
+                pierdeTurnoSimulado[jugadorActualSimulado] = true;
+
+                mensajeCasilla = "Debe ir directamente al Edificio D3 y está condenado a perder un turno.";
+            }
+
+            else if (nuevaPosicion == 6) {
+                btnComprar.setEnabled(false);
+
+                mensajeCasilla = "Está de visita en el D3.";
+            }
+
+            else if (!esPropiedadSimulada(nuevaPosicion)) {
+                btnComprar.setEnabled(false);
+
+                mensajeCasilla = "Cayó en una casilla especial.";
+            }
+
+            else if (propietario == -1) {
+                btnComprar.setEnabled(true);
+
+                mensajeCasilla = "La propiedad está disponible.";
+            }
+
+            else if (propietario == jugadorActualSimulado) {
+                btnComprar.setEnabled(false);
+
+                mensajeCasilla = "Cayó en su propia propiedad.";
+            }
+
+            else { 
+                btnComprar.setEnabled(false);
+
+                if (saldosJugadoresSimulados[jugadorActualSimulado] >= ALQUILER_SIMULADO) {
+                    saldosJugadoresSimulados[jugadorActualSimulado] -= ALQUILER_SIMULADO;
+                    saldosJugadoresSimulados[propietario] += ALQUILER_SIMULADO;
+
+                    agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " pagó ₡" + (int) ALQUILER_SIMULADO 
+                                            + " de alquiler a J" + (propietario + 1) + " por " + nombresCasillas[nuevaPosicion] + ".");
+
+                    lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+                    lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+
+                    mensajeCasilla = "Pagó ₡" + ALQUILER_SIMULADO + " de alquiler a J" + (propietario + 1) + ".";
+                }
+                else {
+                    jugadoresActivosSimulados[jugadorActualSimulado] = false;
+
+                    agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " no pudo pagar el alquiler y fue eliminado");
+
+                    mensajeCasilla = "J" + (jugadorActualSimulado + 1) + " no pudo pagar alquiler y fue eliminado.";
+                }
+            }
+
+            lblPosicion.setText("Posición: " + nuevaPosicion + " - " + nombresCasillas[nuevaPosicion]);
+
+            marcarPosicionJugador(jugadorActualSimulado, nuevaPosicion);
+
+            agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " llegó a " + nombresCasillas[nuevaPosicion] + ".");
+
+            resaltarCasillaJugadorActualSimulado();
+
+            dadosLanzadosSimulados = true;
+            btnTirarDados.setEnabled(false);
+            btnTerminarTurno.setEnabled(true);
+
+            actualizarTarjetasJugadoresSimulados();
+            lblEstado.setText("J" + (jugadorActualSimulado + 1) + " avanzó " + total + " posiciones. " + mensajeSalida + " " + mensajeCasilla);
+        });
+
+        btnComprar.addActionListener(e -> {
+
+            int posicionActual = posicionesJugadoresSimulados[jugadorActualSimulado];
+
+            double precioActual = preciosPropiedadesSimulados[posicionActual];
+
+            if (!esPropiedadSimulada(posicionActual)) {
+                lblEstado.setText("Esta casilla no se puede comprar.");
+                return;
+            }
+            if (propietariosSimulados[posicionActual] != -1) {
+                lblEstado.setText("Esta propiedad ya tiene propietario.");
+                return;
+            }
+            if (saldosJugadoresSimulados[jugadorActualSimulado] < precioActual) {
+                lblEstado.setText("J" + (jugadorActualSimulado + 1) + " no tiene saldo suficiente.");
+                return;
+            }
+
+            saldosJugadoresSimulados[jugadorActualSimulado] -= precioActual;
+
+            lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+            propietariosSimulados[posicionActual] = jugadorActualSimulado;
+
+            agregarHistorialSimulado(
+                "J" + (jugadorActualSimulado + 1) + " compró " + nombresCasillas[posicionActual] + " por ₡" + (int) precioActual + ".");
+
+            lblPropiedades.setText(obtenerPropiedadesJugadorSim(jugadorActualSimulado));
+
+            etiquetasPropietarios[posicionActual].setText("Dueño: J" + (jugadorActualSimulado + 1));
+            etiquetasPropietarios[posicionActual].setOpaque(true);
+        
+            etiquetasPropietarios[posicionActual].setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
+            etiquetasPropietarios[posicionActual].setForeground(Color.WHITE);
+
+            etiquetasPropietarios[posicionActual].setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
+
+            lblEstado.setText("J" + (jugadorActualSimulado +1) + " compró " + nombresCasillas[posicionActual] + " por ₡" + precioActual + ".");
+
+            lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+
+            actualizarTarjetasJugadoresSimulados();
+            btnComprar.setEnabled(false);
+        });
+
+
+        btnTerminarTurno.addActionListener(e -> {
+            int intentos = 0;
+            String mensajeSalto = "";
+            int jugadorAnterior = jugadorActualSimulado;
+
+            while(intentos < 4) {
+                jugadorActualSimulado = (jugadorActualSimulado + 1) % 4;
+
+                intentos++;
+
+                if (!jugadoresActivosSimulados[jugadorActualSimulado]) {
+                    continue;
+                }
+                if (pierdeTurnoSimulado[jugadorActualSimulado]) {
+
+                    pierdeTurnoSimulado[jugadorActualSimulado] = false;
+
+                    mensajeSalto = "J" + (jugadorActualSimulado + 1) + " perdió su turno por estar en el D3.";
+
+                    agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " perdió su turno por estar en el D3.");
+                    continue;
+                }
+                break;
+            }
+            boolean nuevaRonda = false;
+
+            if (jugadorActualSimulado < jugadorAnterior) {
+                numeroRondaSimulada++;
+
+                nuevaRonda = true;
+            }
+
+            if (contarJugadoresActivos() == 1) {
+                int ganador = -1;
+
+                for (int i = 0; i < jugadoresActivosSimulados.length; i++) {
+                    if (jugadoresActivosSimulados[i]) {
+                        ganador = i;
+                        break;
+                    }
+                }
+                mostrarFinDePartidaSimulado("Solo queda un jugador activo.", ganador);
+
+                return;
+            }
+
+            if (partidaPorRondas && numeroRondaSimulada > maxRondasSimulado) {
+                int ganador = obtenerGanadorPorPatrimonioSimulado();
+
+                lblNumeroRonda.setText("Ronda: " + maxRondasSimulado + "/" + maxRondasSimulado);
+
+                mostrarFinDePartidaSimulado("Se completaron las " + maxRondasSimulado + " rondas de la partida.", ganador);
+
+                return;
+            }
+
+            if (nuevaRonda) {
+                agregarHistorialSimulado("Comienza la ronda " + numeroRondaSimulada + ".");
+            }
+            dadosLanzadosSimulados = false;
+
+            btnTerminarTurno.setEnabled(false);
+            btnTirarDados.setEnabled(true);
+            btnComprar.setEnabled(false);
+
+            actualizarPanelJugadorSimulado();
+            resaltarCasillaJugadorActualSimulado();
+            agregarHistorialSimulado("Turno de J" + (jugadorActualSimulado + 1) + ".");
+            
+            lblDado1.setText("-");
+            lblDado2.setText("-");
+
+            lblEstado.setText(mensajeSalto + "\nTurno de J" + (jugadorActualSimulado + 1));
+        });
+
+
+        // -------------------------------------------------
+        // AGREGAR PANELES A LA VENTANA
+        // -------------------------------------------------
+
+        add(panelTablero, BorderLayout.CENTER);
+        add(panelJugador, BorderLayout.EAST);
+        agregarHistorialSimulado("Partida iniciada. Turno de J1");
+    }
+
+    private Color obtenerColorGrupoPropiedadSimulada(int posicion) {
+        if (posicion == 1 || posicion == 2) {
+            return new Color(150, 95, 60);
+        }
+        if (posicion == 4 || posicion == 5) {
+            return new Color(120, 190, 220);
+        }
+        if (posicion == 7 || posicion == 8) {
+            return new Color(220, 130, 180);
+        }
+        if (posicion == 10 || posicion == 11) {
+            return new Color(230, 160, 70);
+        }
+        if (posicion == 13 || posicion == 14) {
+            return new Color(210, 80, 80);
+        }
+        if (posicion == 16 || posicion == 17) {
+            return new Color(230, 210, 80);
+        }
+        if (posicion == 19 || posicion == 20) {
+            return new Color(90, 170, 100);
+        }
+        if (posicion == 22 || posicion ==23) {
+            return new Color(70, 100, 170);
+        }
+        return new Color(200, 200, 200);
+    }
+
+    private Color obtenerColorCasillaSimulada(int posicion) {
+
+        if (posicion == 0) {
+            return new Color(190, 225, 190);   // Salida
+        }
+
+        if (esCasillaEventoSimulada(posicion)) {
+            return new Color(220, 205, 235);   // Evento
+        }
+
+        if (posicion == 6) {
+            return new Color(205, 220, 235);   // Edificio D3
+        }
+
+        if (posicion == 18) {
+            return new Color(235, 195, 195);   // Ir al D3
+        }
+
+        if (posicion == 12) {
+            return new Color(235, 225, 185);   // Especial
+        }
+
+        return new Color(240, 235, 220);       // Propiedades
+    }
+
+    private void actualizarPanelJugadorSimulado() {
+
+        lblNombre.setText("Jugador actual: J" + (jugadorActualSimulado + 1));
+
+        lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
+
+        lblPatrimonio.setText("Patrimonio: ₡" + calcularPatrimonioSim(jugadorActualSimulado));
+
+        int posicionActual = posicionesJugadoresSimulados[jugadorActualSimulado];
+        lblPosicion.setText("Posición: " + posicionActual + " - " + nombresCasillas[posicionActual]);
+
+        lblTurno.setText("Turno actual: J" + (jugadorActualSimulado + 1));
+
+        lblTurno.setBackground(fichasJugadores[jugadorActualSimulado].getBackground());
+
+        actualizarEtiquetaRonda();
+
+        lblPropiedades.setText(obtenerPropiedadesJugadorSim(jugadorActualSimulado));
+
+        actualizarTarjetasJugadoresSimulados();
+    }
+
+    private void mostrarFinDePartidaSimulado(String motivo, int ganador) {
+        double patrimonioGanador = calcularPatrimonioSim(ganador);
+
+        String mensaje = motivo + "\n\nGanador: J"+ (ganador + 1) + "\nPatrimonio: ₡" + (int) patrimonioGanador;
+
+        lblEstado.setText("Partida finalizada. Ganador: J"+ (ganador + 1));
+
+        agregarHistorialSimulado("Partida finalizada. Ganador: J"+ (ganador + 1) + " con un patrimonio de ₡" + patrimonioGanador + ".");
+
+        btnTirarDados.setEnabled(false);
+        btnComprar.setEnabled(false);
+        btnTerminarTurno.setEnabled(false);
+
+        JOptionPane.showMessageDialog(this, mensaje, "Fin de la partida", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private int obtenerGanadorPorPatrimonioSimulado () {
+        int ganador = -1;
+        double mayorPatrimonio = -1;
+
+        for (int i =0; i < jugadoresActivosSimulados.length; i++) {
+
+            if (jugadoresActivosSimulados[i]) {
+
+                double patrimonio = calcularPatrimonioSim(i);
+
+                if (patrimonio > mayorPatrimonio) {
+                    mayorPatrimonio = patrimonio;
+                    ganador = i;
+                }
+            }
+        }
+        return ganador;
+    }
+
+    private String obtenerCartaEventosSimulada() {
+        String carta = cartasEventoSimuladas[indiceCartaEventosSimulada];
+
+        indiceCartaEventosSimulada = (indiceCartaEventosSimulada + 1) % cartasEventoSimuladas.length;
+
+        return carta;
+    }
+
+    private boolean esCasillaEventoSimulada(int posicion) {
+        return posicion == 3 ||
+        posicion == 9 ||
+        posicion == 15 ||
+        posicion == 21;
+    }
+
+    private double calcularPatrimonioSim(int jugador) {
+        double patrimonio = saldosJugadoresSimulados[jugador];
+
+        for (int i = 0; i < propietariosSimulados.length; i++) {
+            if (propietariosSimulados[i] == jugador) {
+                patrimonio += preciosPropiedadesSimulados[i];
+            }
+        }
+        return patrimonio;
+    }
+
+    private String obtenerPropiedadesJugadorSim(int jugador) {
+        StringBuilder texto = new StringBuilder("Propiedades: ");
+        boolean tienePropiedades = false;
+
+        for (int i = 0; i < propietariosSimulados.length; i++) {
+            if (propietariosSimulados[i] == jugador) {
+                if (tienePropiedades) {
+                    texto.append(". ");
+                }
+                texto.append(nombresCasillas[i]);
+                tienePropiedades = true;
+            }
+        }
+        if (!tienePropiedades) {
+            texto.append("ninguna");
+        }
+        return texto.toString();
+    }
+
+    private boolean esPropiedadSimulada(int posicion) {
+        return posicion != 0 &&
+        posicion != 3 &&
+        posicion != 6 &&
+        posicion != 9 &&
+        posicion != 12 &&
+        posicion != 15 &&
+        posicion != 18 &&
+        posicion != 21;
+    }
+
+    private int contarJugadoresActivos() {
+        int cantidad = 0;
+
+        for (boolean activo : jugadoresActivosSimulados) {
+            if (activo){
+                cantidad++;
+            }
+        }
+        return cantidad;
+    }
+
+    private JPanel crearTarjetaJugador(int jugador) {
+        JPanel tarjeta = new JPanel();
+
+        tarjeta.setLayout(new BoxLayout(tarjeta, BoxLayout.Y_AXIS));
+
+        tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(
+                        fichasJugadores[jugador].getBackground(), 2), 
+                        BorderFactory.createEmptyBorder(5, 7, 5,7)));
+        JLabel lblJugador = new JLabel("J" + (jugador + 1));
+
+        lblJugador.setFont(lblJugador.getFont().deriveFont(Font.BOLD));
+
+        lblSaldoJugadores[jugador] = new JLabel("Saldo: ₡1500");
+
+        lblEstadoJugadores[jugador] = new JLabel("Activo");
+
+        tarjeta.add(lblJugador);
+        tarjeta.add(lblSaldoJugadores[jugador]);
+        tarjeta.add(lblEstadoJugadores[jugador]);
+
+        tarjetasJugadores[jugador] = tarjeta;
+
+        return tarjeta;
+    }
+
+    private void agregarHistorialSimulado(String mensaje) {
+        if (!areaHistorial.getText().isEmpty()) {
+            areaHistorial.append("\n");
+        }
+        areaHistorial.append(mensaje);
+
+        areaHistorial.setCaretPosition(areaHistorial.getDocument().getLength());
+    }
+
+    private void actualizarEtiquetaRonda() {
+        if (partidaPorRondas) {
+            lblNumeroRonda.setText("Ronda: " + numeroRondaSimulada + " / " + maxRondasSimulado);
+        }
+        else {
+            lblNumeroRonda.setText("Ronda: " + numeroRondaSimulada + " | Sin límite");
+        }
+    }
+
+    private String obtenerCaraDado(int valor) {
+        switch (valor) {
+            case 1:
+                return "⚀";
+            case 2:
+                return "⚁";
+            case 3:
+                return "⚂";
+            case 4:
+                return "⚃";
+            case 5:
+                return "⚄";
+            case 6:
+                return "⚅";
+            default:
+                return "-";
+        }
+    }
+
+    private void actualizarTarjetasJugadoresSimulados() {
+        for (int i = 0; i < 4; i++) {
+            lblSaldoJugadores[i].setText("Saldo: ₡" + saldosJugadoresSimulados[i]);
+
+            if (!jugadoresActivosSimulados[i]) {
+                lblEstadoJugadores[i].setText("Eliminado");
+                tarjetasJugadores[i].setEnabled(false);
+                tarjetasJugadores[i].setBackground(new Color(210, 210, 210));
+                lblSaldoJugadores[i].setForeground(Color.GRAY);
+                lblEstadoJugadores[i].setForeground(Color.GRAY);
+            }
+
+            else if (pierdeTurnoSimulado[i]) {
+                lblEstadoJugadores[i].setText("En D3");
+                tarjetasJugadores[i].setBackground(new Color(235, 235, 235));
+                lblSaldoJugadores[i].setForeground(Color.BLACK);
+                lblEstadoJugadores[i].setForeground(Color.BLACK);
+            }
+
+            else {
+                lblEstadoJugadores[i].setText("Activo");
+                tarjetasJugadores[i].setBackground(new Color(245, 245, 245));
+                lblSaldoJugadores[i].setForeground(Color.BLACK);
+                lblEstadoJugadores[i].setForeground(Color.BLACK);
+            }
+        }
+    }
+
+    private void resaltarCasillaJugadorActualSimulado() {
+        
+        for (int i = 0; i < casillasVisuales.length; i++) {
+            if (casillasVisuales[i] != null) {
+                casillasVisuales[i].setBorder(BorderFactory.createEtchedBorder());
+            }
+        }
+        int posicionActual = posicionesJugadoresSimulados[jugadorActualSimulado];
+
+        Color colorJugador = fichasJugadores[jugadorActualSimulado].getBackground();
+
+        casillasVisuales[posicionActual].setBorder(BorderFactory.createLineBorder(colorJugador, 4));
+        
+    }
+
+    private void marcarPosicionJugador(int jugador, int posicion) {
+        if (jugador < 0 || jugador >= fichasJugadores.length) {
+        return;
+        }
+        if (posicion < 0 || posicion >= panelesFichas.length){
+            return;
+        }
+        JLabel ficha = fichasJugadores[jugador];
+
+        int posicionAnterior = posicionesVisuales[jugador];
+
+        if (posicionAnterior != -1) {
+            JPanel panelAnterior = panelesFichas[posicionAnterior];
+            panelAnterior.remove(ficha);
+
+            panelAnterior.revalidate();
+            panelAnterior.repaint();
+        }
+        JPanel panelNuevo = panelesFichas[posicion];
+        panelNuevo.add(ficha);
+
+        panelNuevo.revalidate();
+        panelNuevo.repaint();
+
+        posicionesVisuales[jugador] = posicion;
+    }
+    // Método principal
+    public static void main(String[] args) {
+
+        SwingUtilities.invokeLater(() -> {
+
+            VentanaJuego ventana =
+                new VentanaJuego();
+
+            ventana.setVisible(true);
+        });
+    }
+}
