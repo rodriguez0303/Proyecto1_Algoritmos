@@ -78,7 +78,7 @@ public class Cliente {
     //*****************************************************
 
     // Método que permite establecer la conexión entre este Cliente y el servidor.
-    public void conectar() {
+    public boolean conectar() {
 
         try {
 
@@ -105,6 +105,9 @@ public class Cliente {
                         // "true" permite que cada mensaje enviado con println() se envíe inmediatamente.
             salida = new PrintWriter(socket.getOutputStream(), true);
 
+            // Se retorna true porque la conexión con el Server se estableció correctamente.
+            return true;
+
         }
 
         catch (IOException e) {
@@ -114,6 +117,9 @@ public class Cliente {
             System.out.println(
                     "Error al conectar con el servidor"
             );
+
+            // Se retorna false porque no fue posible establecer la conexión con el Server.
+            return false;
         }
     }
     //*****************************************************
@@ -160,7 +166,8 @@ public class Cliente {
                 // Respuestas relacionadas con las solicitudes del jugador:
                     // "El jugador decidió no comprar la propiedad"
                 // Esstado del jugador:
-                    // "ESTADO;identificador;nombre;saldo;posición;propiedades". // Ejemplo: "ESTADO;J001;Jugador 1;900.0;7;P01,P04"
+            // Estado del juego recibido desde el Server:
+                // "ESTADO;identificador;nombre;saldo;posición;propiedades;jugadorActual;rondaActual;estadoJugadores;propietariosPropiedades"
                     // "Consulta de transacciones válida"
                     // "La acción no es válida"
 
@@ -203,18 +210,22 @@ public class Cliente {
             String[] datos = respuesta.split(";");
 
 
-            // Se verifica que el arreglo "datos" contenga los 6 datos esperados.
+            // Se verifica que el arreglo "datos" contenga los 10 datos esperados.
                 // length permite conocer la cantidad de posiciones que contiene el arreglo.
-                     // Si length es igual a 6, significa que la respuesta contiene todos los datos necesarios.
-            if (datos.length == 6) {
+                     // Si length es igual a 10, significa que la respuesta contiene todos los datos necesarios.
+            if (datos.length == 10) {
 
                 // La información queda almacenada de la siguiente manera:
-                // datos[0] = "ESTADO"
-                // datos[1] = identificador del jugador
-                // datos[2] = nombre del jugador
-                // datos[3] = saldo del jugador
-                // datos[4] = posición actual del jugador
-                // datos[5] = propiedades adquiridas del jugador
+                // 0  ESTADO
+                // 1  Identificador del jugador
+                // 2  Nombre
+                // 3  Saldo
+                // 4  Posición
+                // 5  Propiedades del jugador
+                // 6  Jugador actual
+                // 7  Ronda actual
+                // 8  Estado de todos los jugadores
+                // 9  Propietarios de las propiedades
 
 
                 System.out.println("******** ESTADO DEL JUGADOR ********");
@@ -233,10 +244,72 @@ public class Cliente {
 
                 // Se muestran las propiedades del jugador adquiridas.
                 System.out.println("Propiedades adquiridas: " + datos[5]);
+
+                // Se muestra el identificador del Jugador que tiene actualmente el turno.
+                    // datos[6] contiene el identificador del Jugador actual recibido desde el Server.
+                System.out.println("Jugador actual: " + datos[6]);
+
+                // Se muestra el número de la ronda actual de la partida.
+                    // datos[7] contiene la ronda actual recibida desde el Server.
+                System.out.println("Ronda actual: " + datos[7]);
+
+                // Se muestra el estado de todos los Jugadores de la partida.
+                System.out.println("******** ESTADO DE TODOS LOS JUGADORES ********");
+
+                // datos[8] contiene la información de todos los Jugadores enviada por el Server.
+                    // Cada Jugador se encuentra separado mediante el símbolo "|".
+                        // split("\\|") permite separar cada Jugador y guardar su información en el arreglo "jugadores".
+                String[] jugadores = datos[8].split("\\|");
+
+                // Se recorre el arreglo "jugadores" para mostrar la información de cada Jugador.
+                for (int i = 0; i < jugadores.length; i++) {
+
+                    // Cada Jugador contiene su identificador, posición y estado activo separados mediante ",".
+                    String[] datosJugador = jugadores[i].split(",");
+
+                    // Se verifica que existan los 3 datos correspondientes al Jugador.
+                    if (datosJugador.length == 3) {
+
+                        // datosJugador[0] contiene el identificador del Jugador.
+                        System.out.println("Identificador: " + datosJugador[0]);
+
+                        // datosJugador[1] contiene la posición actual del Jugador.
+                        System.out.println("Posición: " + datosJugador[1]);
+
+                        // datosJugador[2] indica si el Jugador se encuentra activo.
+                        System.out.println("Activo: " + datosJugador[2]);
+
+                        System.out.println("------------------------------");
+                    }
+                }
+            // Se muestran los propietarios de las Propiedades que se encuentran en el Tablero.
+            System.out.println("******** PROPIETARIOS DE LAS PROPIEDADES ********");
+
+            // datos[9] contiene la información de las Propiedades enviada por el Server.
+                // Cada Propiedad se encuentra separada mediante el símbolo "|".
+            String[] propiedadesTablero = datos[9].split("\\|");
+
+            // Se recorre el arreglo "propiedadesTablero" para mostrar la información de cada Propiedad.
+            for (int i = 0; i < propiedadesTablero.length; i++) {
+
+                // Cada Propiedad contiene su identificador y el identificador de su propietario
+                String[] datosPropiedad = propiedadesTablero[i].split(",");
+
+                // Se verifica que existan los 2 datos correspondientes a la Propiedad.
+                if (datosPropiedad.length == 2) {
+
+                    // datosPropiedad[0] contiene el identificador de la Propiedad.
+                    System.out.println("Propiedad: " + datosPropiedad[0]);
+
+                    // datosPropiedad[1] contiene el identificador del propietario.
+                        // Si la Propiedad todavía no pertenece a ningún Jugador, el Server envía "SIN_PROPIETARIO".
+                    System.out.println("Propietario: " + datosPropiedad[1]);
+
+                    System.out.println("------------------------------");
+                }
             }
-
-
-            // Si el arreglo no contiene los 6 datos esperados, significa que la respuesta está incompleta.
+            }
+            // Si el arreglo no contiene los 10 datos esperados, significa que la respuesta está incompleta.
             else {
 
                 // Se muestra un mensaje indicando que no fue posible mostrar correctamente el estado.

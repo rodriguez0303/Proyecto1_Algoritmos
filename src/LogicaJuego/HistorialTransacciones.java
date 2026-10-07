@@ -83,6 +83,49 @@ public class HistorialTransacciones {
     public void imprimirHistorial() {
         System.out.print(ObtenerHistorial());
     }
+
+    //*****************************************************
+    //*****************************************************
+
+    // Método que permite obtener todas las transacciones guardadas en el historial.
+        // Devuelve las transacciones como un String para que puedan ser utilizadas por otras clases. Por ejemplo, Server.
+    public String obtenerHistorial() {
+
+        // String que almacenará todas las transacciones encontradas.
+        String historial = "";
+
+        // Se crea una referencia temporal llamada "actual" que inicia apuntando al primer nodo del historial.
+            // Se utiliza "actual" para recorrer los nodos sin modificar la referencia "primero".
+        Nodo actual = primero;
+
+
+        // Se recorren los nodos mientras exista una transacción por consultar.
+            // Cuando "actual" sea null significa que se llegó al final del historial.
+        while (actual != null) {
+
+
+            // Se toma la transacción guardada en el nodo actual y se agrega al String que contiene el historial.
+            historial = historial + actual.transaccion;
+
+
+            // Se verifica si todavía existe otra transacción después de la actual.
+            if (actual.siguiente != null) {
+
+                // Se agrega un separador entre cada transacción .
+                historial = historial + ";";
+            }
+
+            // Se avanza al siguiente nodo del historial. Desde la transacción más antigua hasta la más reciente.
+            actual = actual.siguiente;
+        }
+
+        // Se devuelve el String que contiene todas las transacciones que fueron encontradas durante el recorrido del historial.
+        return historial;
+    }
+
+        //*****************************************************
+        //*****************************************************
+
     public void imprimirHistorialInverso() {
         System.out.print(ObtenerHistorialInverso());
     }

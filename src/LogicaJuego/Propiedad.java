@@ -159,9 +159,10 @@ public class Propiedad extends Casilla {
                     int numeroTurno = juego.getNumTurno();
 
                     // Se guarda el tipo de Transaccion que se está realizando.
-                        // Se utiliza "COMPRA_PROPIEDAD" porque el Jugador está comprando esta PROPIEDAD.
-                            // Este valor será enviado a la clase Transaccion para identificar la operación realizada.
-                    String tipoTransaccion = "COMPRA_PROPIEDAD";
+                        // "TipoTransaccion" es un enum de la clase TipoTransaccion que contiene los tipos de Transacciones permitidos en el Juego.
+                            // "COMPRA_PROPIEDAD" pertenece al enum TipoTransaccion e indica que la operación corresponde a la compra de una PROPIEDAD.
+                                // De esta forma no se utiliza un String escrito manualmente para identificar el tipo de Transaccion.
+                    TipoTransaccion tipoTransaccion = TipoTransaccion.COMPRA_PROPIEDAD;
 
                     // "jugadorOrigen" es la variable que guardará la identificación del Jugador del cual sale el dinero de la Transaccion.
                         // "jugador" es el Jugador que fue recibido como parámetro en el método comprar().
@@ -285,10 +286,11 @@ public class Propiedad extends Casilla {
                         // Juego es el único que genera IDs (T1, T2, T3...), así no se repiten.
                 String idTransaccion = juego.GenerarIdTransaccion();
 
-                // "tipoTransaccion" es la variable que guardará el tipo de operación realizada.
-                 // Se utiliza "PAGO_ALQUILER" porque el Jugador está pagando el alquiler de una PROPIEDAD.
-                     // Este valor será enviado posteriormente al constructor de la clase Transaccion.
-                String tipoTransaccion = "PAGO_ALQUILER";
+                // Se guarda el tipo de Transaccion que se está realizando.
+                    // "TipoTransaccion" es un enum de la clase TipoTransaccion que contiene los tipos de Transacciones permitidos en el Juego.
+                        // "PAGO_ALQUILER" pertenece al enum TipoTransaccion e indica que la operación corresponde al pago del alquiler de una PROPIEDAD.
+                            // De esta forma no se utiliza un String escrito manualmente para identificar el tipo de Transaccion.
+                TipoTransaccion tipoTransaccion = TipoTransaccion.PAGO_ALQUILER;
 
                 // "jugadorOrigen" es la variable que guardará la identificación del Jugador que paga el alquiler.
                     // "jugadorQuePaga" contiene al Jugador que cayó en la PROPIEDAD de otro Jugador.
