@@ -3,6 +3,7 @@ package Red;
 import LogicaJuego.Juego;
 import LogicaJuego.Jugador;
 import LogicaJuego.Propiedad;
+
 // Permite acceder a la lista donde se encuentran guardadas las propiedades adquiridas por un jugador.
 import LogicaJuego.ListaSimplePropiedad;
 
@@ -29,6 +30,17 @@ import java.io.InputStreamReader;
     // Permite enviar mensajes de texto desde el servidor hacia el jugador por medio de su conexión Socket.
 import java.io.PrintWriter;
 
+// Permite acceder al Tablero real de la partida
+    // para recorrer todas las casillas que lo forman.
+import LogicaJuego.Tablero;
+
+// Permite acceder a cada NodoCasilla almacenado
+    // dentro de la lista circular doble del Tablero.
+import LogicaJuego.NodoCasilla;
+
+// Permite obtener la Casilla almacenada
+    // dentro de cada NodoCasilla del Tablero.
+import LogicaJuego.Casilla;
 
 //*****************************************************
 //*****************************************************
@@ -51,7 +63,7 @@ public class Server {
 
     // Socket es una clase que Java ya tiene implementada.
         // Se crea un arreglo de tamaño 4 que es el tamaño máximo de jugadores en el juego.
-        // Cada espacio guardará la conexión de un jugador después de que el servidor lo acepte.
+            // Cada espacio guardará la conexión de un jugador después de que el servidor lo acepte.
     private Socket[] clientesSocket = new Socket[4];
 
     // Arreglo que guardará el lector de cada jugador conectado.
@@ -60,21 +72,36 @@ public class Server {
     private BufferedReader[] entradas = new BufferedReader[4];
 
     // Arreglo que guardará el escritor de cada jugador conectado.
-    // Cada PrintWriter permitirá enviar mensajes desde el servidor hacia un jugador.
-    // La posición del PrintWriter coincide con la posición de su Socket.
+        // Cada PrintWriter permitirá enviar mensajes desde el servidor hacia un jugador.
+            // La posición del PrintWriter coincide con la posición de su Socket.
     private PrintWriter[] salidas = new PrintWriter[4];
 
     // Arreglo que guardará los 4 jugadores que participan en el juego.
-    // Cada posición guarda un objeto Jugador con su información, como saldo, posición y propiedades.
-    // La posición del jugador coincide con la posición de su conexión en clientesSocket.
+        // Cada posición guarda un objeto Jugador con su información, como saldo, posición y propiedades.
+            // La posición del jugador coincide con la posición de su conexión en clientesSocket.
     private Jugador[] jugadoresConectados = new Jugador[4];
+
+    // Guarda la Propiedad cuya compra se encuentra pendiente.
+        // La propiedad solamente se guardará cuando el Jugador llegue a una Propiedad disponible durante su turno.
+    private Propiedad propiedadPendienteCompra;
+
+
+    // Guarda el Jugador al que pertenece la decisión de compra pendiente.
+        // Permite impedir que otro Jugador intente comprar una Propiedad que no le corresponde.
+    private Jugador jugadorPendienteCompra;
+
+
+    // Guarda el número de turno en el que se generó la decisión de compra.
+        // getNumTurno() es un método de la clase Juego.
+            // Permite verificar que la compra o no compra se realice durante el mismo turno.
+    private int turnoPendienteCompra;
 
 
     //*****************************************************
     //*****************************************************
 
     // Constructor de la clase Servidor.
-        // Recibe la IP, el puerto y el objeto Juego que administrará el servidor. //("192.168.1.10", 5000, juegoMonopoly)
+    // Recibe la IP, el puerto y el objeto Juego que administrará el servidor. //("192.168.1.10", 5000, juegoMonopoly)
     public Server(String ip, int puerto, Juego juego) {
 
         this.ip = ip;
@@ -93,8 +120,8 @@ public class Server {
         try {
 
             // Se crea el servidor usando el puerto indicado.
-                // Se utiliza el puerto guardado en la variable "puerto".
-                    // El servidor queda preparado para esperar conexiones de los jugadores.
+            // Se utiliza el puerto guardado en la variable "puerto".
+            // El servidor queda preparado para esperar conexiones de los jugadores.
             serverSocket = new ServerSocket(puerto);
 
 
@@ -111,8 +138,8 @@ public class Server {
 
 
             // El servidor permanece esperando nuevas conexiones mientras continúe ejecutándose.
-                // aceptarCliente() se encarga de revisar si existe una posición disponible.
-                // De esta forma, si un jugador se desconecta, su espacio puede volver a utilizarse.
+            // aceptarCliente() se encarga de revisar si existe una posición disponible.
+            // De esta forma, si un jugador se desconecta, su espacio puede volver a utilizarse.
             while (true) {
 
                 aceptarCliente();
@@ -123,7 +150,7 @@ public class Server {
         catch (IOException e) {
 
             // Se ejecuta si ocurre un problema al iniciar el servidor.
-                // Por ejemplo, si el puerto ya está siendo utilizado por otro programa.
+            // Por ejemplo, si el puerto ya está siendo utilizado por otro programa.
             System.out.println("Error al iniciar el servidor");
         }
     }
@@ -135,14 +162,14 @@ public class Server {
     public int buscarPosicionDisponible() {
 
         //Si un jugador se desconecta debe quedar el espacio disponible nuevamente para volverse a conectar
-            // Se recorren las 4 posiciones posibles de los arreglos.
-                // Una posición está disponible cuando contiene null.
-                    // Esto significa que no existe una conexión guardada en esa posición.
+        // Se recorren las 4 posiciones posibles de los arreglos.
+        // Una posición está disponible cuando contiene null.
+        // Esto significa que no existe una conexión guardada en esa posición.
         for (int i = 0; i < clientesSocket.length; i++) {
 
             // Se verifica si la posición está libre.
-                // Una posición contendrá el valor de null cuando no existe una conexión guardada en ella.
-                // Si la posición está libre, esta puede utilizarse para conectar a otro jugador.
+            // Una posición contendrá el valor de null cuando no existe una conexión guardada en ella.
+            // Si la posición está libre, esta puede utilizarse para conectar a otro jugador.
             if (clientesSocket[i] == null) {
 
                 return i;
@@ -164,37 +191,37 @@ public class Server {
         try {
 
             // El servidor espera hasta que un cliente intente conectarse.
-                // accept() detiene momentáneamente esta parte del programa hasta recibir una conexión.
-                    // La nueva conexión se guarda temporalmente en la variable "nuevoSocket".
+            // accept() detiene momentáneamente esta parte del programa hasta recibir una conexión.
+            // La nueva conexión se guarda temporalmente en la variable "nuevoSocket".
             Socket nuevoSocket = serverSocket.accept();
 
 
             // Se busca una posición disponible dentro del arreglo de conexiones.
-                // buscarPosicionDisponible() revisa las 4 posiciones posibles.
-                // Si encuentra una posición libre devuelve 0, 1, 2 o 3; si no encuentra ninguna devuelve -1.
+            // buscarPosicionDisponible() revisa las 4 posiciones posibles.
+            // Si encuentra una posición libre devuelve 0, 1, 2 o 3; si no encuentra ninguna devuelve -1.
             int posicionDisponible = buscarPosicionDisponible();
 
             // Se guarda la conexión Socket que pertenece a este cliente.
-                // "nuevoSocket" contiene la conexión que acaba de aceptar el servidor.
-                    // Esta conexión se guarda en "socketJugador" para utilizarla dentro del Thread.
+            // "nuevoSocket" contiene la conexión que acaba de aceptar el servidor.
+            // Esta conexión se guarda en "socketJugador" para utilizarla dentro del Thread.
             Socket socketJugador = nuevoSocket;
 
 
             // Se verifica si existe una posición disponible.
-                // Una posición diferente de -1 significa que todavía hay espacio para aceptar al cliente.
-                    // En ese caso la nueva conexión puede guardarse dentro de los arreglos del servidor.
+            // Una posición diferente de -1 significa que todavía hay espacio para aceptar al cliente.
+            // En ese caso la nueva conexión puede guardarse dentro de los arreglos del servidor.
             if (posicionDisponible != -1) {
 
 
                 // Se guarda el Socket del cliente en la posición disponible.
-                    // "posicionDisponible" indica cuál espacio del arreglo debe utilizarse.
-                         // La conexión queda asociada a esa posición mientras el cliente continúe conectado.
+                // "posicionDisponible" indica cuál espacio del arreglo debe utilizarse.
+                // La conexión queda asociada a esa posición mientras el cliente continúe conectado.
                 clientesSocket[posicionDisponible] = nuevoSocket;
 
 
                 // Se crea el lector que permitirá recibir mensajes enviados por este cliente.
-                    // getInputStream() obtiene la información que llega desde el cliente.
-                     // El BufferedReader se guarda en la misma posición que su Socket.
+                // getInputStream() obtiene la información que llega desde el cliente.
+                // El BufferedReader se guarda en la misma posición que su Socket.
                 entradas[posicionDisponible] = new BufferedReader(
                         new InputStreamReader(
                                 clientesSocket[posicionDisponible].getInputStream()
@@ -203,8 +230,8 @@ public class Server {
 
 
                 // Se crea el escritor que permitirá enviar mensajes hacia este cliente.
-                    // getOutputStream() obtiene el canal de salida hacia el cliente.
-                        // true permite enviar inmediatamente cada mensaje escrito con println().
+                // getOutputStream() obtiene el canal de salida hacia el cliente.
+                // true permite enviar inmediatamente cada mensaje escrito con println().
                 salidas[posicionDisponible] = new PrintWriter(
                         clientesSocket[posicionDisponible].getOutputStream(),
                         true
@@ -212,35 +239,35 @@ public class Server {
 
 
                 // Se guarda la posición que utilizará este cliente.
-                    // Esta variable será utilizada dentro del Thread.
-                        // Cada cliente tendrá su propia posición dentro de los arreglos.
+                // Esta variable será utilizada dentro del Thread.
+                // Cada cliente tendrá su propia posición dentro de los arreglos.
                 int posicionJugador = posicionDisponible;
 
 
                 // Se informa en el servidor cuál espacio de conexión fue utilizado.
-                    // posicionJugador comienza en 0, por eso se suma 1 solamente para mostrarlo de forma más comprensible.
-                        // Este número representa la posición de conexión, no necesariamente el ID del jugador.
+                // posicionJugador comienza en 0, por eso se suma 1 solamente para mostrarlo de forma más comprensible.
+                // Este número representa la posición de conexión, no necesariamente el ID del jugador.
                 System.out.println(
                         "Cliente " + (posicionJugador + 1) + " conectado"
                 );
 
 
                 // Se crea un Thread para atender las solicitudes de los jugadores.
-                    // Cada jugador tendrá su propio Thread.
-                        // Esto permitirá atender varias conexiones al mismo tiempo.
+                // Cada jugador tendrá su propio Thread.
+                // Esto permitirá atender varias conexiones al mismo tiempo.
                 Thread hiloCliente = new Thread(() -> {
 
                     // El Thread continúa solamente mientras la posición siga perteneciendo al mismo Socket.
-                        // Si el jugador se desconecta y la posición es reutilizada,
-                            // el Thread anterior ya no podrá procesar las solicitudes del nuevo cliente.
+                    // Si el jugador se desconecta y la posición es reutilizada,
+                    // el Thread anterior ya no podrá procesar las solicitudes del nuevo cliente.
                     while (clientesSocket[posicionJugador] == socketJugador && !socketJugador.isClosed()) {
 
                         procesarSolicitud(posicionJugador);
                     }
 
                     // Se eliminan los datos que estaban asociados a la conexión de este jugador.
-                        // Los cuatro arreglos utilizan la misma posición para guardar los datos de una conexión.
-                            // Al colocar null, esta posición queda libre para que pueda conectarse otro jugador.
+                    // Los cuatro arreglos utilizan la misma posición para guardar los datos de una conexión.
+                    // Al colocar null, esta posición queda libre para que pueda conectarse otro jugador.
                     if (clientesSocket[posicionJugador] == socketJugador) {
 
                         entradas[posicionJugador] = null;
@@ -253,20 +280,20 @@ public class Server {
 
 
                 // Se inicia el Thread del jugador.
-                    // Desde este momento el Thread comienza a ejecutar su código.
-                        // El servidor principal puede continuar aceptando otras conexiones.
+                // Desde este momento el Thread comienza a ejecutar su código.
+                // El servidor principal puede continuar aceptando otras conexiones.
                 hiloCliente.start();
             }
 
 
             // Si posicionDisponible contiene -1, significa que las 4 conexiones están ocupadas.
-                // El servidor no puede aceptar un quinto jugador simultáneamente.
-                    // La nueva conexión se rechaza y se cierra.
+            // El servidor no puede aceptar un quinto jugador simultáneamente.
+            // La nueva conexión se rechaza y se cierra.
             else {
 
                 // Se crea un escritor temporal para poder informar al cliente antes de cerrar su conexión.
-                    // Este PrintWriter solamente se utiliza para enviar el mensaje de rechazo.
-                        // No se guarda dentro del arreglo salidas porque no existe una posición disponible.
+                // Este PrintWriter solamente se utiliza para enviar el mensaje de rechazo.
+                // No se guarda dentro del arreglo salidas porque no existe una posición disponible.
                 PrintWriter salidaTemporal = new PrintWriter(
                         nuevoSocket.getOutputStream(),
                         true
@@ -280,7 +307,7 @@ public class Server {
 
 
                 // Se cierra la conexión que intentó entrar cuando ya había 4 clientes conectados.
-                    // De esta forma nunca existen más de 4 conexiones activas dentro del servidor.
+                // De esta forma nunca existen más de 4 conexiones activas dentro del servidor.
                 nuevoSocket.close();
             }
 
@@ -289,7 +316,7 @@ public class Server {
         catch (IOException e) {
 
             // Se ejecuta si ocurre un problema al aceptar o preparar la conexión del cliente.
-                // Puede ocurrir al crear el Socket, BufferedReader o PrintWriter.
+            // Puede ocurrir al crear el Socket, BufferedReader o PrintWriter.
             System.out.println(
                     "Error al aceptar la conexión del cliente"
             );
@@ -313,8 +340,8 @@ public class Server {
         try {
 
             // Se utiliza el BufferedReader que ya fue creado cuando el jugador se conectó.
-                // "posicion" indica cuál BufferedReader del arreglo entradas pertenece a ese jugador.
-                    // De esta forma se utiliza siempre el mismo lector mientras el jugador continúe conectado.
+            // "posicion" indica cuál BufferedReader del arreglo entradas pertenece a ese jugador.
+            // De esta forma se utiliza siempre el mismo lector mientras el jugador continúe conectado.
             String solicitud = entradas[posicion].readLine();
 
             // Se lee la línea de texto enviada por el jugador.
@@ -332,8 +359,8 @@ public class Server {
 
 
             // Se verifica si readLine() devolvió null.
-                // Esto ocurre cuando el jugador cerró su conexión y ya no puede enviar más solicitudes.
-                // Si esto sucede, se cierra el Socket y se termina esta ejecución del método.
+            // Esto ocurre cuando el jugador cerró su conexión y ya no puede enviar más solicitudes.
+            // Si esto sucede, se cierra el Socket y se termina esta ejecución del método.
             if (solicitud == null) {
 
                 // Se cierra la conexión Socket del jugador.
@@ -343,8 +370,8 @@ public class Server {
                 return;
             }
             // "synchronized" es una palabra reservada de Java que permite controlar el acceso de varios Threads a un mismo objeto.
-                // En este caso se utiliza el objeto "juego", porque es compartido por los Threads de los diferentes jugadores.
-                    // Esto permite que solamente un Thread a la vez entre a este bloque y trabaje con el estado del juego.
+            // En este caso se utiliza el objeto "juego", porque es compartido por los Threads de los diferentes jugadores.
+            // Esto permite que solamente un Thread a la vez entre a este bloque y trabaje con el estado del juego.
             synchronized (juego) {
 
                 // -------------------------------------------------
@@ -352,14 +379,14 @@ public class Server {
                 // -------------------------------------------------
 
                 // Se verifica si la solicitud enviada por el cliente comienza con CONECTAR.
-                    // La solicitud también debe contener el identificador del jugador.
-                        // Por ejemplo: CONECTAR;ID001
+                // La solicitud también debe contener el identificador del jugador.
+                // Por ejemplo: CONECTAR;ID001
                 if (solicitud.startsWith("CONECTAR;")) {
 
                     // Se verifica si esta conexión ya tiene un jugador asignado.
-                        // "posicion" corresponde a la posición donde se encuentra guardado el Socket de este cliente.
-                            // Si ya existe un Jugador en esa posición, significa que este cliente ya se identificó anteriormente.
-                                // Evita que un cliente que ya tiene un jugador asignado pueda cambiarse a otro jugador.
+                    // "posicion" corresponde a la posición donde se encuentra guardado el Socket de este cliente.
+                    // Si ya existe un Jugador en esa posición, significa que este cliente ya se identificó anteriormente.
+                    // Evita que un cliente que ya tiene un jugador asignado pueda cambiarse a otro jugador.
                     if (jugadoresConectados[posicion] != null) {
 
                         // Se informa al cliente que no puede volver a asignarse otro jugador.
@@ -371,14 +398,14 @@ public class Server {
                     }
 
                     // Se divide la solicitud utilizando el punto y coma.
-                        // datosConexion[0] guardará "CONECTAR".
-                            // datosConexion[1] guardará el identificador enviado por el jugador.
+                    // datosConexion[0] guardará "CONECTAR".
+                    // datosConexion[1] guardará el identificador enviado por el jugador.
                     String[] datosConexion = solicitud.split(";");
 
 
                     // Se verifica que la solicitud tenga exactamente las dos partes necesarias.
-                        // La primera parte corresponde a CONECTAR y la segunda al identificador.
-                            // Si no existen las dos partes, la solicitud de conexión no puede continuar.
+                    // La primera parte corresponde a CONECTAR y la segunda al identificador.
+                    // Si no existen las dos partes, la solicitud de conexión no puede continuar.
                     if (datosConexion.length != 2) {
 
                         enviarRespuesta(posicion, "Solicitud de conexión no válida");
@@ -388,13 +415,13 @@ public class Server {
 
 
                     // Se obtiene el identificador enviado por el jugador.
-                        // datosConexion[1] corresponde a la segunda parte de la solicitud.
-                            // El identificador se guarda en la variable "identificador".
+                    // datosConexion[1] corresponde a la segunda parte de la solicitud.
+                    // El identificador se guarda en la variable "identificador".
                     String identificador = datosConexion[1];
 
 
                     // Se busca dentro de Juego el jugador que tiene ese identificador.
-                        // El jugador encontrado se guarda en la variable "jugadorEncontrado".
+                    // El jugador encontrado se guarda en la variable "jugadorEncontrado".
                     Jugador jugadorEncontrado = juego.buscarJugadorPorIdentificador(identificador);
 
 
@@ -408,14 +435,14 @@ public class Server {
                     }
 
                     // Se recorren las posiciones del arreglo jugadoresConectados.
-                        // Cada posición puede contener un jugador que ya fue asociado a una conexión.
-                            // El ciclo permite verificar si el jugador encontrado ya está conectado.
-                                // El mismo jugador no debe aparecer dos veces conectados
+                    // Cada posición puede contener un jugador que ya fue asociado a una conexión.
+                    // El ciclo permite verificar si el jugador encontrado ya está conectado.
+                    // El mismo jugador no debe aparecer dos veces conectados
                     for (int i = 0; i < jugadoresConectados.length; i++) {
 
                         // Se compara el jugador guardado en la posición actual con jugadorEncontrado.
-                            // Si ambos objetos son el mismo, significa que ese jugador ya tiene una conexión activa.
-                                // En ese caso no se debe permitir una segunda conexión con el mismo identificador.
+                        // Si ambos objetos son el mismo, significa que ese jugador ya tiene una conexión activa.
+                        // En ese caso no se debe permitir una segunda conexión con el mismo identificador.
                         if (jugadoresConectados[i] == jugadorEncontrado
                                 && clientesSocket[i] != null
                                 && !clientesSocket[i].isClosed()) {
@@ -430,62 +457,62 @@ public class Server {
 
 
                     // Se guarda el jugador encontrado dentro del arreglo jugadoresConectados.
-                        // "posicion" corresponde a la misma posición donde está guardado su Socket.
-                            // De esta forma el Socket y el objeto Jugador quedan asociados mediante la misma posición.
+                    // "posicion" corresponde a la misma posición donde está guardado su Socket.
+                    // De esta forma el Socket y el objeto Jugador quedan asociados mediante la misma posición.
                     asignarJugador(posicion, jugadorEncontrado);
 
 
                     // Se informa al cliente que la conexión fue aceptada correctamente.
-                        // "posicion" identifica cuál conexión Socket se debe utilizar.
-                            // El mensaje se envía únicamente al jugador que realizó esta solicitud.
+                    // "posicion" identifica cuál conexión Socket se debe utilizar.
+                    // El mensaje se envía únicamente al jugador que realizó esta solicitud.
                     enviarRespuesta(posicion, "Conexión válida");
 
 
                     // La solicitud CONECTAR ya fue atendida completamente.
-                        // El jugador ya quedó asociado con su conexión Socket.
+                    // El jugador ya quedó asociado con su conexión Socket.
                     return;
                 }
 
 
                 // Se busca el jugador dentro del arreglo jugadoresConectados.
-                    // "posicion" indica en cuál espacio del arreglo se debe buscar.
-                        // El jugador encontrado se guarda en la variable "jugador".
+                // "posicion" indica en cuál espacio del arreglo se debe buscar.
+                // El jugador encontrado se guarda en la variable "jugador".
                 Jugador jugador = jugadoresConectados[posicion];
 
 
                 // Se verifica si existe un jugador guardado en esa posición.
-                    // Si jugador contiene null, significa que no existe un objeto Jugador asociado con esa conexión.
-                    // En ese caso no se puede continuar procesando la solicitud.
+                // Si jugador contiene null, significa que no existe un objeto Jugador asociado con esa conexión.
+                // En ese caso no se puede continuar procesando la solicitud.
                 if (jugador == null) {
 
                     // Se envía un mensaje al cliente que realizó la solicitud.
-                        // "posicion" permite identificar cuál conexión Socket se debe utilizar.
-                            // El mensaje indica que todavía no existe un jugador asignado a esa conexión.
+                    // "posicion" permite identificar cuál conexión Socket se debe utilizar.
+                    // El mensaje indica que todavía no existe un jugador asignado a esa conexión.
                     enviarRespuesta(posicion, "No existe un jugador asignado a esta conexión");
 
 
                     // La solicitud no puede continuar sino existe un jugador asociado.
-                        // Por lo tanto, se termina esta ejecución de procesarSolicitud().
+                    // Por lo tanto, se termina esta ejecución de procesarSolicitud().
                     return;
                 }
 
 
                 // Se obtiene la propiedad en la que se encuentra actualmente el jugador.
-                    // El objeto "jugador" se envía al método obtenerPropiedadActual() de Juego.
-                        // La propiedad encontrada se guarda en la variable "propiedad".
+                // El objeto "jugador" se envía al método obtenerPropiedadActual() de Juego.
+                // La propiedad encontrada se guarda en la variable "propiedad".
                 Propiedad propiedad = juego.obtenerPropiedadActual(jugador);
 
 
                 // Se valida si la solicitud realizada por el jugador puede ejecutarse.
-                    // Se envía la solicitud, el jugador que la realizó y la propiedad donde se encuentra.
-                        // El resultado true o false se guarda en la variable "accionValida".
+                // Se envía la solicitud, el jugador que la realizó y la propiedad donde se encuentra.
+                // El resultado true o false se guarda en la variable "accionValida".
                 boolean accionValida = validarAccion(solicitud, jugador, propiedad);
 
 
 
                 // Se verifica el resultado que devolvió el método validarAccion().
-                    // Si accionValida retorna true, significa que la solicitud puede ejecutarse.
-                        // Luego se identifica cuál acción solicitó el jugador.
+                // Si accionValida retorna true, significa que la solicitud puede ejecutarse.
+                // Luego se identifica cuál acción solicitó el jugador.
                 if (accionValida) {
 
 
@@ -496,38 +523,116 @@ public class Server {
                     // Se verifica si la solicitud enviada por el jugador es TIRAR_DADOS.
                     if (solicitud.equals("TIRAR_DADOS")) {
 
-                        // Se llama al método lanzarDados() de Juego.
-                            // Este método lanza los dos dados y devuelve la suma de sus valores.
-                                // La suma obtenida se guarda en la variable "pasos".
+                        // lanzarDados() es un método de la clase Juego.
+                        // Este método lanza Dado1 y Dado2.
+                        // Devuelve la suma de los valores obtenidos por ambos dados.
+                        // La suma se guarda en la variable "pasos".
                         int pasos = juego.lanzarDados();
 
-                        // Se mueve al jugador que realizó el lanzamiento.
-                         // "jugador" corresponde al jugador asociado con esta conexión.
-                            // "pasos" corresponde a la suma obtenida al lanzar los dos dados.
+
+                        // getDado1() es un método de la clase Juego.
+                        // Devuelve el objeto Dado que representa al dado número 1.
+                        // getValor() es un método de la clase Dado.
+                        // Devuelve el último valor obtenido por ese dado sin volver a lanzarlo.
+                        // El resultado se guarda en la variable "valorDado1".
+                        int valorDado1 = juego.getDado1().getValor();
+
+
+                        // getDado2() es un método de la clase Juego.
+                        // Devuelve el objeto Dado que representa al dado número 2.
+                        // getValor() es un método de la clase Dado.
+                        // Devuelve el último valor obtenido por ese dado sin volver a lanzarlo.
+                        // El resultado se guarda en la variable "valorDado2".
+                        int valorDado2 = juego.getDado2().getValor();
+
+
+                        // Se mueve al jugador utilizando la suma obtenida al lanzar los dos dados.
+                        // "jugador" corresponde al jugador asociado con esta conexión.
+                        // "pasos" contiene la suma de valorDado1 + valorDado2.
                         juego.MoverJugador(jugador, pasos);
 
-                        // Se informa a todos los jugadores conectados que el estado del juego cambió.
-                        actualizarClientes();
-                    }
+                        // Se obtiene la Propiedad donde quedó ubicado el Jugador
+                        // después de realizar el movimiento en el tablero.
+                        // obtenerPropiedadActual() es un método de la clase Juego.
+                        Propiedad propiedadDespuesMovimiento = juego.obtenerPropiedadActual(jugador);
 
+
+                        // Se verifica si el Jugador quedó ubicado sobre una Propiedad
+                            // y si esa Propiedad se encuentra disponible para comprar.
+                        if (propiedadDespuesMovimiento != null
+                                && propiedadDespuesMovimiento.isDisponible()) {
+
+                            // Se guarda la Propiedad que el Jugador puede decidir comprar o no comprar.
+                            propiedadPendienteCompra = propiedadDespuesMovimiento;
+
+                            // Se guarda el Jugador al que pertenece la compra pendiente.
+                            jugadorPendienteCompra = jugador;
+
+                            // getNumTurno() es un método de la clase Juego.
+                                // Se guarda el número del turno actual para comprobar
+                                 // que la compra o no compra se realice durante ese mismo turno.
+                            turnoPendienteCompra = juego.getNumTurno();
+                        }
+
+
+                        // Si el Jugador no quedó sobre una Propiedad disponible,
+                            // no existe ninguna compra pendiente después de su movimiento.
+                        else {
+
+                            propiedadPendienteCompra = null;
+                            jugadorPendienteCompra = null;
+                            turnoPendienteCompra = 0;
+                        }
+
+
+                        // Se prepara el mensaje que contiene el resultado de los dos dados.
+                            // "DADOS" permite identificar el tipo de respuesta.
+                             // Después se envía el valor del dado 1, el valor del dado 2 y el total.
+                                // Por ejemplo, si los dados obtienen 3 y 5: y su sumatoria es 8
+                        // DADOS;3;5;8
+                        String resultadoDados = "DADOS;"
+                                + valorDado1 + ";"
+                                + valorDado2 + ";"
+                                + pasos;
+
+
+                        // enviarRespuesta() es un método de la clase Server.
+                        // "posicion" identifica la conexión del jugador que lanzó los dados.
+                        // "resultadoDados" contiene dado 1, dado 2 y el total obtenido.
+                        enviarRespuesta(posicion, resultadoDados);
+
+
+                        // actualizarOtrosClientes() es un método de la clase Server.
+                            // Permite informar a los demás jugadores conectados que el estado del juego fue actualizado.
+                                // "posicion" corresponde a la conexión del Jugador que lanzó los dados.
+                                    // Este Jugador se excluye porque ya recibió directamente el mensaje DADOS con el resultado de su lanzamiento.
+                        actualizarOtrosClientes(posicion);
+                    }
 
                     // -------------------------------------------------
                     // COMPRAR_PROPIEDAD
                     // -------------------------------------------------
 
                     // Se verifica si la solicitud enviada por el jugador es COMPRAR_PROPIEDAD.
-                        // Si la solicitud coincide, se llama al método comprarPropiedad() de juego.
+                        // Se llama al método comprarPropiedad() de juego.
                             // Se envía el jugador que realiza la compra y la propiedad donde se encuentra.
                     else if (solicitud.equals("COMPRAR_PROPIEDAD")) {
 
-                        juego.comprarPropiedad(
-                                                jugador,
-                                                propiedad
-                                        );
+                        juego.comprarPropiedad(jugador, propiedad);
+
+                        // Si la Propiedad ya fue comprada por el Jugador, se elimina la información que indicaba
+                            // que existía una Propiedad disponible para comprar.
+                        propiedadPendienteCompra = null;
+
+                        // Se elimina el Jugador que tenía la decisión de comprar o no comprar.
+                        jugadorPendienteCompra = null;
+
+                        // Se reinicia el número de turno que estaba asociado con esa decisión.
+                        turnoPendienteCompra = 0;
+
                         // Se informa a todos los jugadores conectados que el estado del juego cambió.
                         actualizarClientes();
                     }
-
 
                     // -------------------------------------------------
                     // NO_COMPRAR
@@ -538,50 +643,227 @@ public class Server {
                             // No se modifica la propiedad ni el saldo del jugador.
                     else if (solicitud.equals("NO_COMPRAR")) {
 
+                        // Si el Jugador decidió no comprar la Propiedad disponible.
+                            // Por lo tanto, se elimina la información que indicaba que existía una Propiedad disponible para comprar.
+                        propiedadPendienteCompra = null;
+
+                        // Se elimina el Jugador que tenía la decisión de comprar o no comprar.
+                        jugadorPendienteCompra = null;
+
+                        // Se reinicia el número de turno que estaba asociado con esa decisión.
+                        turnoPendienteCompra = 0;
+
                         // Se envía una respuesta únicamente al jugador que realizó la solicitud.
                             // "posicion" identifica cuál conexión Socket se debe utilizar.
                                 // El mensaje confirma que el jugador decidió no comprar.
-                        enviarRespuesta(posicion, "El jugador decidió no comprar la propiedad"
-                        );
+                        enviarRespuesta(
+                                posicion, "El jugador decidió no comprar la propiedad");
                     }
-
 
                     // -------------------------------------------------
                     // TERMINAR_TURNO
                     // -------------------------------------------------
 
-                    // Se verifica si la solicitud enviada por el jugador es TERMINAR_TURNO.
-                        // Si la solicitud coincide, se llama al método finalizarTurno() de juego.
-                            // Juego se encarga de finalizar el turno del jugador actual.
                     else if (solicitud.equals("TERMINAR_TURNO")) {
 
+                        // Se eliminan los datos de la Propiedad disponible para comprar
+                        propiedadPendienteCompra = null;
+
+                        // Se elimina el Jugador que tenía la decisión de comprar o no comprar.
+                        jugadorPendienteCompra = null;
+
+                        // Se reinicia el número de turno que estaba asociado con esa decisión.
+                        turnoPendienteCompra = 0;
+
+                        // finalizarTurno() es un método de la clase Juego.
+                            // Se ejecuta después de que validarAccion() permitió terminar el turno.
+                                // Permite finalizar el turno del jugador actual y continuar con el siguiente jugador.
                         juego.finalizarTurno();
 
-                        // Se informa a todos los jugadores conectados que el estado del juego cambió.
+                        // actualizarClientes() es un método de la clase Server.
+                        // Informa a todos los jugadores conectados que el estado del juego fue actualizado.
                         actualizarClientes();
                     }
-
 
                     // -------------------------------------------------
                     // CONSULTAR_ESTADO
                     // -------------------------------------------------
 
                     // Se verifica si la solicitud enviada por el jugador es CONSULTAR_ESTADO.
-                        // Permite consultar la información actual del jugador.
-                            // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
+                    // Permite consultar la información actual del jugador.
+                    // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
                     else if (solicitud.equals("CONSULTAR_ESTADO")) {
+
+                            // obtenerJugadorActual() es un método de la clase Juego.
+                                // Devuelve el objeto Jugador que tiene actualmente el turno de la partida.
+                                    // El Jugador obtenido se guarda en la variable "jugadorActual".
+                            Jugador jugadorActual = juego.obtenerJugadorActual();
+
+
+                            // getIdentificador() es un método de la clase Jugador.
+                                // Permite obtener el identificador del Jugador que tiene actualmente el turno.
+                                    // Por ejemplo: J001, J002, J003 o J004.
+                            String identificadorJugadorActual =
+                                    jugadorActual.getIdentificador();
+
+                            // GetNumRonda() es un método de la clase Juego.
+                                // Devuelve el número de la ronda actual de la partida.
+                                    // El número obtenido se guarda en la variable "rondaActual".
+                        int rondaActual = juego.GetNumRonda();
+
+                        // Se crea un String para guardar la información de todos los jugadores de la partida.
+                            // La información se irá agregando posteriormente al recorrer el arreglo jugadoresConectados.
+                        String estadoJugadores = "";
+
+                        // Se recorren las posiciones del arreglo jugadoresConectados.
+                            // Cada posición puede contener uno de los jugadores que participa en la partida.
+                        for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                            // Se obtiene el Jugador guardado en la posición actual del arreglo.
+                                // El Jugador obtenido se guarda temporalmente en "jugadorEstado".
+                            Jugador jugadorEstado = jugadoresConectados[i];
+
+                            // Se verifica que exista un Jugador guardado en la posición actual.
+                                // Si jugadorEstado es diferente de null, se puede obtener su información.
+                            if (jugadorEstado != null) {
+
+                                // getIdentificador() es un método de la clase Jugador.
+                                    // Permite obtener el identificador del Jugador que se está recorriendo actualmente.
+                                        // El identificador obtenido se guarda en la variable "identificadorEstado".
+                                String identificadorEstado = jugadorEstado.getIdentificador();
+
+                                // getPosicionActual() es un método de la clase Jugador.
+                                    // Permite obtener la posición actual en el tablero del Jugador que se está recorriendo.
+                                        // La posición obtenida se guarda en la variable "posicionEstado".
+                                int posicionEstado = jugadorEstado.getPosicionActual();
+
+                                // esActivo() es un método de la clase Jugador.
+                                    // Permite conocer si el Jugador que se está recorriendo continúa activo dentro de la partida.
+                                        // El resultado true o false se guarda en la variable "activoEstado".
+                                boolean activoEstado = jugadorEstado.esActivo();
+
+                            // Se verifica si estadoJugadores ya contiene la información de otro Jugador.
+                                // Si no está vacío, se agrega "|" para separar al Jugador anterior del Jugador actual.
+                            if (!estadoJugadores.equals("")) {
+
+                                estadoJugadores = estadoJugadores + "|";
+                            }
+
+                            // Se agrega al String estadoJugadores la información del Jugador que se está recorriendo.
+                                // Se guarda su identificador, su posición actual en el tablero y si continúa activo en la partida.
+                                    // El símbolo "," permite separar los datos correspondientes al mismo Jugador.
+                            estadoJugadores = estadoJugadores
+                                    + identificadorEstado + ","
+                                    + posicionEstado + ","
+                                    + activoEstado;
+                            }
+
+                        }
+
+                                    // Posteriormente se agregará cada Propiedad junto con el Jugador que sea su propietario.
+                                String estadoPropiedades = "";
+
+                                // getTablero() es un método de la clase Juego.
+                                    // Devuelve el objeto Tablero que pertenece a la partida actual.
+                                        // El Tablero obtenido se guarda en la variable "tablero".
+                                Tablero tablero = juego.getTablero();
+
+                        // getNumeroCasillas() es un método de la clase Tablero.
+                            // Devuelve la cantidad total de casillas que existen en el tablero.
+                                // La cantidad obtenida se guarda en la variable "cantidadCasillas".
+                        int cantidadCasillas = tablero.getNumeroCasillas();
+
+
+                        // Se recorren todas las posiciones que existen dentro del Tablero.
+                        for (int i = 0; i < cantidadCasillas; i++) {
+
+                            // ObtenerNodo(i) es un método de la clase Tablero.
+                                // Permite obtener el NodoCasilla que se encuentra en la posición indicada.
+                                    // El nodo obtenido se guarda temporalmente en "nodoCasilla".
+                            NodoCasilla nodoCasilla = tablero.ObtenerNodo(i);
+
+
+                            // getCasilla() es un método de la clase NodoCasilla.
+                                // Devuelve la Casilla que se encuentra almacenada dentro del nodo.
+                                    // La casilla obtenida se guarda en la variable "casilla".
+                            Casilla casilla = nodoCasilla.getCasilla();
+
+
+                            // Se verifica si la Casilla que se está recorriendo corresponde a una Propiedad.
+                                // El Tablero también contiene otros tipos de casillas, por lo que solamente
+                                    // se necesita obtener la información de las que sean del tipo Propiedad.
+                            if (casilla instanceof Propiedad) {
+
+                                // Se convierte la Casilla a Propiedad.
+                                    // Esto permite utilizar los métodos propios de la clase Propiedad.
+                                        // La Propiedad obtenida se guarda en "propiedadTablero".
+                                Propiedad propiedadTablero = (Propiedad) casilla;
+
+
+                                // getIdentificador() es un método de la clase Propiedad.
+                                    // Devuelve el identificador de la Propiedad que se está recorriendo.
+                                        // El identificador se guarda en "identificadorPropiedadTablero".
+                                String identificadorPropiedadTablero =
+                                        propiedadTablero.getIdentificador();
+
+
+                                // getPropietario() es un método de la clase Propiedad.
+                                    // Devuelve el Jugador que actualmente es propietario de la Propiedad.
+                                        // Si nadie ha comprado la Propiedad, devuelve null.
+                                Jugador propietarioPropiedad =
+                                        propiedadTablero.getPropietario();
+
+
+                                // Se crea un String para guardar quién es el propietario de esta Propiedad.
+                                String identificadorPropietario;
+
+
+                                // Se verifica si la Propiedad todavía no pertenece a ningún Jugador.
+                                    // Si getPropietario() devolvió null, se guarda "SIN_PROPIETARIO".
+                                if (propietarioPropiedad == null) {
+
+                                    identificadorPropietario = "SIN_PROPIETARIO";
+                                }
+
+                                // Si existe un propietario, se obtiene el identificador del Jugador.
+                                else {
+
+                                    // getIdentificador() es un método de la clase Jugador.
+                                    // Devuelve el identificador del Jugador propietario de la Propiedad.
+                                    identificadorPropietario =
+                                            propietarioPropiedad.getIdentificador();
+                                }
+
+
+                                // Se verifica si estadoPropiedades ya contiene información de otra Propiedad.
+                                    // Si ya contiene información, se agrega "|" para separar
+                                        // la Propiedad anterior de la Propiedad actual.
+                                if (!estadoPropiedades.equals("")) {
+
+                                    estadoPropiedades = estadoPropiedades + "|";
+                                }
+
+
+                                // Se agrega al String estadoPropiedades la información de la Propiedad actual.
+                                    // Primero se guarda el identificador de la Propiedad.
+                                        // Después se guarda el identificador de su propietario.
+                                estadoPropiedades = estadoPropiedades
+                                        + identificadorPropiedadTablero + ","
+                                        + identificadorPropietario;
+                            }
+                        }
 
 
                         // Se obtiene la lista de propiedades que pertenece al jugador.
                             // "jugador" es un objeto de la clase Jugador.
                                 // getPropiedadesAdquiridas() es un método de la clase Jugador que devuelve la ListaSimplePropiedad de ese jugador.
-                                    // La lista obtenida se guarda en la variable "propiedades".
+                                 // La lista obtenida se guarda en la variable "propiedades".
                         ListaSimplePropiedad propiedades = jugador.getPropiedadesAdquiridas();
 
 
                         // Se obtiene la cantidad de propiedades que actualmente tiene el jugador.
                             // "propiedades" es un objeto de la clase ListaSimplePropiedad.
-                                // Tamaño() es un método de la clase ListaSimplePropiedad que devuelve la cantidad de propiedades guardadas en la lista.
+                                 // Tamaño() es un método de la clase ListaSimplePropiedad que devuelve la cantidad de propiedades guardadas en la lista.
                                     // La cantidad obtenida se guarda en la variable "cantidadPropiedades".
                         int cantidadPropiedades = propiedades.Tamaño();
 
@@ -601,15 +883,15 @@ public class Server {
                             for (int i = 0; i < cantidadPropiedades; i++) {
 
                                 // "propiedades" es un objeto de la clase ListaSimplePropiedad.
-                                    // Obtener(i) es un método de la clase ListaSimplePropiedad que devuelve la Propiedad guardada en la posición indicada.
-                                        // La propiedad obtenida se guarda en la variable "propiedadJugador".
+                                // Obtener(i) es un método de la clase ListaSimplePropiedad que devuelve la Propiedad guardada en la posición indicada.
+                                // La propiedad obtenida se guarda en la variable "propiedadJugador".
                                 Propiedad propiedadJugador = propiedades.Obtener(i);
 
 
                                 // Se obtiene el identificador de la propiedad.
-                                    // "propiedadJugador" es un objeto de la clase Propiedad.
-                                        // getIdentificador() es un método de la clase Propiedad que devuelve el identificador de esa propiedad.
-                                            // El identificador obtenido se guarda en la variable "identificadorPropiedad".
+                                // "propiedadJugador" es un objeto de la clase Propiedad.
+                                // getIdentificador() es un método de la clase Propiedad que devuelve el identificador de esa propiedad.
+                                // El identificador obtenido se guarda en la variable "identificadorPropiedad".
                                 String identificadorPropiedad = propiedadJugador.getIdentificador();
 
 
@@ -628,7 +910,7 @@ public class Server {
                         // Se obtiene el identificador del jugador.
                             // "jugador" es un objeto de la clase Jugador.
                                 // getIdentificador() es un método de la clase Jugador que devuelve el identificador guardado en ese jugador.
-                                    // El identificador obtenido se guarda en la variable "identificadorJugador".
+                                     // El identificador obtenido se guarda en la variable "identificadorJugador".
                         String identificadorJugador = jugador.getIdentificador();
 
 
@@ -654,7 +936,7 @@ public class Server {
 
 
                         // Se inicia el mensaje que posteriormente será enviado hacia la clase el Cliente.
-                        // "ESTADO" permite identificar que la respuesta contiene la información del estado actual del jugador.
+                            // "ESTADO" permite identificar que la respuesta contiene la información del estado actual del jugador.
                         String estado = "ESTADO";
 
                         // El símbolo ";" permite separar este dato del siguiente dato.
@@ -671,9 +953,30 @@ public class Server {
 
 
                         // Se agregan las propiedades adquiridas por el jugador al mensaje.
-                         // Si el jugador no tiene propiedades, este dato contendrá "SIN_PROPIEDADES".
+                            // Si el jugador no tiene propiedades, este dato contendrá "SIN_PROPIEDADES".
                         estado = estado + ";" + propiedadesJugador;
 
+                        // Se agrega el identificador del Jugador que tiene actualmente el turno.
+                            // "identificadorJugadorActual" contiene el identificador obtenido
+                                // anteriormente mediante obtenerJugadorActual().
+                        estado = estado + ";" + identificadorJugadorActual;
+
+
+                        // Se agrega el número de la ronda actual de la partida.
+                            // "rondaActual" contiene el número obtenido mediante GetNumRonda().
+                        estado = estado + ";" + rondaActual;
+
+
+                        // Se agrega la información de todos los Jugadores.
+                            // "estadoJugadores" contiene el identificador, la posición y el estado
+                                // activo de cada Jugador, separados mediante el símbolo "|".
+                        estado = estado + ";" + estadoJugadores;
+
+
+                        // Se agrega la información de las Propiedades del Tablero.
+                            // "estadoPropiedades" contiene el identificador de cada Propiedad y el identificador del Jugador que sea su propietario.
+                        // Si una Propiedad todavía no tiene propietario, se le asigna "SIN_PROPIETARIO".
+                        estado = estado + ";" + estadoPropiedades;
 
                         // Se envía el estado únicamente al jugador que realizó la consulta.
                             // enviarRespuesta() es un método de la clase Server.
@@ -688,59 +991,81 @@ public class Server {
                     // -------------------------------------------------
 
                     // Se verifica si la solicitud enviada por el jugador es CONSULTAR_TRANSACCIONES.
-                        // Esta solicitud permite consultar la información del historial de transacciones.
-                         // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
+                    // Esta solicitud permite consultar la información del historial de transacciones.
+                    // No es necesario que el jugador se encuentre en su turno para realizar esta consulta.
                     else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
 
-                        // Se envía una respuesta al jugador que realizó la consulta.
-                            // "posicion" identifica cuál conexión Socket pertenece al jugador.
-                            // enviarRespuesta() utiliza esa conexión para enviar el mensaje.
-                        enviarRespuesta(posicion, "Consulta de transacciones válida");
+                        // "juego" es un objeto de la clase Juego que utiliza Server para acceder a la información de la partida.
+                        // getHistorial() es un método de la clase Juego que devuelve el objeto de la clase HistorialTransacciones.
+                        // obtenerHistorial() es un método de la clase HistorialTransacciones que recorre las transacciones
+                        //  almacenadas y las devuelve como un String.
+                        String historial = juego.getHistorial().obtenerHistorial();
+
+                        // Se verifica si hay un historia de transacciones
+                        // transacciones registradas en HistorialTransacciones.
+                        if (historial.equals("")) {
+
+                            // enviarRespuesta() es un método de la clase Server que permite enviar un mensaje al Cliente conectado.
+                            // "posicion" indica cuál Cliente debe recibir la respuesta.
+                            // Si no existen transacciones, se envía un mensaje indicando que el historial se encuentra vacío.
+                            enviarRespuesta(posicion, "HISTORIAL;SIN_TRANSACCIONES");
+                        }
+
+                        else {
+
+                            // enviarRespuesta() es un método de la clase Server que permite enviar un mensaje al Cliente conectado.
+                            // "posicion" indica cuál Cliente debe recibir la respuesta.
+                            // "HISTORIAL;" identifica que la respuesta contiene información del historial de transacciones.
+                            // "historial" contiene las transacciones obtenidas desde la clase HistorialTransacciones.
+                            enviarRespuesta(posicion, "HISTORIAL;" + historial);
+                        }
                     }
+
+
                 }
 
 
                 // Si validarAccion() devolvió false,
-                    // significa que la acción solicitada no puede realizarse.
+                // significa que la acción solicitada no puede realizarse.
                 else {
 
                     // Se informa al jugador que la solicitud que realizó no puede ejecutarse.
-                        // "posicion" identifica cuál jugador realizó la solicitud.
-                        // enviarRespuesta() envía el mensaje únicamente a ese jugador mediante su conexión Socket.
+                    // "posicion" identifica cuál jugador realizó la solicitud.
+                    // enviarRespuesta() envía el mensaje únicamente a ese jugador mediante su conexión Socket.
                     enviarRespuesta(posicion, "La acción no es válida");
                 }
             }
 
-            }
+        }
 
-            catch (IOException e) {
-                // Se ejecuta si ocurre un problema al recibir información del jugador.
-                // Esto puede suceder si el jugador cierra su conexión mientras el servidor esperaba una solicitud.
-                System.out.println(
-                        "Error al recibir la solicitud del cliente" + (posicion + 1)
-                );
+        catch (IOException e) {
+            // Se ejecuta si ocurre un problema al recibir información del jugador.
+            // Esto puede suceder si el jugador cierra su conexión mientras el servidor esperaba una solicitud.
+            System.out.println(
+                    "Error al recibir la solicitud del cliente" + (posicion + 1)
+            );
 
-                try {
+            try {
 
-                    // Se verifica que exista una conexión Socket para este jugador.
-                        // "posicion" indica cuál conexión del arreglo pertenece al jugador.
-                    if (clientesSocket[posicion] != null) {
+                // Se verifica que exista una conexión Socket para este jugador.
+                // "posicion" indica cuál conexión del arreglo pertenece al jugador.
+                if (clientesSocket[posicion] != null) {
 
-                        // Se cierra la conexión Socket del jugador.
-                            // "posicion" indica cuál conexión pertenece al cliente que tuvo el error.
-                                // Después de cerrarla, esa conexión ya no puede seguir enviando solicitudes.
-                        clientesSocket[posicion].close();
-                    }
-
-                } catch (IOException errorCierre) {
-
-                    // Se ejecuta solamente si ocurre un problema al intentar cerrar la conexión.
-                    System.out.println(
-                            "Error al cerrar la conexión del cliente" + (posicion + 1)
-                    );
+                    // Se cierra la conexión Socket del jugador.
+                    // "posicion" indica cuál conexión pertenece al cliente que tuvo el error.
+                    // Después de cerrarla, esa conexión ya no puede seguir enviando solicitudes.
+                    clientesSocket[posicion].close();
                 }
+
+            } catch (IOException errorCierre) {
+
+                // Se ejecuta solamente si ocurre un problema al intentar cerrar la conexión.
+                System.out.println(
+                        "Error al cerrar la conexión del cliente" + (posicion + 1)
+                );
             }
         }
+    }
     //*****************************************************
     // *****************************************************
 
@@ -748,23 +1073,23 @@ public class Server {
     public void enviarRespuesta(int posicion, String mensaje) {
 
         // Se verifica que la posición del jugador sea válida.
-            // Las posiciones permitidas van desde 0 hasta 3 (corresponde a los 4 jugadores posibles).
+        // Las posiciones permitidas van desde 0 hasta 3 (corresponde a los 4 jugadores posibles).
         if (posicion >= 0 && posicion < 4) {
 
             // Se verifica que exista una conexión guardada en esa posición.
-                // También se verifica que exista un PrintWriter asociado a ese jugador (Si ambos existen, el servidor puede enviar el mensaje.)
+            // También se verifica que exista un PrintWriter asociado a ese jugador (Si ambos existen, el servidor puede enviar el mensaje.)
             if (clientesSocket[posicion] != null && salidas[posicion] != null) {
 
                 // Se utiliza el PrintWriter que ya fue creado cuando el jugador se conectó.
-                    // "posicion" identifica cuál PrintWriter pertenece a ese jugador.
-                        // println() envía el mensaje hacia el cliente correspondiente.
+                // "posicion" identifica cuál PrintWriter pertenece a ese jugador.
+                // println() envía el mensaje hacia el cliente correspondiente.
                 salidas[posicion].println(mensaje);
             }
 
             else {
 
                 // Se muestra un mensaje si no existe una conexión disponible en esa posición.
-                    // Esto significa que todavía no hay un jugador conectado correctamente.
+                // Esto significa que todavía no hay un jugador conectado correctamente.
                 System.out.println(
                         "No existe un jugador conectado en esa posición"
                 );
@@ -774,7 +1099,7 @@ public class Server {
         else {
 
             // Se muestra un mensaje si la posición recibida está fuera del rango permitido.
-                // El servidor solamente admite las posiciones 0, 1, 2 y 3.
+            // El servidor solamente admite las posiciones 0, 1, 2 y 3.
             System.out.println(
                     "Posición de jugador no válida"
             );
@@ -846,8 +1171,38 @@ public class Server {
                 return false;
             }
 
+            // Se verifica si el Jugador tiene una Propiedad disponible para comprar.
+                // Si propiedadPendienteCompra contiene null, el Jugador no cayó en una Propiedad disponible durante su turno.
+            else if (propiedadPendienteCompra == null) {
+
+                return false;
+            }
+
+
+            // Se verifica que la Propiedad disponible para comprar corresponda al mismo Jugador que intenta realizar la compra.
+                // Evita que otro Jugador pueda comprar una Propiedad que no le corresponde durante su turno.
+            else if (jugadorPendienteCompra != jugador) {
+
+                return false;
+            }
+
+
+            // Se verifica que la Propiedad disponible para comprar corresponda al turno actual.
+                // getNumTurno() es un método de la clase Juego.
+                    // Si los números de turno son diferentes, la Propiedad disponible para comprar corresponde a un turno anterior.
+            else if (turnoPendienteCompra != juego.getNumTurno()) {
+
+                return false;
+            }
+
             // Se verifica que exista una propiedad para comprar.
             else if (propiedad == null) {
+
+                return false;
+            }
+
+            // Se verifica que la Propiedad donde se encuentra el Jugador sea la misma Propiedad que quedó disponible para comprar
+            else if (propiedadPendienteCompra != propiedad) {
 
                 return false;
             }
@@ -885,10 +1240,38 @@ public class Server {
                 return false;
             }
 
+            // Se verifica si el Jugador tiene una Propiedad disponible para comprar.
+                // Si propiedadPendienteCompra contiene null, el Jugador no cayó en una Propiedad disponible durante su turno.
+            else if (propiedadPendienteCompra == null) {
+
+                return false;
+            }
+
+            // Se verifica que la Propiedad disponible para comprar corresponda al mismo Jugador que intenta decidir no comprarla.
+                // Si jugadorPendienteCompra es diferente de jugador, la decisión de no comprar no se permite.
+            else if (jugadorPendienteCompra != jugador) {
+
+                return false;
+            }
+
+            // Se verifica que la Propiedad disponible para comprar corresponda al turno actual.
+                // getNumTurno() es un método de la clase Juego.
+                    // Si los números de turno son diferentes, la Propiedad disponible para comprar corresponde a un turno anterior.
+            else if (turnoPendienteCompra != juego.getNumTurno()) {
+
+                return false;
+            }
+
             // Se verifica que exista una propiedad en la posición actual del jugador.
-            // Si propiedad contiene null, significa que el jugador no está sobre una propiedad.
-            // En ese caso no existe ninguna propiedad que pueda decidir no comprar.
+                // Si propiedad contiene null, significa que el jugador no está sobre una propiedad.
+                    // En ese caso no existe ninguna propiedad que pueda decidir no comprar.
             else if (propiedad == null) {
+
+                return false;
+            }
+
+            // Se verifica que la Propiedad donde se encuentra el Jugador sea la misma Propiedad que quedó disponible para comprar.
+            else if (propiedadPendienteCompra != propiedad) {
 
                 return false;
             }
@@ -914,15 +1297,30 @@ public class Server {
         // TERMINAR_TURNO
         // -------------------------------------------------
 
+
         else if (solicitud.equals("TERMINAR_TURNO")) {
 
-            // Verifica si el jugador NO tiene el turno actual.
+            // Se verifica si el jugador que intenta terminar el turno es diferente al jugador que tiene el turno actual.
+                // obtenerJugadorActual() es un método de la clase Juego.
+                    // Devuelve el objeto Jugador que tiene el turno en ese momento.
+                        // Si ambos jugadores son diferentes, no se permite terminar el turno.
             if (jugador != juego.obtenerJugadorActual()) {
 
                 return false;
             }
 
-            // Si tiene el turno, puede terminarlo.
+            // Se verifica si el jugador todavía NO ha lanzado los dados durante su turno.
+                // getDadosLanzadosEsteTurno() es un método de la clase Juego.
+                    // Devuelve true cuando los dados ya fueron lanzados durante el turno actual.
+                        // Devuelve false cuando todavía no se han lanzado.
+                            // El símbolo ! cambia true por false y false por true.
+                                // Esta condición se cumple cuando el jugador todavía no ha lanzado.
+            else if (!juego.getDadosLanzadosEsteTurno()) {
+
+                return false;
+            }
+
+            // Si el jugador tiene el turno actual y ya lanzó los dados, se permite terminar el turno.
             else {
 
                 return true;
@@ -960,7 +1358,7 @@ public class Server {
         // TERMINAR_TURNO
         // CONSULTAR_ESTADO
         // CONSULTAR_TRANSACCIONES
-            // la solicitud no se ejecuta y se devuelve false.
+        // la solicitud no se ejecuta y se devuelve false.
 
         else {
             return false;
@@ -974,12 +1372,12 @@ public class Server {
     public void actualizarClientes() {
 
         // Se recorren las posiciones correspondientes a los 4 posibles jugadores.
-            // Cada posición corresponde a un jugador y a su conexión con el servidor.
+        // Cada posición corresponde a un jugador y a su conexión con el servidor.
         for (int posicion = 0; posicion < 4; posicion++) {
 
             // Se verifica que exista un Socket guardado en esta posición.
-                // También se verifica que la conexión del jugador continúe abierta.
-                // Si ambas condiciones se cumplen, el servidor puede enviarle la actualización.
+            // También se verifica que la conexión del jugador continúe abierta.
+            // Si ambas condiciones se cumplen, el servidor puede enviarle la actualización.
             if (clientesSocket[posicion] != null && !clientesSocket[posicion].isClosed()) {
 
                 // Se utiliza enviarRespuesta() para enviar el mensaje al jugador.
@@ -991,8 +1389,41 @@ public class Server {
         }
     }
 
+
     //*****************************************************
     // *****************************************************
 
+    // Método de la clase Server que permite informar a los demás jugadores conectados que el estado del juego fue actualizado.
+    // Recibe "posicionExcluir", que corresponde a la posición de la conexión del Jugador que acaba de recibir una respuesta directa del Server.
+    // Ese Jugador no recibirá el mensaje ACTUALIZAR_ESTADO mediante este método.
+    public void actualizarOtrosClientes(int posicionExcluir) {
+
+        // Se recorren las 4 posiciones disponibles en los arreglos de conexiones del Server.
+            // Cada posición puede corresponder a la conexión Socket de uno de los 4 jugadores.
+        for (int posicion = 0; posicion < 4; posicion++) {
+
+            // Se compara la posición que se está recorriendo con "posicionExcluir".
+            // Si ambas posiciones son diferentes, significa que esta conexión pertenece a uno de los otros jugadores que sí debe recibir la actualización.
+            if (posicion != posicionExcluir) {
+
+                // clientesSocket es un arreglo de la clase Server.
+                    // clientesSocket[posicion] contiene la conexión Socket
+                        // Primero se verifica que clientesSocket[posicion] sea diferente de null.
+                            // isClosed() es un método de la clase Socket de Java.
+                                // Devuelve true cuando la conexión ya fue cerrada.
+                                    // El símbolo ! cambia el resultado, por lo que esta condición
+                                        // se cumple únicamente cuando la conexión continúa abierta.
+                if (clientesSocket[posicion] != null
+                        && !clientesSocket[posicion].isClosed()) {
+
+                    // enviarRespuesta() es un método de la clase Server.
+                        // "posicion" identifica cuál conexión debe recibir el mensaje.
+                            // "ACTUALIZAR_ESTADO" informa al otro Cliente que ocurrió un cambio en el estado de la partida.
+                    enviarRespuesta(
+                            posicion, "ACTUALIZAR_ESTADO");
+                }
+            }
+        }
+    }
 
 }
