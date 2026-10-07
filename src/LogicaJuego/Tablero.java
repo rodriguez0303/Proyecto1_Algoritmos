@@ -8,19 +8,57 @@ package LogicaJuego;
  *
  * Detalles a tener en cuenta:
  * Se coloco "*", indica que depende de una clase que
- * todavía NO está incorporada de forma definitiva al proyecto.
+ * todavía no está incorporada de forma definitiva al proyecto.
  *
  * Nota sobre dependencias externas:
  * - Casilla ya existe como clase base con ejecutar(Jugador, Juego).
  * - CasillaEvento ya existe y se coloca en las posiciones fijas de
  *   Constantes.POSICIONES_EVENTO (3, 9, 15 y 21, contando desde Salida = 0).
- * - Propiedad y CasillaEspecial todavía no se colocan en el tablero;
- *   mientras tanto, esas posiciones usan una Casilla genérica.
+ * - CasillaEspecial va en las esquinas (0 Salida, 6 Edificio D3,
+ *   12 Especial, 18 Ir al D3) y Propiedad en el resto de posiciones,
+ *   con los mismos nombres y precios que la GUI.
  */
 
 public class Tablero {
 
     private ListaCircularDoble<NodoCasilla> Lista;   // Lista circular doble propia con los nodos del tablero
+
+    // Nombres de las casillas, en el mismo orden que la GUI (VentanaJuego.nombresCasillas)
+    private static final String[] NombresCasillas = {
+        "Salida",                       // 0
+        "Comedor Institucional",        // 1
+        "Soda Forestal",                // 2
+        "Evento",                       // 3
+        "Biblioteca Figueres Ferrer",   // 4
+        "Learning Commons",             // 5
+        "Edificio D3",                  // 6
+        "ASETEC",                       // 7
+        "Puesto Antonio",               // 8
+        "Evento",                       // 9
+        "Bosque de Bambúes",            // 10
+        "Lago",                         // 11
+        "Especial",                     // 12
+        "GymTEC",                       // 13
+        "Soda Deportiva",               // 14
+        "Evento",                       // 15
+        "Escuela de Computadores",      // 16
+        "Escuela de Electrónica",       // 17
+        "Ir al D3",                     // 18
+        "Cancha de fútbol",             // 19
+        "Cancha de béisbol",            // 20
+        "Evento",                       // 21
+        "BICITEC",                      // 22
+        "UberTEC"                       // 23
+    };
+
+    // Precio de compra de cada casilla, igual que la GUI (VentanaJuego.preciosPropiedadesSimulados).
+    // Las casillas que no son propiedad llevan 0.
+    private static final double[] PreciosCasillas = {
+        0,   100, 100,   0,   150, 150,
+        0,   200, 200,   0,   250, 250,
+        0,   300, 300,   0,   350, 350,
+        0,   400, 400,   0,   450, 450
+    };
 
     // Construye el tablero: Crea las casillas según su posición y las
     // enlaza en un círculo doble usando NodoCasilla.
@@ -56,12 +94,21 @@ public class Tablero {
     // Constantes.POSICIONES_EVENTO.
     private Casilla CrearCasilla(int i) {
         if (EsPosicionEvento(i)) {
-            return new CasillaEvento("Evento");
+            return new CasillaEvento(NombresCasillas[i]);
         }
-        // * pendiente: cuando existan Propiedad y CasillaEspecial, crearlas aquí
-        // según la posición, con los mismos nombres y precios de la interfaz
-        // (esquinas: 0 Salida, 6 Edificio D3, 12 Especial, 18 Ir al D3)
-        return new Casilla("Casilla " + i);
+        switch (i) {
+            case Constantes.POSICION_SALIDA:
+                return new CasillaEspecial(NombresCasillas[i], TipoCasillaEspecial.SALIDA);
+            case Constantes.POSICION_D3:
+                return new CasillaEspecial(NombresCasillas[i], TipoCasillaEspecial.VISITA_D3);
+            case Constantes.POSICION_ESPECIAL:
+                return new CasillaEspecial(NombresCasillas[i], TipoCasillaEspecial.ESPECIAL);
+            case Constantes.POSICION_IR_D3:
+                return new CasillaEspecial(NombresCasillas[i], TipoCasillaEspecial.IR_AL_D3);
+        }
+        // El resto de posiciones son propiedades; el identificador usa la posición (P01, P02...)
+        String Identificador = String.format("P%02d", i);
+        return new Propiedad(Identificador, NombresCasillas[i], PreciosCasillas[i], Constantes.ALQUILER_PROPIEDAD);
     }
 
     // Indica si la posición "i" es una de las casillas de evento fijas

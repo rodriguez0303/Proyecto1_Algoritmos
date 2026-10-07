@@ -8,12 +8,8 @@ package LogicaJuego;
  * al usarse una carta, el mazo avanza y la carta usada queda al final para
  * poder reutilizarse más adelante.
  *
- * Detalles a tener en cuenta:
- * Se coloco "*", indica que depende de un ajuste
- * que todavía no está hecho en otra clase (por ahora solo Jugador, para perder
- *  * un turno). Esa línea queda comentada para que el proyecto compile;
- *  * cuando el ajuste esté listo, solo hay que descomentarla.
- *
+ * Los IDs de las transacciones se piden a Juego.GenerarIdTransaccion(),
+ * para que sean únicos en toda la partida.
  */
 
 public class CartaEvento {
@@ -54,9 +50,9 @@ public class CartaEvento {
                 break;
 
             case PERDER_TURNO:
-                // * pendiente: agregar perderTurno() en Jugador y el salto en Juego.SiguienteTurno()
-                // Jugador.perderTurno();
-                System.out.println("Pendiente: perder un turno");
+                // Juego.SiguienteTurno() salta al jugador la próxima vez que le toque
+                Jugador.PerderTurno();
+                System.out.println(Jugador.getNombre() + " pierde su próximo turno");
                 break;
 
             case IR_A_CASILLA:
@@ -71,7 +67,7 @@ public class CartaEvento {
     private void AplicarGanancia(Jugador Jugador, Juego Juego) {
         if (Juego.getBanco().pagar(Jugador, Valor)) {
             Juego.RegistrarTransaccion(new Transaccion(
-                    SiguienteId(Juego),
+                    Juego.GenerarIdTransaccion(),
                     Juego.getNumTurno(),
                     TipoTransaccion.GANANCIA_EVENTO,
                     "BANCO",                                  // Origen: el banco
@@ -87,7 +83,7 @@ public class CartaEvento {
     private void AplicarPerdida(Jugador Jugador, Juego Juego) {
         if (Juego.getBanco().recibir(Jugador, Valor)) {
             Juego.RegistrarTransaccion(new Transaccion(
-                    SiguienteId(Juego),
+                    Juego.GenerarIdTransaccion(),
                     Juego.getNumTurno(),
                     TipoTransaccion.PERDIDA_EVENTO,
                     Jugador.getIdentificador(),               // Origen: el jugador
@@ -98,11 +94,6 @@ public class CartaEvento {
             System.out.println(Jugador.getNombre() + " no puede pagar " + Valor + " y queda eliminado");
             Jugador.eliminar();
         }
-    }
-
-    // Genera el número correlativo de la siguiente transacción: T1, T2, T3...
-    private String SiguienteId(Juego Juego) {
-        return "T" + (Juego.getHistorial().getTamaño() + 1);
     }
 
     public String getId() {

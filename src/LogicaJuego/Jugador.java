@@ -5,6 +5,7 @@ public class Jugador {
     private double saldo;
     private int posicionActual;
     private boolean activo;
+    private boolean PierdeTurno; // true si debe saltarse su próximo turno (carta o D3)
 
     //Se guarda la lista de Propiedades que ha adquirido el Jugador durante la partida.
     private ListaSimplePropiedad propiedadesAdquiridas;
@@ -15,6 +16,7 @@ public class Jugador {
         this.saldo = saldo;
         this.posicionActual = 0; // Inicializa la posición en 0
         this.activo = true; // Inicializa el jugador como activo
+        this.PierdeTurno = false; // Inicia sin turnos perdidos
 
         // Se crea una nueva lista de Propiedades para el Jugador (ListaSimplePropiedad).
             // "ListaSimplePropiedad" es la clase que representa la estructura lineal
@@ -71,5 +73,37 @@ public class Jugador {
     }
     public void eliminar() {
         this.activo = false;
+    }
+
+    //*******************************************************************************
+    //*******************************************************************************
+
+    // Marca al Jugador para que se salte su próximo turno
+        // Lo usan la carta PERDER_TURNO y la casilla "Ir al D3".
+    public void PerderTurno() {
+        this.PierdeTurno = true;
+    }
+
+    // Indica si el Jugador tiene pendiente saltarse su próximo turno.
+    public boolean DebePerderTurno() {
+        return PierdeTurno;
+    }
+
+    // Lo llama Juego.SiguienteTurno() cuando salta al Jugador: el turno perdido ya se cumplió.
+    public void ConsumirTurnoPerdido() {
+        this.PierdeTurno = false;
+    }
+
+    //*******************************************************************************
+    //*******************************************************************************
+
+    // Patrimonio = saldo + precio de compra de todas las Propiedades del Jugador.
+        // Se usa para definir al ganador cuando la partida termina por límite de rondas.
+    public double CalcularPatrimonio() {
+        double Patrimonio = saldo;
+        for (int i = 0; i < propiedadesAdquiridas.Tamaño(); i++) {
+            Patrimonio += propiedadesAdquiridas.Obtener(i).getPrecioCompra();
+        }
+        return Patrimonio;
     }
 }

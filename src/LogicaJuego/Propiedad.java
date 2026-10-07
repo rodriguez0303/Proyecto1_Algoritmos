@@ -148,10 +148,10 @@ public class Propiedad extends Casilla {
                     // CREACIÓN DE LA TRANSACCION DE COMPRA
                     //***********************************************************************
 
-                    // Se crea un identificador para la nueva Transaccion.
-                        // Se utiliza el identificador de la PROPIEDAD para relacionarlo con la compra realizada.
-                            // Por ejemplo: si identificador = "P05", entonces idTransaccion = "COMPRA-P05".
-                    String idTransaccion = "COMPRA-" + identificador;
+                    // Se pide al Juego el identificador de la nueva Transaccion.
+                        // Juego es el único que genera IDs (T1, T2, T3...), así no se repiten
+                            // aunque la PROPIEDAD se libere y se vuelva a comprar.
+                    String idTransaccion = juego.GenerarIdTransaccion();
 
 
                     // Se obtiene el número del turno en el que se realizó la compra.
@@ -280,12 +280,10 @@ public class Propiedad extends Casilla {
                         // "getNumTurno()" es el método de la clase Juego que permite obtener el número del turno actual.
                 int numeroTurno = juego.getNumTurno();
 
-                // Se crea un identificador para la nueva Transaccion de alquiler.
+                // Se pide al Juego el identificador de la nueva Transaccion de alquiler.
                     // "idTransaccion" es la variable que permitirá identificar esta Transaccion.
-                        // Se utiliza el identificador de la PROPIEDAD y el número del turno.
-                            // Esto ayuda a diferenciar los pagos de alquiler realizados sobre una misma PROPIEDAD.
-                                 // Por ejemplo: si identificador = "P05" y numeroTurno = 3,"idTransaccion" guardará "ALQUILER-P05-T3".
-                String idTransaccion = "ALQUILER-" + identificador + "-T" + numeroTurno;
+                        // Juego es el único que genera IDs (T1, T2, T3...), así no se repiten.
+                String idTransaccion = juego.GenerarIdTransaccion();
 
                 // "tipoTransaccion" es la variable que guardará el tipo de operación realizada.
                  // Se utiliza "PAGO_ALQUILER" porque el Jugador está pagando el alquiler de una PROPIEDAD.

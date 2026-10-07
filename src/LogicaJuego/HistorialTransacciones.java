@@ -37,37 +37,60 @@ public class HistorialTransacciones {
         }
         tamaño++;
     }
-    public void imprimirHistorial() {
-        Nodo actual = primero;
-        while (actual != null) {
-            System.out.println(actual.transaccion);
-            actual = actual.siguiente;
+    // Los métodos "Obtener" devuelven el resultado como texto (una transacción
+    // por línea) para que Server lo pueda enviar a la GUI.
+    // Los métodos "imprimir"/"buscar" muestran ese mismo texto en consola.
+    public String ObtenerHistorial() {
+        StringBuilder Texto = new StringBuilder();
+        Nodo Actual = primero;
+        while (Actual != null) {
+            Texto.append(Actual.transaccion).append("\n");
+            Actual = Actual.siguiente;
         }
+        return Texto.toString();
+    }
+    public String ObtenerHistorialInverso() {
+        StringBuilder Texto = new StringBuilder();
+        Nodo Actual = ultimo;
+        while (Actual != null) {
+            Texto.append(Actual.transaccion).append("\n");
+            Actual = Actual.anterior;
+        }
+        return Texto.toString();
+    }
+    public String ObtenerPorTipo(TipoTransaccion Tipo) {
+        StringBuilder Texto = new StringBuilder();
+        Nodo Actual = primero;
+        while (Actual != null) {
+            if (Actual.transaccion.getTipo().equals(Tipo)) {
+                Texto.append(Actual.transaccion).append("\n");
+            }
+            Actual = Actual.siguiente;
+        }
+        return Texto.toString();
+    }
+    public String ObtenerPorJugador(String Jugador) {
+        StringBuilder Texto = new StringBuilder();
+        Nodo Actual = primero;
+        while (Actual != null) {
+            if (Actual.transaccion.getJugadorOrigen().equals(Jugador) || Actual.transaccion.getJugadorDestino().equals(Jugador)) {
+                Texto.append(Actual.transaccion).append("\n");
+            }
+            Actual = Actual.siguiente;
+        }
+        return Texto.toString();
+    }
+    public void imprimirHistorial() {
+        System.out.print(ObtenerHistorial());
     }
     public void imprimirHistorialInverso() {
-        Nodo actual = ultimo;
-        while (actual != null) {
-            System.out.println(actual.transaccion);
-            actual = actual.anterior;
-        }
+        System.out.print(ObtenerHistorialInverso());
     }
     public void buscarPorTipo(TipoTransaccion tipo) {
-        Nodo actual = primero;
-        while (actual != null) {
-            if (actual.transaccion.getTipo().equals(tipo)) {
-                System.out.println(actual.transaccion);
-            }
-            actual = actual.siguiente;
-        }
+        System.out.print(ObtenerPorTipo(tipo));
     }
     public void buscarPorJugador(String jugador) {
-        Nodo actual = primero;
-        while (actual != null) {
-            if (actual.transaccion.getJugadorOrigen().equals(jugador) || actual.transaccion.getJugadorDestino().equals(jugador)) {
-                System.out.println(actual.transaccion);
-            }
-            actual = actual.siguiente;
-        }
+        System.out.print(ObtenerPorJugador(jugador));
     }
     public int getTamaño() {
         return tamaño;

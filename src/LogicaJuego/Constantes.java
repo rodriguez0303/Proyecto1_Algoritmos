@@ -24,4 +24,16 @@ public final class Constantes {
 
     // Saldo con el que arranca el Banco, para que pueda pagar cartas de evento
     public static final double SALDO_INICIAL_BANCO = 100000;
+
+    // Monto que el Banco le paga a un jugador cada vez que pasa o cae en Salida (igual que la GUI)
+    public static final double PREMIO_SALIDA = 200;
+
+    // Alquiler que se cobra al caer en una propiedad ajena (igual que la GUI)
+    public static final double ALQUILER_PROPIEDAD = 100;
+
+    // Posiciones fijas de las esquinas del tablero (casillas especiales)
+    public static final int POSICION_SALIDA = 0;
+    public static final int POSICION_D3 = 6;
+    public static final int POSICION_ESPECIAL = 12;
+    public static final int POSICION_IR_D3 = 18;
 }
