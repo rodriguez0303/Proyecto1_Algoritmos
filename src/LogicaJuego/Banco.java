@@ -66,6 +66,28 @@ public class Banco {
         return true;
     }
 
+    public boolean recibirPagoObligatorio(Jugador jugador, double monto) {
+        if (jugador == null || monto <= 0) {
+            return false;
+        }
+        if (jugador.getSaldo() < monto) {
+            jugador.eliminar();
+            return false;
+        } 
+        return recibir(jugador, monto);
+    }
+
+    public boolean transferirPagoObligatorio(Jugador origen, Jugador destino, double monto) {
+        if (origen == destino || origen == null || destino == null || monto <= 0) {
+            return false;
+        }
+        if (origen.getSaldo() < monto) {
+            origen.eliminar();
+            return false;
+        }
+        return transferir(origen, destino, monto);
+    }
+
     /**
      * Transfiere dinero de un jugador a otro.
      *

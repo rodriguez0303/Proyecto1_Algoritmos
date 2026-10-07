@@ -6,6 +6,7 @@ public class PruebaBanco {
 
         Jugador jose = new Jugador("J001", "Jose", 1500);
         Jugador luis = new Jugador("J002", "Luis", 1000);
+        Jugador pruebaObligatoria = new Jugador("J003", "Prueba", 100);
 
         Banco banco = new Banco(10000);
 
@@ -69,5 +70,41 @@ public class PruebaBanco {
         System.out.println("Transferencia realizada: " + transferenciaMismoJugador);
         System.out.println("Jose: " + jose.getSaldo());
         System.out.println("Banco: " + banco.getSaldo());
+
+        // Prueba de pago obligatorio
+        boolean transferirPagoObligatorio = banco.recibirPagoObligatorio(pruebaObligatoria, 50);
+
+        System.out.println("\n=== PAGO OBLIGATORIO DE PRUEBA ===");
+        System.out.println("Pago obligatorio realizado: " + transferirPagoObligatorio);
+        System.out.println("Prueba Obligatoria: " + pruebaObligatoria.getSaldo());
+        System.out.println("Banco: " + banco.getSaldo());
+
+        System.out.println("\n=== PAGO OBLIGATORIO SIN SALDO ===");
+
+        boolean pagoObligatorioInvalido = banco.recibirPagoObligatorio(pruebaObligatoria, 200);
+
+        System.out.println("Pago obligatorio realizado: " + pagoObligatorioInvalido);
+        System.out.println("Prueba Obligatoria: " + pruebaObligatoria.getSaldo());
+        System.out.println("Activo: " + pruebaObligatoria.esActivo());
+        System.out.println("Banco: " + banco.getSaldo());
+
+        System.out.println("\n=== TRANSFERENCIA PAGO OBLIGATORIO ===");
+
+        boolean transferenciaPagoObligatorio = banco.transferirPagoObligatorio(jose, luis, 200);
+
+        System.out.println("Transferencia pago obligatorio realizada: " + transferenciaPagoObligatorio);
+        System.out.println("Jose: " + jose.getSaldo());
+        System.out.println("Luis: " + luis.getSaldo());
+        System.out.println("Banco: " + banco.getSaldo());
+
+        System.out.println("\n=== TRANSFERENCIA PAGO OBLIGATORIO SIN SALDO ===");
+
+        boolean transferenciaPagoObligatorioInvalida = banco.transferirPagoObligatorio(luis, jose, 2000);
+
+        System.out.println("Transferencia pago obligatorio realizada: " + transferenciaPagoObligatorioInvalida);
+        System.out.println("Jose: " + jose.getSaldo());
+        System.out.println("Luis: " + luis.getSaldo());
+        System.out.println("Activo Luis: " + luis.esActivo());
+
     }
 }
