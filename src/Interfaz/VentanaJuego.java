@@ -1328,12 +1328,6 @@ public class VentanaJuego extends JFrame {
                 // La conexión terminó.
                 if (mensaje == null) {
                     SwingUtilities.invokeLater(() -> {
-                        String idLocal = lblNombre.getText().replace("Jugador: ", "").trim();
-                        String idTurno = lblTurno.getText().replace("Turno actual: ", "").trim();
-                        if (idLocal.equals(idTurno)) {
-                            btnTerminarTurno.setEnabled(true);
-                            btnTirarDados.setEnabled(false);
-                        }
                         JOptionPane.showMessageDialog(
                             this,
                             "Se perdió la conexión con el servidor."
@@ -1386,6 +1380,12 @@ public class VentanaJuego extends JFrame {
                                 System.out.println("Valores de dados inválidos.");
 
                             }
+                        }
+                        String idLocal = lblNombre.getText().replace("Jugador: ", "").trim();
+                        String idTurno = lblTurno.getText().replace("Turno actual: ", "").trim();
+                        if (idLocal.equals(idTurno)) {
+                            btnTerminarTurno.setEnabled(true);
+                            btnTirarDados.setEnabled(false);
                         }
                     });
 
