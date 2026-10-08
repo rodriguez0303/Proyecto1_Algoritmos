@@ -283,11 +283,11 @@ public class VentanaInicio extends JFrame {
                     }
 
                     // Abrir el tablero conectado al servidor.
-                    VentanaJuego ventana = new VentanaJuego();
+                    VentanaSalaEspera sala = new VentanaSalaEspera(nuevoCliente, idJugador);
 
-                    ventana.activarModoEnLinea(nuevoCliente);
-                    ventana.setVisible(true);
-
+                    sala.setVisible(true);
+                    sala.iniciarEscuchaServidor();
+                    
                     dispose();
                 });
 

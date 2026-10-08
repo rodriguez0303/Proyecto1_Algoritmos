@@ -58,6 +58,8 @@ public class Server {
 
     private final int cantidadJugadoresEsperados;
 
+    private boolean partidaIniciada = false;
+
     // ServerSocket es una clase que Java ya tiene implementada.
     // Guardará el servidor en el que se abrió en un puerto y estará a la espera de las conexiones de los jugadores al servidor.
     private ServerSocket serverSocket;
@@ -502,6 +504,84 @@ public class Server {
 
                     // La solicitud no puede continuar sino existe un jugador asociado.
                     // Por lo tanto, se termina esta ejecución de procesarSolicitud().
+                    return;
+                }
+
+                
+                if (solicitud.equals("INICIAR_PARTIDA")) {
+
+                    // No permitir iniciar dos veces.
+                    if (partidaIniciada) {
+                        enviarRespuesta(
+                                posicion,
+                                "La partida ya fue iniciada."
+                        );
+                        return;
+                    }
+
+                    // Solamente J001 puede iniciar la partida.
+                    if (!jugador.getIdentificador().equals("J001")) {
+                        enviarRespuesta(
+                                posicion,
+                                "Solo J001 puede iniciar la partida."
+                        );
+                        return;
+                    }
+
+                    // Contar los jugadores conectados.
+                    int conectados = 0;
+
+                    for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                        if (jugadoresConectados[i] != null
+                                && clientesSocket[i] != null
+                                && !clientesSocket[i].isClosed()) {
+
+                            conectados++;
+                        }
+                    }
+
+                    // Verificar que la sala esté completa.
+                    if (conectados != cantidadJugadoresEsperados) {
+
+                        enviarRespuesta(
+                                posicion,
+                                "No se puede iniciar: faltan jugadores."
+                        );
+
+                        return;
+                    }
+
+                    // Iniciar oficialmente la partida.
+                    juego.IniciarPartida();
+                    partidaIniciada = true;
+
+                    System.out.println(
+                            "Partida iniciada con " + conectados + " jugadores."
+                    );
+
+                    // Avisar a todos para que abran el tablero.
+                    for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                        if (jugadoresConectados[i] != null
+                                && clientesSocket[i] != null
+                                && !clientesSocket[i].isClosed()) {
+
+                            enviarRespuesta(i, "PARTIDA_INICIADA");
+                        }
+                    }
+
+                    return;
+                }
+
+                // No permitir acciones del juego antes del inicio.
+                if (!partidaIniciada) {
+
+                    enviarRespuesta(
+                            posicion,
+                            "La partida todavía no ha iniciado."
+                    );
+
                     return;
                 }
 

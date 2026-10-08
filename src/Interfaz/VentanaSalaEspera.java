@@ -140,7 +140,95 @@ public class VentanaSalaEspera extends JFrame {
             );
         });
     }
+    public void iniciarEscuchaServidor() {
+        Thread hiloReceptor = new Thread(() -> {
 
+            while (true) {
+
+                String mensaje = cliente.recibirRespuesta();
+
+                // Detectar pérdida de conexión.
+                if (mensaje == null) {
+
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Se perdió la conexión con el servidor."
+                        );
+                        dispose();
+                    });
+
+                    break;
+                }
+
+                // Recibir la lista de jugadores conectados.
+                if (mensaje.startsWith("SALA;")) {
+
+                    String[] datos = mensaje.split(";", -1);
+
+                    if (datos.length != 3) {
+                        continue;
+                    }
+
+                    try {
+
+                        int cantidadEsperada =
+                                Integer.parseInt(datos[1]);
+
+                        String[] jugadoresConectados;
+
+                        if (datos[2].isEmpty()) {
+                            jugadoresConectados = new String[0];
+                        } else {
+                            jugadoresConectados = datos[2].split(",");
+                        }
+
+                        actualizarJugadores(
+                                cantidadEsperada,
+                                jugadoresConectados
+                        );
+
+                    } catch (NumberFormatException ex) {
+                        System.out.println(
+                                "Cantidad de jugadores inválida."
+                        );
+                    }
+                }
+
+                // El servidor autorizó iniciar la partida.
+                else if (mensaje.equals("PARTIDA_INICIADA")) {
+
+                    abrirTablero();
+
+                    // El tablero se encargará de recibir
+                    // los siguientes mensajes del servidor.
+                    break;
+                }
+
+                // Ignorar notificaciones del tablero
+                // mientras estamos esperando el inicio.
+                else if (mensaje.equals("ACTUALIZAR_ESTADO")) {
+                    continue;
+                }
+
+                // Mostrar respuestas adicionales del servidor.
+                else {
+
+                    SwingUtilities.invokeLater(() -> {
+
+                        JOptionPane.showMessageDialog(
+                                this,
+                                mensaje
+                        );
+                    });
+                }
+            }
+
+        });
+
+        hiloReceptor.setDaemon(true);
+        hiloReceptor.start();
+    }
     // Se llamará cuando el servidor autorice iniciar.
     public void abrirTablero() {
 
