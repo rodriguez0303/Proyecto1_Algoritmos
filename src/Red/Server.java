@@ -597,7 +597,6 @@ public class Server {
                                 + valorDado2 + ";"
                                 + pasos;
 
-
                         // enviarRespuesta() es un método de la clase Server.
                         // "posicion" identifica la conexión del jugador que lanzó los dados.
                         // "resultadoDados" contiene dado 1, dado 2 y el total obtenido.

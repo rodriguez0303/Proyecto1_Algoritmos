@@ -16,7 +16,7 @@ public class IniciarServidor {
 
         juego.IniciarPartida();
 
-        Server servidor = new Server("0.0.0.0", 5000, juego);
+        Server servidor = new Server("172.18.141.107", 5000, juego);
 
         servidor.iniciar();
     }

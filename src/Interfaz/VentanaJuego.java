@@ -906,6 +906,12 @@ public class VentanaJuego extends JFrame {
 
 
         btnTerminarTurno.addActionListener(e -> {
+            if (modoEnLinea) {
+                cliente.enviarSolicitud("TERMINAR_TURNO");
+                btnTerminarTurno.setEnabled(false);
+                return;
+            }
+
             int intentos = 0;
             String mensajeSalto = "";
             int jugadorAnterior = jugadorActualSimulado;
@@ -1322,6 +1328,12 @@ public class VentanaJuego extends JFrame {
                 // La conexión terminó.
                 if (mensaje == null) {
                     SwingUtilities.invokeLater(() -> {
+                        String idLocal = lblNombre.getText().replace("Jugador: ", "").trim();
+                        String idTurno = lblTurno.getText().replace("Turno actual: ", "").trim();
+                        if (idLocal.equals(idTurno)) {
+                            btnTerminarTurno.setEnabled(true);
+                            btnTirarDados.setEnabled(false);
+                        }
                         JOptionPane.showMessageDialog(
                             this,
                             "Se perdió la conexión con el servidor."
@@ -1423,6 +1435,16 @@ public class VentanaJuego extends JFrame {
             String identificadorTurno = campos[6];
 
             lblTurno.setText("Turno actual: " + identificadorTurno);
+
+            boolean esMiTurno = identificadorLocal.equals(identificadorTurno);
+
+            if (!esMiTurno) {
+                btnTirarDados.setEnabled(false);
+                btnTerminarTurno.setEnabled(false);
+            } else if (!btnTerminarTurno.isEnabled()) {
+                btnTirarDados.setEnabled(true);
+
+            }
 
             for (String registro : jugadores) {
                 String[] datos = registro.split(",");
