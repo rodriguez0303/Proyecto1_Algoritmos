@@ -858,6 +858,12 @@ public class VentanaJuego extends JFrame {
 
         btnComprar.addActionListener(e -> {
 
+            if (modoEnLinea) {
+                btnComprar.setEnabled(false);
+                cliente.enviarSolicitud("COMPRAR_PROPIEDAD");
+                return;
+            }
+
             int posicionActual = posicionesJugadoresSimulados[jugadorActualSimulado];
 
             double precioActual = preciosPropiedadesSimulados[posicionActual];
@@ -1007,7 +1013,7 @@ public class VentanaJuego extends JFrame {
         this.cliente = clienteConectado;
         this.modoEnLinea = true;
 
-        btnTirarDados.setEnabled(true);
+        btnTirarDados.setEnabled(false);
         btnComprar.setEnabled(false);
         btnTerminarTurno.setEnabled(false);
 
@@ -1381,13 +1387,6 @@ public class VentanaJuego extends JFrame {
 
                             }
                         }
-                        String idLocal = lblNombre.getText().replace("Jugador: ", "").trim();
-                        String idTurno = lblTurno.getText().replace("Turno actual: ", "").trim();
-                        
-                        if (idLocal.equals(idTurno)) {
-                            btnTerminarTurno.setEnabled(true);
-                            btnTirarDados.setEnabled(false);
-                        }
                     });
 
                     // Actualizar las posiciones del tablero.
@@ -1414,59 +1413,99 @@ public class VentanaJuego extends JFrame {
         cliente.enviarSolicitud("CONSULTAR_ESTADO");
     }
 
+
     private void actualizarFichasDesdeEstado(String estado) {
+
         if (estado == null || !estado.startsWith("ESTADO;")) {
             return;
         }
 
         String[] campos = estado.split(";", -1);
 
-        if (campos.length != 10) {
+        // Ahora recibimos 13 campos desde el servidor.
+        if (campos.length != 13) {
+            System.out.println(
+                    "Formato ESTADO inválido: " + campos.length
+            );
             return;
         }
 
         String[] jugadores = campos[8].split("\\|");
 
         SwingUtilities.invokeLater(() -> {
-            
+
+            // Identificación del jugador y del turno.
             String identificadorLocal = campos[1];
-
-            lblNombre.setText("Jugador: " + identificadorLocal);
-
             String identificadorTurno = campos[6];
 
-            lblTurno.setText("Turno actual: " + identificadorTurno);
+            lblNombre.setText(
+                    "Jugador: " + identificadorLocal
+            );
 
-            boolean esMiTurno = identificadorLocal.equals(identificadorTurno);
+            lblTurno.setText(
+                    "Turno actual: " + identificadorTurno
+            );
 
-            if (!esMiTurno) {
-                btnTirarDados.setEnabled(false);
-                btnTerminarTurno.setEnabled(false);
-            } else if (!btnTerminarTurno.isEnabled()) {
-                btnTirarDados.setEnabled(true);
+            // Información real del jugador.
+            lblSaldo.setText("Saldo: ₡" + campos[3]);
+            lblPosicion.setText("Posición: " + campos[4]);
+            lblPropiedades.setText(
+                    "Propiedades: " + campos[5]
+            );
 
-            }
+            // Permisos calculados por el servidor.
+            boolean puedeTirar =
+                    Boolean.parseBoolean(campos[10]);
 
+            boolean puedeComprar =
+                    Boolean.parseBoolean(campos[11]);
+
+            boolean puedeTerminar =
+                    Boolean.parseBoolean(campos[12]);
+
+            btnTirarDados.setEnabled(puedeTirar);
+            btnComprar.setEnabled(puedeComprar);
+            btnTerminarTurno.setEnabled(puedeTerminar);
+
+            // Sincronizar las fichas de todos los jugadores.
             for (String registro : jugadores) {
+
                 String[] datos = registro.split(",");
 
-                if (datos.length != 3 || !datos[0].matches("J00[1-4]")) {
+                if (datos.length != 3
+                        || !datos[0].matches("J00[1-4]")) {
                     continue;
-            }
-            int indiceJugador = Integer.parseInt(datos[0].substring(1)) - 1;
-            if (datos[2].equalsIgnoreCase("false")) {
-                retirarFichaJugadorSimulado(indiceJugador);
-        } else if ((datos[2].equalsIgnoreCase("true"))) {
+                }
+
+                int indiceJugador =
+                        Integer.parseInt(datos[0].substring(1)) - 1;
+
+                if (datos[2].equalsIgnoreCase("false")) {
+
+                    retirarFichaJugadorSimulado(indiceJugador);
+
+                } else if (datos[2].equalsIgnoreCase("true")) {
+
                     try {
+
                         int posicion = Integer.parseInt(datos[1]);
 
-                        if (posicion >= 0 && posicion < panelesFichas.length) {
-                            marcarPosicionJugador(indiceJugador, posicion);
+                        if (posicion >= 0
+                                && posicion < panelesFichas.length) {
+
+                            marcarPosicionJugador(
+                                    indiceJugador,
+                                    posicion
+                            );
                         }
-                    } catch (NumberFormatException e) {
-                        System.out.println("Posición inválida recibida.");
+
+                    } catch (NumberFormatException ex) {
+
+                        System.out.println(
+                                "Posición inválida recibida."
+                        );
                     }
-                }   
+                }
             }
         });
     }

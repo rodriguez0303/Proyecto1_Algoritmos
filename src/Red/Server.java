@@ -1063,6 +1063,16 @@ public class Server {
                         // Si una Propiedad todavía no tiene propietario, se le asigna "SIN_PROPIETARIO".
                         estado = estado + ";" + estadoPropiedades;
 
+                        boolean puedeTirar = validarAccion("TIRAR_DADOS", jugador, propiedad);
+
+                        boolean puedeComprar = validarAccion("COMPRAR_PROPIEDAD", jugador, propiedad);
+
+                        boolean puedeTerminar = validarAccion("TERMINAR_TURNO", jugador, propiedad);
+
+                        estado = estado + ";" + puedeTirar;
+                        estado = estado + ";" + puedeComprar;
+                        estado = estado + ";" + puedeTerminar;
+
                         // Se envía el estado únicamente al jugador que realizó la consulta.
                             // enviarRespuesta() es un método de la clase Server.
                                 // "posicion" permite identificar cuál conexión Socket pertenece al jugador.
