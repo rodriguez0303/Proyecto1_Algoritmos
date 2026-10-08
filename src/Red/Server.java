@@ -506,7 +506,6 @@ public class Server {
                     // Por lo tanto, se termina esta ejecución de procesarSolicitud().
                     return;
                 }
-
                 
                 if (solicitud.equals("INICIAR_PARTIDA")) {
 
