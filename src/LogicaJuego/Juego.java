@@ -180,6 +180,16 @@ public class Juego {
         return Activos;
     }
 
+    // Revisa si queda un único jugador activo y, si es así, finaliza la partida (punto 18).
+    // Se llama justo después de cada eliminación, sin esperar al siguiente SiguienteTurno().
+    // Devuelve true si la partida ya terminó (por esta revisión o desde antes).
+    public boolean RevisarFinPartida() {
+        if (Curso && ContarJugadoresActivos() <= 1) {
+            finalizarPartida();
+        }
+        return !Curso;
+    }
+
     // Server (finalizarTurno), no cambiar.
     // Resetea el control de dados del turno y pasa el turno al siguiente jugador
     public void finalizarTurno() {

@@ -97,6 +97,10 @@ public class Server {
     private int turnoPendienteCompra;
 
 
+    // Indica si ya se envió FIN;GANADOR;ID a los jugadores, para no avisar el fin de la partida dos veces.
+    private boolean FinAvisado;
+
+
     //*****************************************************
     //*****************************************************
 
@@ -268,12 +272,52 @@ public class Server {
                     // Se eliminan los datos que estaban asociados a la conexión de este jugador.
                     // Los cuatro arreglos utilizan la misma posición para guardar los datos de una conexión.
                     // Al colocar null, esta posición queda libre para que pueda conectarse otro jugador.
-                    if (clientesSocket[posicionJugador] == socketJugador) {
+                    // Se sincroniza con "juego" porque los otros Threads pueden estar usando estos arreglos y el turno.
+                    synchronized (juego) {
 
-                        entradas[posicionJugador] = null;
-                        salidas[posicionJugador] = null;
-                        jugadoresConectados[posicionJugador] = null;
-                        clientesSocket[posicionJugador] = null;
+                        // Se guarda el Jugador que estaba asociado a esta conexión antes de liberar la posición.
+                        Jugador JugadorDesconectado = jugadoresConectados[posicionJugador];
+
+                        if (clientesSocket[posicionJugador] == socketJugador) {
+
+                            entradas[posicionJugador] = null;
+                            salidas[posicionJugador] = null;
+                            jugadoresConectados[posicionJugador] = null;
+                            clientesSocket[posicionJugador] = null;
+                        }
+
+                        // Si un Jugador se desconecta con la partida en curso, pierde automáticamente:
+                            // queda eliminado (sus Propiedades se liberan) y ya no puede volver a conectarse.
+                        if (JugadorDesconectado != null
+                                && juego.isEnCurso()
+                                && JugadorDesconectado.esActivo()) {
+
+                            // Se guarda si tenía el turno antes de eliminarlo.
+                            boolean EraSuTurno = JugadorDesconectado == juego.obtenerJugadorActual();
+
+                            JugadorDesconectado.eliminar();
+                            System.out.println(JugadorDesconectado.getNombre()
+                                    + " se desconectó y queda eliminado de la partida");
+
+                            // Con esta eliminación puede quedar un único jugador activo.
+                            RevisarFinPartida();
+
+                            if (juego.isEnCurso()) {
+
+                                // Si se desconectó durante su turno, nadie más podría enviar TERMINAR_TURNO
+                                    // por él y la partida quedaría trabada; por eso el Server pasa el turno.
+                                if (EraSuTurno) {
+
+                                    PasarTurnoAutomaticamente();
+                                }
+
+                                // Si no era su turno, solo se informa a los demás que ese Jugador quedó eliminado.
+                                else {
+
+                                    actualizarClientes();
+                                }
+                            }
+                        }
                     }
 
                 });
@@ -329,6 +373,60 @@ public class Server {
 
         // La posición coincide con la posición de su conexión dentro del arreglo clientesSocket.
         jugadoresConectados[posicion] = jugador;
+    }
+
+    //*****************************************************
+    //*****************************************************
+
+    // Método que revisa si la partida terminó y, en ese caso, avisa a todos los jugadores conectados.
+        // Si queda un único jugador activo, Juego finaliza la partida en ese mismo momento (punto 18).
+            // También detecta el fin por límite de rondas, que Juego marca al pasar el turno.
+                // El mensaje es FIN;GANADOR;ID, o FIN;GANADOR;SIN_GANADOR si no quedó ningún jugador activo.
+                    // Debe llamarse dentro de un bloque synchronized (juego).
+    private void RevisarFinPartida() {
+
+        // Si la partida sigue en curso, o el fin ya fue avisado, no hay nada que enviar.
+        if (!juego.RevisarFinPartida() || FinAvisado) {
+
+            return;
+        }
+
+        FinAvisado = true;
+
+        Jugador Ganador = juego.GetGanador();
+        String MensajeFin = "FIN;GANADOR;"
+                + (Ganador != null ? Ganador.getIdentificador() : "SIN_GANADOR");
+
+        for (int i = 0; i < clientesSocket.length; i++) {
+
+            if (clientesSocket[i] != null && !clientesSocket[i].isClosed()) {
+
+                enviarRespuesta(i, MensajeFin);
+            }
+        }
+    }
+
+    //*****************************************************
+    //*****************************************************
+
+    // Método que pasa el turno sin esperar TERMINAR_TURNO del jugador actual.
+        // Se usa cuando el Jugador del turno quedó eliminado o se desconectó, porque ya no puede terminarlo él mismo.
+            // Debe llamarse dentro de un bloque synchronized (juego).
+    private void PasarTurnoAutomaticamente() {
+
+        // La compra pendiente pertenecía al turno que se está cerrando, así que se descarta.
+        propiedadPendienteCompra = null;
+        jugadorPendienteCompra = null;
+        turnoPendienteCompra = 0;
+
+        // finalizarTurno() reinicia el control de dados y avanza al siguiente jugador activo.
+        juego.finalizarTurno();
+
+        // Al pasar el turno la partida pudo terminar (un solo jugador activo o límite de rondas).
+        RevisarFinPartida();
+
+        // Se informa a todos los jugadores conectados que el turno cambió.
+        actualizarClientes();
     }
 
     //*****************************************************
@@ -430,6 +528,16 @@ public class Server {
                     if (jugadorEncontrado == null) {
 
                         enviarRespuesta(posicion, "Jugador no encontrado");
+
+                        return;
+                    }
+
+                    // Un Jugador eliminado (por bancarrota o por haberse desconectado) ya perdió la partida.
+                        // Por eso no se le permite volver a conectarse ni incorporarse de nuevo.
+                    if (!jugadorEncontrado.esActivo()) {
+
+                        enviarRespuesta(posicion, "El jugador " + identificador
+                                + " fue eliminado y no puede volver a incorporarse a la partida");
 
                         return;
                     }
@@ -606,6 +714,20 @@ public class Server {
                                 enviarRespuesta(i, resultadoDados);
                             }
                         }
+
+                        // Si el Jugador quedó eliminado durante su propio movimiento (por alquiler o por una carta),
+                            // primero se revisa si con eso queda un único jugador activo (fin de partida).
+                        if (!jugador.esActivo()) {
+
+                            RevisarFinPartida();
+
+                            // Si la partida sigue, el Jugador eliminado ya no puede enviar TERMINAR_TURNO,
+                                // así que el Server pasa el turno automáticamente para que no quede trabada.
+                            if (juego.isEnCurso() && jugador == juego.obtenerJugadorActual()) {
+
+                                PasarTurnoAutomaticamente();
+                            }
+                        }
                     }
 
                     // -------------------------------------------------
@@ -678,6 +800,9 @@ public class Server {
                             // Se ejecuta después de que validarAccion() permitió terminar el turno.
                                 // Permite finalizar el turno del jugador actual y continuar con el siguiente jugador.
                         juego.finalizarTurno();
+
+                        // Al pasar el turno la partida pudo terminar (un solo jugador activo o límite de rondas).
+                        RevisarFinPartida();
 
                         // actualizarClientes() es un método de la clase Server.
                         // Informa a todos los jugadores conectados que el estado del juego fue actualizado.
