@@ -41,7 +41,7 @@ public class IniciarServidor {
         juego.IniciarPartida();
 
         // Escuchar conexiones en las interfaces de red del equipo.
-        Server servidor = new Server("0.0.0.0", 5000, juego);
+        Server servidor = new Server("0.0.0.0", 5000, juego, cantidadJugadores);
 
         servidor.iniciar();
     }

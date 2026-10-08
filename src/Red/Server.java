@@ -56,6 +56,8 @@ public class Server {
     // Juego que será administrado por el servidor
     private Juego juego;
 
+    private final int cantidadJugadoresEsperados;
+
     // ServerSocket es una clase que Java ya tiene implementada.
     // Guardará el servidor en el que se abrió en un puerto y estará a la espera de las conexiones de los jugadores al servidor.
     private ServerSocket serverSocket;
@@ -103,12 +105,16 @@ public class Server {
     // Constructor de la clase Servidor.
     // Recibe la IP, el puerto y el objeto Juego que administrará el servidor. //("192.168.1.10", 5000, juegoMonopoly)
     public Server(String ip, int puerto, Juego juego) {
-
+        this(ip, puerto, juego, 4);
+    }
+    public Server(String ip, int puerto, Juego juego, int cantidadJugadoresEsperados) {
+        if (cantidadJugadoresEsperados < 3 || cantidadJugadoresEsperados > 4) {
+            throw new IllegalArgumentException("La partida debe tener 3 o 4 jugadores.");
+        }
         this.ip = ip;
-
         this.puerto = puerto;
-
         this.juego = juego;
+        this.cantidadJugadoresEsperados = cantidadJugadoresEsperados;
     }
 
     //*****************************************************
@@ -467,6 +473,7 @@ public class Server {
                     // El mensaje se envía únicamente al jugador que realizó esta solicitud.
                     enviarRespuesta(posicion, "Conexión válida");
 
+                    enviarEstadoSala();
 
                     // La solicitud CONECTAR ya fue atendida completamente.
                     // El jugador ya quedó asociado con su conexión Socket.
@@ -1424,5 +1431,53 @@ public class Server {
             }
         }
     }
+    
+    private void enviarEstadoSala() {
 
+        StringBuilder listaJugadores = new StringBuilder();
+        int cantidadConectados = 0;
+
+        // Recorrer los clientes registrados en el servidor.
+        for (int i = 0; i < jugadoresConectados.length; i++) {
+
+            if (jugadoresConectados[i] != null
+                    && clientesSocket[i] != null
+                    && !clientesSocket[i].isClosed()) {
+
+                if (cantidadConectados > 0) {
+                    listaJugadores.append(",");
+                }
+
+                listaJugadores.append(
+                        jugadoresConectados[i].getIdentificador()
+                );
+
+                cantidadConectados++;
+            }
+        }
+
+        // Crear el mensaje que recibirán los clientes.
+        String mensaje = "SALA;"
+                + cantidadJugadoresEsperados
+                + ";"
+                + listaJugadores;
+
+        // Enviar la información a todos los jugadores conectados.
+        for (int i = 0; i < jugadoresConectados.length; i++) {
+
+            if (jugadoresConectados[i] != null
+                    && clientesSocket[i] != null
+                    && !clientesSocket[i].isClosed()) {
+
+                enviarRespuesta(i, mensaje);
+            }
+        }
+
+        System.out.println(
+                "Sala de espera: "
+                + cantidadConectados
+                + "/"
+                + cantidadJugadoresEsperados
+        );
+    }
 }
