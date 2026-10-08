@@ -1,5 +1,7 @@
 package Interfaz;
 
+import LogicaJuego.Cliente;
+
 // Importaciones necesarias para la interfaz gráfica
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
@@ -48,10 +50,15 @@ public class VentanaJuego extends JFrame {
     private JLabel lblPosicion;
     private JLabel lblTurno;
     private JLabel lblNumeroRonda;
+    private JLabel lblDado1;
+    private JLabel lblDado2;
 
     private JButton btnTirarDados;
     private JButton btnComprar;
     private JButton btnTerminarTurno;
+
+    private Cliente cliente;
+    private boolean modoEnLinea = false;
 
     private JTextArea lblPropiedades;
     private JTextArea areaHistorial;
@@ -415,7 +422,7 @@ public class VentanaJuego extends JFrame {
         // INFORMACIÓN DEL JUGADOR
         // -------------------------------------------------
 
-        lblNombre = new JLabel("Jugador actual: J1");
+        lblNombre = new JLabel("Jugador actual: -");
         lblSaldo = new JLabel("Saldo: ₡1500");
         lblPatrimonio = new JLabel("Patrimonio: ₡1500");
         lblPosicion = new JLabel("Posición: 0 - Salida");
@@ -499,8 +506,8 @@ public class VentanaJuego extends JFrame {
         tituloDado1.setFont(new Font("SansSerif", Font.BOLD, 12));
         tituloDado2.setFont(new Font("SansSerif", Font.BOLD, 12));
 
-        JLabel lblDado1 = new JLabel("-", JLabel.CENTER);
-        JLabel lblDado2 = new JLabel("-", JLabel.CENTER);
+        lblDado1 = new JLabel("-", JLabel.CENTER);
+        lblDado2 = new JLabel("-", JLabel.CENTER);
 
         lblDado1.setFont(new Font("SansSerif", Font.BOLD, 42));
         lblDado2.setFont(new Font("SansSerif", Font.BOLD, 42));
@@ -653,6 +660,11 @@ public class VentanaJuego extends JFrame {
         // -------------------------------------------------
 
         btnTirarDados.addActionListener(e -> {
+
+            if (modoEnLinea) {
+                cliente.enviarSolicitud("TIRAR_DADOS");
+                return;
+            }
 
             if (dadosLanzadosSimulados) {
                 lblEstado.setText("J" + (jugadorActualSimulado + 1)
@@ -978,6 +990,30 @@ public class VentanaJuego extends JFrame {
         agregarHistorialSimulado("Partida iniciada. Turno de J1");
     }
 
+    public void activarModoEnLinea(Cliente clienteConectado) {
+        if (clienteConectado == null) {
+            throw new IllegalArgumentException("El cliente no puede ser null.");
+        }
+
+        if (modoEnLinea) {
+            return;
+        }
+        this.cliente = clienteConectado;
+        this.modoEnLinea = true;
+
+        btnTirarDados.setEnabled(true);
+        btnComprar.setEnabled(false);
+        btnTerminarTurno.setEnabled(false);
+
+        for (int i = 0; i < fichasJugadores.length; i++) {
+            retirarFichaJugadorSimulado(i);
+        }
+
+        lblEstado.setText("Modo en línea: sincronizando con el servidor...");
+
+        iniciarEscuchaServidor();
+    }
+
     private Color obtenerColorGrupoPropiedadSimulada(int posicion) {
         if (posicion == 1 || posicion == 2) {
             return new Color(150, 95, 60);
@@ -1273,6 +1309,143 @@ public class VentanaJuego extends JFrame {
 
         casillasVisuales[posicionActual].setBorder(BorderFactory.createLineBorder(colorJugador, 4));
         
+    }
+
+    private void iniciarEscuchaServidor() {
+
+        Thread hiloReceptor = new Thread(() -> {
+
+            while (true) {
+
+                String mensaje = cliente.recibirRespuesta();
+
+                // La conexión terminó.
+                if (mensaje == null) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "Se perdió la conexión con el servidor."
+                        );
+                    });
+                    break;
+                }
+
+                // Recibir el estado real de la partida.
+                if (mensaje.startsWith("ESTADO;")) {
+
+                    actualizarFichasDesdeEstado(mensaje);
+
+                }
+                // El servidor notificó un cambio.
+                else if (mensaje.equals("ACTUALIZAR_ESTADO")) {
+
+                    cliente.enviarSolicitud("CONSULTAR_ESTADO");
+
+                }
+
+                else if (mensaje.startsWith("DADOS;")) {
+
+                    // Separar los valores recibidos.
+                    String[] datos = mensaje.split(";");
+
+                    SwingUtilities.invokeLater(() -> {
+
+                        // Agregar el lanzamiento al historial.
+                        agregarHistorialSimulado("[Servidor] " + mensaje);
+
+                        // Verificar que recibimos los datos correctos.
+                        if (datos.length == 4) {
+
+                            try {
+
+                                int dado1 = Integer.parseInt(datos[1]);
+                                int dado2 = Integer.parseInt(datos[2]);
+
+                                // Mostrar las caras correspondientes.
+                                if (dado1 >= 1 && dado1 <= 6
+                                        && dado2 >= 1 && dado2 <= 6) {
+
+                                    lblDado1.setText(obtenerCaraDado(dado1));
+                                    lblDado2.setText(obtenerCaraDado(dado2));
+                                }
+
+                            } catch (NumberFormatException ex) {
+
+                                System.out.println("Valores de dados inválidos.");
+
+                            }
+                        }
+                    });
+
+                    // Actualizar las posiciones del tablero.
+                    cliente.enviarSolicitud("CONSULTAR_ESTADO");
+                }
+
+                // Mostrar otras respuestas del servidor.
+                else {
+
+                    SwingUtilities.invokeLater(() -> {
+                        agregarHistorialSimulado(
+                            "[Servidor] " + mensaje
+                        );
+                    });
+                }
+            }
+
+        });
+
+        hiloReceptor.setDaemon(true);
+        hiloReceptor.start();
+
+        // Solicitar el estado inicial.
+        cliente.enviarSolicitud("CONSULTAR_ESTADO");
+    }
+
+    private void actualizarFichasDesdeEstado(String estado) {
+        if (estado == null || !estado.startsWith("ESTADO;")) {
+            return;
+        }
+
+        String[] campos = estado.split(";", -1);
+
+        if (campos.length != 10) {
+            return;
+        }
+
+        String[] jugadores = campos[8].split("\\|");
+
+        SwingUtilities.invokeLater(() -> {
+            
+            String identificadorLocal = campos[1];
+
+            lblNombre.setText("Jugador: " + identificadorLocal);
+
+            String identificadorTurno = campos[6];
+
+            lblTurno.setText("Turno actual: " + identificadorTurno);
+
+            for (String registro : jugadores) {
+                String[] datos = registro.split(",");
+
+                if (datos.length != 3 || !datos[0].matches("J00[1-4]")) {
+                    continue;
+            }
+            int indiceJugador = Integer.parseInt(datos[0].substring(1)) - 1;
+            if (datos[2].equalsIgnoreCase("false")) {
+                retirarFichaJugadorSimulado(indiceJugador);
+        } else if ((datos[2].equalsIgnoreCase("true"))) {
+                    try {
+                        int posicion = Integer.parseInt(datos[1]);
+
+                        if (posicion >= 0 && posicion < panelesFichas.length) {
+                            marcarPosicionJugador(indiceJugador, posicion);
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("Posición inválida recibida.");
+                    }
+                }   
+            }
+        });
     }
 
     private void marcarPosicionJugador(int jugador, int posicion) {

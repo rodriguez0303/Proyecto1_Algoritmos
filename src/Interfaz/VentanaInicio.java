@@ -1,5 +1,8 @@
 package Interfaz;
 
+import LogicaJuego.Cliente;
+
+import javax.swing.JOptionPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JButton;
@@ -35,7 +38,7 @@ public class VentanaInicio extends JFrame {
 
         setTitle("Monopoly TEC");
 
-        setSize(450, 350);
+        setSize(450, 410);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -135,6 +138,17 @@ public class VentanaInicio extends JFrame {
 
         btnIniciar.setFocusPainted(false);
 
+        JButton btnConectar = new JButton("Unirse a partida en línea");
+
+        btnConectar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnConectar.setMaximumSize(new Dimension(230, 35));
+
+        btnConectar.setBackground(new Color(60, 100, 160));
+        btnConectar.setForeground(Color.WHITE);
+
+        btnConectar.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnConectar.setFocusPainted(false);
+
         // -------------------------------------------------
         // ACTIVAR / DESACTIVAR RONDAS
         // -------------------------------------------------
@@ -176,6 +190,112 @@ public class VentanaInicio extends JFrame {
             dispose();
         });
 
+        
+        btnConectar.addActionListener(e -> {
+
+            // Solicitar la dirección IP del servidor.
+            String ip = JOptionPane.showInputDialog(
+                this,
+                "Ingrese la IP del servidor:",
+                "127.0.0.1"
+            );
+
+            if (ip == null) {
+                return;
+            }
+
+            ip = ip.trim();
+
+            if (ip.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                    this, "La dirección IP no puede estar vacía."
+                );
+                return;
+            }
+
+            // Solicitar el identificador del jugador.
+            String id = JOptionPane.showInputDialog(
+                this,
+                "Ingrese su identificador (J001, J002, J003 o J004):",
+                "J001"
+            );
+
+            if (id == null) {
+                return;
+            }
+
+            final String idJugador = id.trim().toUpperCase();
+            final String ipServidor = ip;
+
+            if (!idJugador.matches("J00[1-4]")) {
+                JOptionPane.showMessageDialog(
+                    this, "Identificador no válido."
+                );
+                return;
+            }
+
+            btnConectar.setEnabled(false);
+
+            // Conectar en otro hilo para no bloquear Swing.
+            Thread hiloConexion = new Thread(() -> {
+
+                Cliente nuevoCliente = new Cliente(
+                    idJugador,
+                    "Jugador " + idJugador.substring(3),
+                    ipServidor,
+                    5000
+                );
+
+                if (!nuevoCliente.conectar()) {
+
+                    SwingUtilities.invokeLater(() -> {
+                        btnConectar.setEnabled(true);
+
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "No se pudo conectar al servidor."
+                        );
+                    });
+
+                    return;
+                }
+
+                // Identificarse ante el servidor.
+                nuevoCliente.enviarSolicitud(
+                    "CONECTAR;" + idJugador
+                );
+
+                String respuesta = nuevoCliente.recibirRespuesta();
+
+                SwingUtilities.invokeLater(() -> {
+
+                    if (!"Conexión válida".equals(respuesta)) {
+
+                        nuevoCliente.desconectar();
+                        btnConectar.setEnabled(true);
+
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "Conexión rechazada: " + respuesta
+                        );
+
+                        return;
+                    }
+
+                    // Abrir el tablero conectado al servidor.
+                    VentanaJuego ventana = new VentanaJuego();
+
+                    ventana.activarModoEnLinea(nuevoCliente);
+                    ventana.setVisible(true);
+
+                    dispose();
+                });
+
+            });
+
+            hiloConexion.setDaemon(true);
+            hiloConexion.start();
+        });
 
         // -------------------------------------------------
         // AGREGAR COMPONENTES
@@ -207,6 +327,8 @@ public class VentanaInicio extends JFrame {
 
         panelOpciones.add(btnIniciar);
 
+        panelOpciones.add(Box.createVerticalStrut(10));
+        panelOpciones.add(btnConectar);
 
         add(
             panelOpciones,

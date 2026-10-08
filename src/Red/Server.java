@@ -470,6 +470,8 @@ public class Server {
 
                     // La solicitud CONECTAR ya fue atendida completamente.
                     // El jugador ya quedó asociado con su conexión Socket.
+                    actualizarOtrosClientes(posicion);
+
                     return;
                 }
 
@@ -599,14 +601,12 @@ public class Server {
                         // enviarRespuesta() es un método de la clase Server.
                         // "posicion" identifica la conexión del jugador que lanzó los dados.
                         // "resultadoDados" contiene dado 1, dado 2 y el total obtenido.
-                        enviarRespuesta(posicion, resultadoDados);
+                        for (int i = 0; i < jugadoresConectados.length; i++) {
+                            if (jugadoresConectados[i] != null && clientesSocket[i] != null && !clientesSocket[i].isClosed()) {
 
-
-                        // actualizarOtrosClientes() es un método de la clase Server.
-                            // Permite informar a los demás jugadores conectados que el estado del juego fue actualizado.
-                                // "posicion" corresponde a la conexión del Jugador que lanzó los dados.
-                                    // Este Jugador se excluye porque ya recibió directamente el mensaje DADOS con el resultado de su lanzamiento.
-                        actualizarOtrosClientes(posicion);
+                                enviarRespuesta(i, resultadoDados);
+                            }
+                        }
                     }
 
                     // -------------------------------------------------
