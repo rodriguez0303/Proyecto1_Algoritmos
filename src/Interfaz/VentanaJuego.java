@@ -40,6 +40,7 @@ public class VentanaJuego extends JFrame {
     private JLabel[] lblSaldoJugadores = new JLabel[4];
     private JLabel[] lblEstadoJugadores = new JLabel[4];
     private JLabel[] etiquetasPropietarios = new JLabel[24];
+    private JLabel[] etiquetasPrecios = new JLabel[24];
     private JLabel[] fichasJugadores = new JLabel[4];
     private JLabel lblNombre;
     private JLabel lblSaldo;
@@ -254,6 +255,8 @@ public class VentanaJuego extends JFrame {
                         JLabel lblPrecio = new JLabel("₡" + (int) preciosPropiedadesSimulados[numeroCasilla], JLabel.CENTER);
 
                         lblPrecio.setFont(lblPrecio.getFont().deriveFont(Font.PLAIN, 11f));
+
+                        etiquetasPrecios[numeroCasilla] = lblPrecio;
 
                         panelSuperior.add(lblPrecio, BorderLayout.SOUTH);
                     }
@@ -717,6 +720,8 @@ public class VentanaJuego extends JFrame {
                     else {
                         jugadoresActivosSimulados[jugadorActualSimulado] = false;
 
+                        liberarPropiedadesJugadorSimulado(jugadorActualSimulado);
+
                         carta = "No pudo pagar ₡100 por lo que rompió y fue eliminado.";
                     }
                 }
@@ -808,6 +813,8 @@ public class VentanaJuego extends JFrame {
                 else {
                     jugadoresActivosSimulados[jugadorActualSimulado] = false;
 
+                    liberarPropiedadesJugadorSimulado(jugadorActualSimulado);
+
                     agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " no pudo pagar el alquiler y fue eliminado");
 
                     mensajeCasilla = "J" + (jugadorActualSimulado + 1) + " no pudo pagar alquiler y fue eliminado.";
@@ -816,7 +823,14 @@ public class VentanaJuego extends JFrame {
 
             lblPosicion.setText("Posición: " + nuevaPosicion + " - " + nombresCasillas[nuevaPosicion]);
 
-            marcarPosicionJugador(jugadorActualSimulado, nuevaPosicion);
+            if (jugadoresActivosSimulados[jugadorActualSimulado]) {
+
+                marcarPosicionJugador((jugadorActualSimulado), nuevaPosicion);
+
+            } else {
+
+                retirarFichaJugadorSimulado(jugadorActualSimulado);
+            }
 
             agregarHistorialSimulado("J" + (jugadorActualSimulado + 1) + " llegó a " + nombresCasillas[nuevaPosicion] + ".");
 
@@ -854,6 +868,8 @@ public class VentanaJuego extends JFrame {
             lblSaldo.setText("Saldo: ₡" + saldosJugadoresSimulados[jugadorActualSimulado]);
 
             propietariosSimulados[posicionActual] = jugadorActualSimulado;
+
+            etiquetasPrecios[posicionActual].setVisible(false);
 
             agregarHistorialSimulado(
                 "J" + (jugadorActualSimulado + 1) + " compró " + nombresCasillas[posicionActual] + " por ₡" + (int) precioActual + ".");
@@ -1098,6 +1114,20 @@ public class VentanaJuego extends JFrame {
         return patrimonio;
     }
 
+    private void liberarPropiedadesJugadorSimulado(int jugador) {
+        for (int i = 0; i < propietariosSimulados.length; i++) {
+            if (propietariosSimulados[i] == jugador) {
+                propietariosSimulados[i] = -1;
+
+                etiquetasPropietarios[i].setText(" ");
+                etiquetasPropietarios[i].setOpaque(false);
+                etiquetasPropietarios[i].setBorder(BorderFactory.createEmptyBorder());
+
+                etiquetasPrecios[i].setVisible(true);
+            }
+        }
+    }
+
     private String obtenerPropiedadesJugadorSim(int jugador) {
         StringBuilder texto = new StringBuilder("Propiedades: ");
         boolean tienePropiedades = false;
@@ -1270,6 +1300,21 @@ public class VentanaJuego extends JFrame {
         panelNuevo.repaint();
 
         posicionesVisuales[jugador] = posicion;
+    }
+
+    private void retirarFichaJugadorSimulado(int jugador) {
+        int posicion = posicionesVisuales[jugador];
+
+        if (posicion == -1) {
+            return;
+        }
+        JPanel panel = panelesFichas[posicion];
+        panel.remove(fichasJugadores[jugador]);
+
+        panel.revalidate();
+        panel.repaint();
+
+        posicionesVisuales[jugador] = -1;
     }
     // Método principal
     public static void main(String[] args) {
