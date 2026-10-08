@@ -1383,6 +1383,7 @@ public class VentanaJuego extends JFrame {
                         }
                         String idLocal = lblNombre.getText().replace("Jugador: ", "").trim();
                         String idTurno = lblTurno.getText().replace("Turno actual: ", "").trim();
+                        
                         if (idLocal.equals(idTurno)) {
                             btnTerminarTurno.setEnabled(true);
                             btnTirarDados.setEnabled(false);
