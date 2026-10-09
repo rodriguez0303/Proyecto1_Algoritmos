@@ -37,6 +37,9 @@ public class Juego {
     private Dado Dado2;                        // Dado ya implementada; el módulo RFID real (punto 14) podría integrarse más adelante
     private HistorialTransacciones Historial;  // * pendiente: implementación final del historial
     private boolean CartaEnCurso;              // Evita que una carta que mueve al jugador dispare otra carta en cadena
+    private boolean PagosDiferidos;            // true: alquiler y cartas de pago no se cobran al caer, quedan pendientes hasta que Server los cobre
+    private Propiedad AlquilerPendiente;       // Propiedad cuyo alquiler le falta pagar al jugador del turno (null = nada pendiente)
+    private CartaEvento CartaPendiente;        // Carta de pago que le falta pagar al jugador del turno (null = nada pendiente)
 
     // Constructor: Crea la partida y sus dependencias.
     // La partida termina de dos formas (la que pase primero):
@@ -172,7 +175,72 @@ public class Juego {
     // Resetea el control de dados del turno y pasa el turno al siguiente jugador
     public void finalizarTurno() {
         DadosLanzados = false;
+        AlquilerPendiente = null;   // Si el jugador salió de la partida con un pago pendiente, se descarta
+        CartaPendiente = null;
         SiguienteTurno();
+    }
+
+    // Activa los pagos en dos pasos: al caer, el alquiler o la carta de pago quedan
+    // pendientes y se cobran después con CobrarPagoPendiente().
+    public void SetPagosDiferidos(boolean Diferidos) {
+        this.PagosDiferidos = Diferidos;
+    }
+
+    public boolean EsPagosDiferidos() {
+        return PagosDiferidos;
+    }
+
+    // Propiedad.ejecutar() la llama cuando el jugador cae en una Propiedad ajena y los pagos están diferidos.
+    public void DejarAlquilerPendiente(Propiedad Propiedad) {
+        this.AlquilerPendiente = Propiedad;
+    }
+
+    // CartaEvento.Aplicar() la llama cuando sale una carta de pago y los pagos están diferidos.
+    public void DejarCartaPendiente(CartaEvento Carta) {
+        this.CartaPendiente = Carta;
+    }
+
+    public boolean HayPagoPendiente() {
+        return AlquilerPendiente != null || CartaPendiente != null;
+    }
+
+    // Monto del pago pendiente (0 si no hay ninguno).
+    public double GetMontoPagoPendiente() {
+        if (AlquilerPendiente != null) {
+            return AlquilerPendiente.getAlquiler();
+        }
+        if (CartaPendiente != null) {
+            return CartaPendiente.getValor();
+        }
+        return 0;
+    }
+
+    // Texto que explica el pago pendiente, por ejemplo: "Alquiler de BICITEC a J001".
+    public String GetMotivoPagoPendiente() {
+        if (AlquilerPendiente != null) {
+            return "Alquiler de " + AlquilerPendiente.getNombre()
+                    + " a " + AlquilerPendiente.getPropietario().getIdentificador();
+        }
+        if (CartaPendiente != null) {
+            return "Carta " + CartaPendiente.getId() + ": " + CartaPendiente.getDescripcion();
+        }
+        return "";
+    }
+
+    // Cobra el pago pendiente con la lógica de siempre (Propiedad.pagarAlquiler o la carta):
+    // si no le alcanza el saldo, el jugador queda eliminado.
+    public void CobrarPagoPendiente(Jugador Jugador) {
+        Propiedad Alquiler = AlquilerPendiente;
+        CartaEvento Carta = CartaPendiente;
+        AlquilerPendiente = null;
+        CartaPendiente = null;
+
+        if (Alquiler != null) {
+            Alquiler.pagarAlquiler(Jugador, this);
+        }
+        if (Carta != null) {
+            Carta.AplicarPerdida(Jugador, this);
+        }
     }
 
     // Server (lanzarDados), no cambiar.

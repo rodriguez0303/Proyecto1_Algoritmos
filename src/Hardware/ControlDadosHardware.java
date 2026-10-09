@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 public class ControlDadosHardware implements AutoCloseable {
@@ -37,9 +38,11 @@ public class ControlDadosHardware implements AutoCloseable {
         puerto.setNumStopBits(SerialPort.ONE_STOP_BIT);
         puerto.setParity(SerialPort.NO_PARITY);
 
+        // Se espera como máximo 200 ms por lectura, para revisar seguido
+        // si la interfaz pidió lanzar los dados (botón digital).
         puerto.setComPortTimeouts(
                 SerialPort.TIMEOUT_READ_SEMI_BLOCKING,
-                1000,
+                200,
                 0
         );
 
@@ -203,13 +206,41 @@ public class ControlDadosHardware implements AutoCloseable {
             Consumer<String> receptorEstado
     ) throws IOException {
 
+        return tirarDados(identificador, receptorEstado, null);
+    }
+
+    // Igual que tirarDados(), pero además del botón físico acepta el botón de la interfaz:
+    // mientras la Pico espera el botón, se pregunta a "LanzamientoDigital" si el jugador
+    // pulsó el botón en la interfaz; si es así, se le envía BOTON;<identificador> a la Pico.
+    public ResultadoDados tirarDados(
+            String identificador,
+            Consumer<String> receptorEstado,
+            BooleanSupplier LanzamientoDigital
+    ) throws IOException {
+
         validarConexion();
 
         synchronized (bloqueoHardware) {
 
             enviar("TIRAR;" + identificador);
 
+            // true cuando la Pico ya validó la tarjeta y está esperando el botón.
+            boolean EsperandoBoton = false;
+
+            // true cuando ya se le envió el botón digital (para no enviarlo dos veces).
+            boolean BotonDigitalEnviado = false;
+
             while (true) {
+
+                if (EsperandoBoton
+                        && !BotonDigitalEnviado
+                        && LanzamientoDigital != null
+                        && LanzamientoDigital.getAsBoolean()) {
+
+                    enviar("BOTON;" + identificador);
+
+                    BotonDigitalEnviado = true;
+                }
 
                 String mensaje = leerMensaje();
 
@@ -218,6 +249,10 @@ public class ControlDadosHardware implements AutoCloseable {
                 }
 
                 notificar(receptorEstado, mensaje);
+
+                if (mensaje.equals("ESPERANDO_BOTON;" + identificador)) {
+                    EsperandoBoton = true;
+                }
 
                 String prefijoCorrecto =
                         "DADOS;" + identificador + ";";
@@ -272,6 +307,70 @@ public class ControlDadosHardware implements AutoCloseable {
                 if (mensaje.startsWith("ERROR;")) {
                     throw new IOException(
                             "Error del hardware: " + mensaje
+                    );
+                }
+            }
+        }
+    }
+
+    // Pide al jugador que paga pasar su tarjeta RFID por el lector.
+    // Bloquea hasta que la Pico confirma con PAGO_OK;<identificador>.
+    // Si "Cancelacion" devuelve true mientras se espera la tarjeta (el jugador pulsó Cancelar
+    // en la interfaz), se le envía CANCELAR;<identificador> a la Pico.
+    // Devuelve true si el pago se validó y false si se canceló.
+    public boolean ValidarPago(
+            String Identificador,
+            Consumer<String> ReceptorEstado,
+            BooleanSupplier Cancelacion
+    ) throws IOException {
+
+        validarConexion();
+
+        synchronized (bloqueoHardware) {
+
+            enviar("VALIDAR_PAGO;" + Identificador);
+
+            // true cuando la Pico ya leyó la tarjeta correcta: desde ahí ya no se puede cancelar.
+            boolean TarjetaLeida = false;
+
+            // true cuando ya se envió CANCELAR (para no enviarlo dos veces).
+            boolean CancelacionEnviada = false;
+
+            while (true) {
+
+                if (!TarjetaLeida
+                        && !CancelacionEnviada
+                        && Cancelacion != null
+                        && Cancelacion.getAsBoolean()) {
+
+                    enviar("CANCELAR;" + Identificador);
+
+                    CancelacionEnviada = true;
+                }
+
+                String Mensaje = leerMensaje();
+
+                if (Mensaje == null) {
+                    continue;
+                }
+
+                notificar(ReceptorEstado, Mensaje);
+
+                if (Mensaje.equals("RFID_OK;" + Identificador)) {
+                    TarjetaLeida = true;
+                }
+
+                if (Mensaje.equals("PAGO_OK;" + Identificador)) {
+                    return true;
+                }
+
+                if (Mensaje.equals("PAGO_CANCELADO;" + Identificador)) {
+                    return false;
+                }
+
+                if (Mensaje.startsWith("ERROR;")) {
+                    throw new IOException(
+                            "Error del hardware: " + Mensaje
                     );
                 }
             }

@@ -3,6 +3,7 @@ package LogicaJuego;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 public class HistorialTransacciones {
     private class Nodo {
@@ -138,11 +139,21 @@ public class HistorialTransacciones {
     public int getTamaño() {
         return tamaño;
     }
+    // Guarda el historial en un TXT (punto 13): una fila por transacción con
+    // número de transacción, turno, tipo, origen, destino, monto y descripción.
+    // Se usa UTF-8 para que el símbolo ₡ y las tildes se guarden bien.
     public boolean exportarTXT(String nombreArchivo) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivo))) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivo, StandardCharsets.UTF_8))) {
+            writer.println("HISTORIAL DE TRANSACCIONES");
+            writer.println("Total de transacciones: " + tamaño);
+            writer.println();
+            writer.println(EncabezadoTabla());
+
             Nodo actual = primero;
             while (actual != null) {
-                writer.println(actual.transaccion);
+                Transaccion t = actual.transaccion;
+                writer.println(FilaTabla(t.getIdentificador(), t.getNumeroTurno(), t.getTipo().getNombre(),
+                        t.getJugadorOrigen(), t.getJugadorDestino(), t.getMonto(), t.getDescripcion()));
                 actual = actual.siguiente;
             }
             return true;
@@ -150,6 +161,53 @@ public class HistorialTransacciones {
             System.err.println("Error al exportar el historial a archivo TXT." + e.getMessage());
             return false;
         }
+    }
+
+    // Consulta combinada (la usa la pantalla final de la partida).
+    // Recorre la lista doble desde la más antigua (primero -> siguiente) o desde la más reciente
+    // (ultimo -> anterior) y se queda con las transacciones del Jugador y del Tipo pedidos.
+    // Jugador == null o Tipo == null significa "todos".
+    // Devuelve las transacciones separadas por ";", igual que obtenerHistorial().
+    public String ObtenerConsulta(String Jugador, TipoTransaccion Tipo, boolean DesdeReciente) {
+        StringBuilder Texto = new StringBuilder();
+        Nodo Actual = DesdeReciente ? ultimo : primero;
+
+        while (Actual != null) {
+            Transaccion t = Actual.transaccion;
+
+            boolean CoincideJugador = Jugador == null
+                    || t.getJugadorOrigen().equals(Jugador)
+                    || t.getJugadorDestino().equals(Jugador);
+            boolean CoincideTipo = Tipo == null || t.getTipo() == Tipo;
+
+            if (CoincideJugador && CoincideTipo) {
+                if (Texto.length() > 0) {
+                    Texto.append(";");
+                }
+                Texto.append(t);
+            }
+
+            Actual = DesdeReciente ? Actual.anterior : Actual.siguiente;
+        }
+        return Texto.toString();
+    }
+
+    // Encabezado y filas de la tabla de transacciones.
+    // Los usan el TXT y la pantalla final, para que ambos se vean igual.
+    public static String EncabezadoTabla() {
+        return FilaTabla("N°", "Turno", "Tipo", "Origen", "Destino", "Monto", "Descripción") + "\n"
+                + FilaTabla("----", "-----", "--------------------", "-------", "-------", "--------", "-----------");
+    }
+
+    public static String FilaTabla(String Numero, int Turno, String Tipo, String Origen,
+                                   String Destino, double Monto, String Descripcion) {
+        return FilaTabla(Numero, String.valueOf(Turno), Tipo, Origen, Destino, "₡" + (long) Monto, Descripcion);
+    }
+
+    private static String FilaTabla(String Numero, String Turno, String Tipo, String Origen,
+                                    String Destino, String Monto, String Descripcion) {
+        return String.format("%-5s %-6s %-21s %-8s %-8s %-9s %s",
+                Numero, Turno, Tipo, Origen, Destino, Monto, Descripcion == null ? "" : Descripcion);
     }
 }
 
