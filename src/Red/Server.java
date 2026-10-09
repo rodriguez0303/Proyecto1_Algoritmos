@@ -3,9 +3,12 @@ package Red;
 import LogicaJuego.Juego;
 import LogicaJuego.Jugador;
 import LogicaJuego.Propiedad;
+import Hardware.ResultadoDados;
 
 // Permite acceder a la lista donde se encuentran guardadas las propiedades adquiridas por un jugador.
 import LogicaJuego.ListaSimplePropiedad;
+
+import Hardware.ControlDadosHardware;
 
 // Se usa para manejar errores que pueden ocurrir al iniciar el servidor o durante la comunicación por red.
 import java.io.IOException;
@@ -55,6 +58,8 @@ public class Server {
 
     // Juego que será administrado por el servidor
     private Juego juego;
+
+    private final ControlDadosHardware hardware;
 
     private final int cantidadJugadoresEsperados;
 
@@ -106,18 +111,29 @@ public class Server {
 
     // Constructor de la clase Servidor.
     // Recibe la IP, el puerto y el objeto Juego que administrará el servidor. //("192.168.1.10", 5000, juegoMonopoly)
+
     public Server(String ip, int puerto, Juego juego) {
-        this(ip, puerto, juego, 4);
+        this(ip, puerto, juego, 4, null);
     }
+
     public Server(String ip, int puerto, Juego juego, int cantidadJugadoresEsperados) {
+        this(ip, puerto, juego, cantidadJugadoresEsperados, null);
+    }
+
+    public Server(String ip, int puerto, Juego juego, int cantidadJugadoresEsperados, ControlDadosHardware hardware) {
+
         if (cantidadJugadoresEsperados < 3 || cantidadJugadoresEsperados > 4) {
+
             throw new IllegalArgumentException("La partida debe tener 3 o 4 jugadores.");
         }
+
         this.ip = ip;
         this.puerto = puerto;
         this.juego = juego;
         this.cantidadJugadoresEsperados = cantidadJugadoresEsperados;
+        this.hardware = hardware;
     }
+
 
     //*****************************************************
     //*****************************************************
@@ -611,27 +627,91 @@ public class Server {
                     // Se verifica si la solicitud enviada por el jugador es TIRAR_DADOS.
                     if (solicitud.equals("TIRAR_DADOS")) {
 
-                        // lanzarDados() es un método de la clase Juego.
-                        // Este método lanza Dado1 y Dado2.
-                        // Devuelve la suma de los valores obtenidos por ambos dados.
-                        // La suma se guarda en la variable "pasos".
-                        int pasos = juego.lanzarDados();
 
+                    int pasos;
+                    int valorDado1;
+                    int valorDado2;
 
-                        // getDado1() es un método de la clase Juego.
-                        // Devuelve el objeto Dado que representa al dado número 1.
-                        // getValor() es un método de la clase Dado.
-                        // Devuelve el último valor obtenido por ese dado sin volver a lanzarlo.
-                        // El resultado se guarda en la variable "valorDado1".
-                        int valorDado1 = juego.getDado1().getValor();
+                    // -------------------------------------------------
+                    // LANZAMIENTO CON HARDWARE FÍSICO
+                    // -------------------------------------------------
 
+                    if (hardware != null) {
 
-                        // getDado2() es un método de la clase Juego.
-                        // Devuelve el objeto Dado que representa al dado número 2.
-                        // getValor() es un método de la clase Dado.
-                        // Devuelve el último valor obtenido por ese dado sin volver a lanzarlo.
-                        // El resultado se guarda en la variable "valorDado2".
-                        int valorDado2 = juego.getDado2().getValor();
+                        try {
+
+                            System.out.println(
+                                    "Esperando lanzamiento físico de "
+                                    + jugador.getIdentificador()
+                            );
+
+                            // Solicitar los dados a la Raspberry Pi Pico.
+                            ResultadoDados resultado = hardware.tirarDados(
+                                    jugador.getIdentificador(),
+
+                                    mensaje -> {
+
+                                        // Mostrar las instrucciones en el servidor.
+                                        System.out.println("PICO -> " + mensaje);
+
+                                        // Informar al cliente qué está esperando
+                                        // el hardware.
+                                        enviarRespuesta(
+                                                posicion,
+                                                "HARDWARE;" + mensaje
+                                        );
+                                    }
+                            );
+
+                            // Recuperar los resultados de los dados físicos.
+                            valorDado1 = resultado.getDado1();
+                            valorDado2 = resultado.getDado2();
+
+                            // Registrar los resultados en el juego real.
+                            // Esto también marca los dados como lanzados.
+                            pasos = juego.registrarDadosFisicos(
+                                    valorDado1,
+                                    valorDado2
+                            );
+
+                            System.out.println(
+                                    "Dados físicos de "
+                                    + jugador.getIdentificador()
+                                    + ": " + valorDado1
+                                    + " + " + valorDado2
+                                    + " = " + pasos
+                            );
+
+                        } catch (IOException e) {
+
+                            System.out.println(
+                                    "Error del hardware: " + e.getMessage()
+                            );
+
+                            enviarRespuesta(
+                                    posicion,
+                                    "Error al leer dados físicos: "
+                                    + e.getMessage()
+                            );
+
+                            return;
+                        }
+
+                    }
+
+                    // -------------------------------------------------
+                    // LANZAMIENTO SIMULADO (SIN HARDWARE)
+                    // -------------------------------------------------
+
+                    else {
+
+                        pasos = juego.lanzarDados();
+
+                        valorDado1 = juego.getDado1().getValor();
+
+                        valorDado2 = juego.getDado2().getValor();
+                    }
+
 
 
                         // Se mueve al jugador utilizando la suma obtenida al lanzar los dos dados.

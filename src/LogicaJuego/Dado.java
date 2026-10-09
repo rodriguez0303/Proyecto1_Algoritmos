@@ -39,4 +39,11 @@ public class Dado {
     public int getValor() {
         return valor;
     }
+
+    public void establecerValor(int nuevoValor) {
+        if (nuevoValor < 1 || nuevoValor > 6) {
+            throw new IllegalArgumentException("El dado debe tener un valor entre 1 y 6.");
+        }
+        this.valor = nuevoValor;
+    }
 }

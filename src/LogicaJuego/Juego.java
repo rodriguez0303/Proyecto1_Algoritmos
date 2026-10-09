@@ -197,6 +197,15 @@ public class Juego {
         return Valor1 + Valor2;
     }
 
+    public int registrarDadosFisicos(int valorDado1, int valorDado2) {
+        Dado1.establecerValor(valorDado1);
+        Dado2.establecerValor(valorDado2);
+
+        DadosLanzados = true;
+
+        return valorDado1 + valorDado2;
+    }
+
     // Server (getDadosLanzadosEsteTurno), no cambiar.
     // Server lo usa para impedir lanzar los dados dos veces en el mismo turno
     public boolean getDadosLanzadosEsteTurno() {
