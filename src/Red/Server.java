@@ -1163,12 +1163,27 @@ public class Server {
                         }
 
                         // Si el Jugador quedó eliminado durante su propio movimiento (por alquiler o por una carta),
-                            // ya no puede enviar TERMINAR_TURNO: se saca de la partida igual que en una desconexión.
+                        // ya no puede enviar TERMINAR_TURNO: se saca de la partida igual que en una desconexión.
                         if (!jugador.esActivo()) {
 
+                            // Retirar al jugador eliminado de la partida.
                             SacarJugadorDeLaPartida(jugador);
 
-                            // Se informa a todos los jugadores conectados que el estado cambió.
+                            // Notificar a todos los clientes de la eliminación.
+                            for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                                if (jugadoresConectados[i] != null
+                                        && clientesSocket[i] != null
+                                        && !clientesSocket[i].isClosed()) {
+
+                                    enviarRespuesta(
+                                            i,
+                                            "JUGADOR_ELIMINADO;" + jugador.getIdentificador()
+                                    );
+                                }
+                            }
+
+                            // Actualizar el estado de todos los clientes.
                             actualizarClientes();
                         }
                     }
