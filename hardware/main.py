@@ -21,6 +21,8 @@
 #   -> RETIRAR_RFID;J001
 #   -> RFID_RETIRADO;J001
 #   -> ESPERANDO_BOTON;J001
+#   (botón físico, o BOTON;J001 enviado por Java desde la interfaz)
+#   -> BOTON_DIGITAL;J001   (solo si se usó el botón de la interfaz)
 #   -> DADOS;J001;dado1;dado2;suma
 #
 # VALIDAR_PAGO;J001
@@ -29,6 +31,8 @@
 #   -> RETIRAR_RFID;J001
 #   -> RFID_RETIRADO;J001
 #   -> PAGO_OK;J001
+#   (si mientras espera la tarjeta Java envía CANCELAR;J001
+#    -> PAGO_CANCELADO;J001 y no se valida nada)
 # =====================================================================
 
 from machine import Pin
@@ -36,6 +40,7 @@ from time import sleep_us, sleep_ms
 from time import ticks_ms, ticks_diff
 import random
 import sys
+import select
 from mfrc522 import MFRC522
 
 
@@ -566,13 +571,63 @@ class ControlHardware:
 
             sleep_ms(40)
 
-    def EsperarBoton(self):
-        self.BotonJuego.Ignorar()
+    def EsperarTarjetaOCancelacion(
+        self,
+        JugadorEsperado
+    ):
+        """
+        Igual que EsperarTarjetaCorrecta, pero Java puede cancelar
+        enviando CANCELAR;<identificador>.
+        Devuelve True si se leyó la tarjeta correcta, False si se canceló.
+        """
+
+        self.Lector.Olvidar()
+
+        EntradaUsb = select.poll()
+        EntradaUsb.register(sys.stdin, select.POLLIN)
 
         while True:
+            Uid = self.Lector.TarjetaNueva()
+
+            if Uid is not None:
+                if JugadorEsperado.EsSuTarjeta(Uid):
+                    return True
+
+                print(
+                    "RFID_INCORRECTO;{};{}".format(
+                        JugadorEsperado.Identificador,
+                        Uid
+                    )
+                )
+
+            if EntradaUsb.poll(0):
+                Linea = sys.stdin.readline().strip()
+
+                if Linea == "CANCELAR;" + JugadorEsperado.Identificador:
+                    return False
+
+            sleep_ms(40)
+
+    def EsperarBoton(self, Identificador):
+        self.BotonJuego.Ignorar()
+
+        # Permite revisar si Java envió algo por USB sin quedarse bloqueado.
+        EntradaUsb = select.poll()
+        EntradaUsb.register(sys.stdin, select.POLLIN)
+
+        while True:
+            # Botón físico.
             if self.BotonJuego.FuePulsado():
                 sleep_ms(30)
                 return
+
+            # Botón de la interfaz: Java envía BOTON;<identificador>.
+            if EntradaUsb.poll(0):
+                Linea = sys.stdin.readline().strip()
+
+                if Linea == "BOTON;" + Identificador:
+                    print("BOTON_DIGITAL;" + Identificador)
+                    return
 
             sleep_ms(10)
 
@@ -703,13 +758,13 @@ class ControlHardware:
             + Identificador
         )
 
-        # 3. Esperar el botón físico.
+        # 3. Esperar el botón físico o el de la interfaz.
         print(
             "ESPERANDO_BOTON;"
             + Identificador
         )
 
-        self.EsperarBoton()
+        self.EsperarBoton(Identificador)
 
         # 4. Animación y generación de los dos dados.
         Suma = self.ParDados.Tirar()
@@ -752,14 +807,21 @@ class ControlHardware:
         ]
 
         # 1. Solo la tarjeta del jugador que paga autoriza el pago.
+        #    El jugador también puede cancelar desde la interfaz.
         print(
             "ESPERANDO_RFID;"
             + Identificador
         )
 
-        self.EsperarTarjetaCorrecta(
+        if not self.EsperarTarjetaOCancelacion(
             JugadorPagador
-        )
+        ):
+            print(
+                "PAGO_CANCELADO;"
+                + Identificador
+            )
+
+            return
 
         print(
             "RFID_OK;"
@@ -795,6 +857,11 @@ class ControlHardware:
     ):
         if Comando == "PING":
             print("PONG")
+            return
+
+        # Un CANCELAR o BOTON que llegó justo cuando la operación ya había
+        # terminado no corresponde a nada: se ignora sin responder.
+        if Comando.startswith("CANCELAR;") or Comando.startswith("BOTON;"):
             return
 
         Partes = Comando.split(";")

@@ -14,6 +14,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
 import javax.swing.JOptionPane;
+import javax.swing.JDialog;
 import javax.swing.ImageIcon;
 import javax.swing.Timer;
 
@@ -68,6 +69,24 @@ public class VentanaJuego extends JFrame {
     private Random generador = new Random();
 
     private String historialTransaccionesFinal = "";
+
+    // true cuando la tarjeta ya se validó y la Pico espera el botón: "Tirar dados" pasa a ser "Lanzar dados".
+    private boolean EsperandoBotonDados = false;
+
+    // Identificadores de los jugadores de la partida en línea (J001, J002...), según el último ESTADO.
+    private String[] JugadoresPartida = new String[0];
+
+    // Carta de evento recibida que se mostrará en el tablero cuando la ficha llegue a la casilla.
+    private String CartaPorMostrar = null;
+
+    // true cuando el servidor usa el hardware RFID (se detecta al recibir el primer mensaje HARDWARE;).
+    private boolean ModoHardwareEnLinea = false;
+
+    // Posición del jugador de esta ventana según el último ESTADO (para el mensaje de compra).
+    private int PosicionLocalEnLinea = -1;
+
+    // Aviso "Confirmar compra" mientras se espera la tarjeta RFID (null si no hay ninguno abierto).
+    private JDialog DialogoCompra = null;
     private String identificadorLocalEnLinea = "";
     private String[] nombresCasillas = {
     "Salida",        // 0
@@ -677,6 +696,20 @@ public class VentanaJuego extends JFrame {
         btnTirarDados.addActionListener(e -> {
 
             if (modoEnLinea) {
+
+                // La tarjeta ya se validó y la Pico espera el botón:
+                // este botón funciona igual que el botón físico.
+                if (EsperandoBotonDados) {
+
+                    EsperandoBotonDados = false;
+
+                    btnTirarDados.setEnabled(false);
+
+                    cliente.enviarSolicitud("LANZAR_DADOS");
+
+                    return;
+                }
+
                 cliente.enviarSolicitud("TIRAR_DADOS");
                 return;
             }
@@ -874,8 +907,43 @@ public class VentanaJuego extends JFrame {
         btnComprar.addActionListener(e -> {
 
             if (modoEnLinea) {
-                btnComprar.setEnabled(false);
-                cliente.enviarSolicitud("COMPRAR_PROPIEDAD");
+
+                String TextoCompra = TextoConfirmarCompra();
+
+                // Con RFID: se pide la tarjeta de una vez y el aviso solo tiene "Cancelar";
+                // acercar la tarjeta funciona como "Aceptar".
+                if (ModoHardwareEnLinea) {
+
+                    btnComprar.setEnabled(false);
+
+                    cliente.enviarSolicitud("COMPRAR_PROPIEDAD");
+
+                    MostrarDialogoCompraRfid(TextoCompra);
+
+                    return;
+                }
+
+                // Digital: confirmar con Aceptar o Cancelar antes de comprar.
+                Object[] Opciones = {"Cancelar", "Aceptar"};
+
+                int Respuesta = JOptionPane.showOptionDialog(
+                        this,
+                        TextoCompra,
+                        "Confirmar compra",
+                        JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        Opciones,
+                        Opciones[1]
+                );
+
+                if (Respuesta == 1) {
+
+                    btnComprar.setEnabled(false);
+
+                    cliente.enviarSolicitud("COMPRAR_PROPIEDAD");
+                }
+
                 return;
             }
 
@@ -1258,6 +1326,33 @@ public class VentanaJuego extends JFrame {
         return tarjeta;
     }
 
+    // Abre la pantalla final (ganador, empate o sin ganador). Se llama desde el hilo de Swing.
+    private void AbrirPantallaFinal(String TextoGanador) {
+
+        // Evitar abrir la pantalla final dos veces.
+        if (ventanaFinPartida != null) {
+            return;
+        }
+
+        // Desactivar acciones de juego.
+        btnTirarDados.setEnabled(false);
+        btnComprar.setEnabled(false);
+        btnTerminarTurno.setEnabled(false);
+
+        boolean esAnfitrion = identificadorLocalEnLinea.equals("J001");
+
+        // Crear la pantalla final.
+        ventanaFinPartida = new VentanaFinPartida(TextoGanador, "No disponible", historialTransaccionesFinal, esAnfitrion, null, null);
+
+        // La consulta por jugador / tipo / orden se le pide al servidor.
+        ventanaFinPartida.SetAccionConsultar(Consulta -> cliente.enviarSolicitud(Consulta));
+
+        // El filtro de jugador solo muestra a los que participaron en esta partida.
+        ventanaFinPartida.SetJugadores(JugadoresPartida);
+
+        ventanaFinPartida.setVisible(true);
+    }
+
     // Convierte una transacción del servidor en una línea fácil de leer.
     // Llega como: T1|Turno: 5|Tipo: COMPRA_PROPIEDAD|Origen: J002|Destino: BANCO|Monto: 450.0|Descripcion: ...|FechaHora: ...
     // Queda como: J002 pagó ₡450 al Banco (Compra de la propiedad BICITEC).
@@ -1346,7 +1441,10 @@ public class VentanaJuego extends JFrame {
             return "Retire la tarjeta del lector.";
         }
         else if (Tipo.equals("ESPERANDO_BOTON")) {
-            return "Presione el botón para lanzar los dados.";
+            return "Presione el botón físico o \"Lanzar dados\" en la ventana.";
+        }
+        else if (Tipo.equals("BOTON_DIGITAL")) {
+            return "Dados lanzados desde la ventana.";
         }
         else if (Tipo.equals("PAGO_OK")) {
             return "Pago autorizado.";
@@ -1594,6 +1692,10 @@ public class VentanaJuego extends JFrame {
                                     + ": " + descripcionCarta
                             );
 
+                            // También se muestra en el tablero cuando la ficha llegue a la casilla de evento.
+                            CartaPorMostrar = jugadorEvento + " sacó la carta " + identificadorCarta
+                                    + ":\n\n" + descripcionCarta;
+
                         });
                     }
                 }
@@ -1609,30 +1711,12 @@ public class VentanaJuego extends JFrame {
 
                         String idGanador = datos[2];
 
-                        SwingUtilities.invokeLater(() -> {
+                        String ganadorMostrado =
+                                idGanador.equals("SIN_GANADOR")
+                                        ? "Sin ganador"
+                                        : idGanador;
 
-                            // Evitar abrir la pantalla final dos veces.
-                            if (ventanaFinPartida != null) {
-                                return;
-                            }
-
-                            // Desactivar acciones de juego.
-                            btnTirarDados.setEnabled(false);
-                            btnComprar.setEnabled(false);
-                            btnTerminarTurno.setEnabled(false);
-
-                            String ganadorMostrado =
-                                    idGanador.equals("SIN_GANADOR")
-                                            ? "Sin ganador"
-                                            : idGanador;
-
-                            boolean esAnfitrion = identificadorLocalEnLinea.equals("J001");
-
-                            // Crear la pantalla final.
-                            ventanaFinPartida = new VentanaFinPartida(ganadorMostrado, "No disponible", historialTransaccionesFinal, esAnfitrion, null, null);
-
-                            ventanaFinPartida.setVisible(true);
-                        });
+                        SwingUtilities.invokeLater(() -> AbrirPantallaFinal(ganadorMostrado));
 
                         // Solicitar las transacciones finales.
                         cliente.enviarSolicitud("CONSULTAR_TRANSACCIONES");
@@ -1666,16 +1750,75 @@ public class VentanaJuego extends JFrame {
                 // Instrucciones del hardware (RFID y botón) para este jugador.
                 else if (mensaje.startsWith("HARDWARE;")) {
 
-                    String TextoHardware = TraducirMensajeHardware(
-                            mensaje.substring("HARDWARE;".length())
-                    );
+                    String MensajeHardware = mensaje.substring("HARDWARE;".length());
 
-                    // Algunos avisos internos de la Pico no se muestran.
-                    if (TextoHardware != null) {
+                    String TextoHardware = TraducirMensajeHardware(MensajeHardware);
 
-                        SwingUtilities.invokeLater(() -> {
+                    SwingUtilities.invokeLater(() -> {
+
+                        // El servidor está usando el hardware RFID (cambia cómo se confirma una compra).
+                        ModoHardwareEnLinea = true;
+
+                        // La tarjeta aceptó el pago: se cierra el aviso "Confirmar compra" (si estaba abierto).
+                        if (MensajeHardware.startsWith("PAGO_OK;")) {
+                            CerrarDialogoCompra();
+                        }
+
+                        // Tarjeta validada: se puede lanzar con el botón físico o con el de la ventana.
+                        if (MensajeHardware.startsWith("ESPERANDO_BOTON;")) {
+
+                            EsperandoBotonDados = true;
+
+                            btnTirarDados.setText("Lanzar dados");
+                            btnTirarDados.setEnabled(true);
+                        }
+
+                        // Ya se lanzaron los dados (con cualquiera de los dos botones).
+                        else if (MensajeHardware.startsWith("BOTON_DIGITAL;")
+                                || MensajeHardware.startsWith("DADOS;")) {
+
+                            EsperandoBotonDados = false;
+
+                            btnTirarDados.setText("Tirar dados");
+                            btnTirarDados.setEnabled(false);
+                        }
+
+                        // Algunos avisos internos de la Pico no se muestran.
+                        if (TextoHardware != null) {
                             agregarHistorialSimulado(TextoHardware);
-                        });
+                        }
+                    });
+                }
+
+                // Resultado de una consulta de la pantalla final (por jugador / tipo / orden).
+                else if (mensaje.equals("COMPRA_CANCELADA")) {
+
+                    // El jugador se arrepintió: no se cobró nada y la propiedad sigue disponible.
+                    SwingUtilities.invokeLater(() -> {
+
+                        CerrarDialogoCompra();
+
+                        agregarHistorialSimulado("Compra cancelada: no se cobró nada.");
+                    });
+                }
+
+                // Error del hardware al validar una compra: se cierra el aviso y se muestra el error.
+                else if (mensaje.startsWith("No se pudo validar el pago")) {
+
+                    SwingUtilities.invokeLater(() -> {
+
+                        CerrarDialogoCompra();
+
+                        agregarHistorialSimulado(mensaje);
+                    });
+                }
+
+                else if (mensaje.startsWith("CONSULTA;")) {
+
+                    String Registros = mensaje.substring("CONSULTA;".length());
+
+                    if (ventanaFinPartida != null) {
+                        ventanaFinPartida.MostrarConsulta(Registros);
                     }
                 }
 
@@ -1687,7 +1830,12 @@ public class VentanaJuego extends JFrame {
 
                     SwingUtilities.invokeLater(() -> {
                         agregarHistorialSimulado("Partida terminada en empate entre " + Empatados + ".");
+
+                        AbrirPantallaFinal("Empate entre " + Empatados);
                     });
+
+                    // Solicitar las transacciones finales.
+                    cliente.enviarSolicitud("CONSULTAR_TRANSACCIONES");
                 }
 
                 // Mostrar otras respuestas del servidor.
@@ -1750,6 +1898,12 @@ public class VentanaJuego extends JFrame {
             // Información real del jugador.
             lblSaldo.setText("Saldo: ₡" + campos[3]);
             lblPosicion.setText("Posición: " + campos[4]);
+
+            try {
+                PosicionLocalEnLinea = Integer.parseInt(campos[4]);
+            } catch (NumberFormatException ex) {
+                PosicionLocalEnLinea = -1;
+            }
             lblPropiedades.setText(
                     "Propiedades: " + campos[5]
             );
@@ -1768,6 +1922,9 @@ public class VentanaJuego extends JFrame {
             btnComprar.setEnabled(puedeComprar);
             btnTerminarTurno.setEnabled(puedeTerminar);
 
+            // Identificadores de los jugadores de esta partida (para el filtro de la pantalla final).
+            String IdsPartida = "";
+
             // Sincronizar las fichas de todos los jugadores.
             for (String registro : jugadores) {
 
@@ -1777,6 +1934,8 @@ public class VentanaJuego extends JFrame {
                         || !datos[0].matches("J00[1-4]")) {
                     continue;
                 }
+
+                IdsPartida = IdsPartida.isEmpty() ? datos[0] : IdsPartida + "," + datos[0];
 
                 int indiceJugador = Integer.parseInt(datos[0].substring(1)) - 1;
 
@@ -1813,6 +1972,23 @@ public class VentanaJuego extends JFrame {
                     }
                 }
             }
+
+            if (!IdsPartida.isEmpty()) {
+                JugadoresPartida = IdsPartida.split(",");
+            }
+
+            // Al cambiar el turno, el marco pasa a la casilla del nuevo jugador
+            // (si su ficha se está animando, el marco la sigue desde marcarPosicionJugador).
+            if (indiceTurnoEnLinea >= 0
+                    && animacionesFichas[indiceTurnoEnLinea] == null
+                    && posicionesVisuales[indiceTurnoEnLinea] != -1) {
+
+                ResaltarCasilla(
+                        posicionesVisuales[indiceTurnoEnLinea],
+                        fichasJugadores[indiceTurnoEnLinea].getBackground()
+                );
+            }
+
             // -------------------------------------------------
             // SINCRONIZAR PROPIETARIOS DE LAS CASILLAS
             // -------------------------------------------------
@@ -1911,6 +2087,103 @@ public class VentanaJuego extends JFrame {
         panelNuevo.repaint();
 
         posicionesVisuales[jugador] = posicion;
+
+        // En línea, el marco de color sigue a la ficha del jugador que tiene el turno.
+        if (modoEnLinea && jugador == indiceTurnoEnLinea) {
+            ResaltarCasilla(posicion, ficha.getBackground());
+        }
+    }
+
+    // Marca una sola casilla con un borde del color del jugador (las demás vuelven al borde normal).
+    private void ResaltarCasilla(int Posicion, Color ColorJugador) {
+
+        for (int i = 0; i < casillasVisuales.length; i++) {
+            if (casillasVisuales[i] != null) {
+                casillasVisuales[i].setBorder(BorderFactory.createEtchedBorder());
+            }
+        }
+
+        if (Posicion >= 0 && Posicion < casillasVisuales.length && casillasVisuales[Posicion] != null) {
+            casillasVisuales[Posicion].setBorder(BorderFactory.createLineBorder(ColorJugador, 4));
+        }
+    }
+
+    // Texto de confirmación de compra, por ejemplo: "¿Está seguro de comprar Bosque de Bambúes por ₡250?"
+    private String TextoConfirmarCompra() {
+
+        if (PosicionLocalEnLinea >= 0 && PosicionLocalEnLinea < nombresCasillas.length) {
+
+            return "¿Está seguro de comprar " + nombresCasillas[PosicionLocalEnLinea]
+                    + " por ₡" + (int) preciosPropiedadesSimulados[PosicionLocalEnLinea] + "?";
+        }
+
+        return "¿Está seguro de comprar esta propiedad?";
+    }
+
+    // Aviso de compra con RFID: solo lo ve el jugador que compra.
+    // Acercar la tarjeta acepta la compra; "Cancelar" (o cerrar el aviso) cancela la validación.
+    private void MostrarDialogoCompraRfid(String TextoCompra) {
+
+        CerrarDialogoCompra();
+
+        JOptionPane PanelCompra = new JOptionPane(
+                TextoCompra + "\n\nAcerque su tarjeta RFID para aceptar la compra.",
+                JOptionPane.QUESTION_MESSAGE,
+                JOptionPane.DEFAULT_OPTION,
+                null,
+                new Object[] {"Cancelar"},
+                "Cancelar"
+        );
+
+        JDialog Dialogo = PanelCompra.createDialog(this, "Confirmar compra");
+        Dialogo.setModal(false);
+
+        // Se dispara al pulsar "Cancelar" o al cerrar el aviso con la X.
+        PanelCompra.addPropertyChangeListener(JOptionPane.VALUE_PROPERTY, e -> {
+
+            // Si el aviso ya se cerró porque la compra terminó, no hay nada que cancelar.
+            if (DialogoCompra == Dialogo) {
+
+                DialogoCompra = null;
+
+                cliente.enviarSolicitud("CANCELAR_COMPRA");
+            }
+        });
+
+        DialogoCompra = Dialogo;
+
+        Dialogo.setVisible(true);
+    }
+
+    // Cierra el aviso de compra (la tarjeta se validó, se canceló o hubo un error).
+    private void CerrarDialogoCompra() {
+
+        if (DialogoCompra != null) {
+
+            JDialog Dialogo = DialogoCompra;
+
+            DialogoCompra = null;
+
+            Dialogo.dispose();
+        }
+    }
+
+    // Muestra en el tablero la carta de evento que salió (a todos los jugadores).
+    // Se llama cuando la ficha llega a la casilla de evento, antes de que la carta la mueva.
+    // La ventana no es modal: no bloquea el juego (por ejemplo, el pago con la tarjeta).
+    private void MostrarCartaPendiente() {
+
+        if (CartaPorMostrar == null) {
+            return;
+        }
+
+        String Texto = CartaPorMostrar;
+        CartaPorMostrar = null;
+
+        JOptionPane PanelCarta = new JOptionPane(Texto, JOptionPane.INFORMATION_MESSAGE);
+        JDialog DialogoCarta = PanelCarta.createDialog(this, "Carta de Evento");
+        DialogoCarta.setModal(false);
+        DialogoCarta.setVisible(true);
     }
 
     // Decide cómo mostrar la posición que llegó en un ESTADO:
@@ -1942,6 +2215,7 @@ public class VentanaJuego extends JFrame {
 
         if (posicionesVisuales[jugador] == -1 || pasos <= 0) {
             marcarPosicionJugador(jugador, destinoFinal);
+            MostrarCartaPendiente();
             return;
         }
 
@@ -1962,6 +2236,10 @@ public class VentanaJuego extends JFrame {
                 marcarPosicionJugador(jugador, (posicionesVisuales[jugador] + 1) % panelesFichas.length);
 
                 if (pasosRestantes[0] == 0) {
+
+                    // Llegó a la casilla de los dados: si salió una carta, se muestra ahora.
+                    MostrarCartaPendiente();
+
                     if (posicionesVisuales[jugador] == destinosFichas[jugador]) {
                         detenerAnimacionFicha(jugador);
                     } else {

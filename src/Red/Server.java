@@ -3,6 +3,9 @@ package Red;
 import LogicaJuego.Juego;
 import LogicaJuego.Jugador;
 import LogicaJuego.Propiedad;
+
+// Permite convertir el tipo recibido en CONSULTAR_HISTORIAL (por ejemplo PAGO_ALQUILER).
+import LogicaJuego.TipoTransaccion;
 import Hardware.ResultadoDados;
 import LogicaJuego.CasillaEvento;
 import LogicaJuego.CartaEvento;
@@ -92,6 +95,10 @@ public class Server {
     // La posición del jugador coincide con la posición de su conexión en clientesSocket.
     private Jugador[] jugadoresConectados = new Jugador[4];
 
+    // Solicitud que llegó de un cliente mientras el servidor esperaba sus dados físicos
+    // (y que no era LANZAR_DADOS). Se atiende en cuanto termina el lanzamiento.
+    private String[] SolicitudGuardada = new String[4];
+
     // Guarda la Propiedad cuya compra se encuentra pendiente.
     // La propiedad solamente se guardará cuando el Jugador llegue a una Propiedad disponible durante su turno.
     private Propiedad propiedadPendienteCompra;
@@ -169,14 +176,56 @@ public class Server {
     //*****************************************************
     //*****************************************************
 
+    // SOLICITUDES DE LA INTERFAZ MIENTRAS SE ESPERA AL HARDWARE.
+    // Mientras la Pico espera (el botón de los dados o la tarjeta de un pago), el hilo de este cliente
+    // está ocupado, así que aquí se revisa si el cliente envió la solicitud "Esperada":
+    // LANZAR_DADOS (botón "Lanzar dados") o CANCELAR_COMPRA (botón "Cancelar" al comprar).
+    // Si llega otra solicitud, se guarda para atenderla después.
+    private boolean RevisarSolicitudDigital(int Posicion, String Esperada) {
+
+        try {
+
+            while (SolicitudGuardada[Posicion] == null && entradas[Posicion].ready()) {
+
+                String Solicitud = entradas[Posicion].readLine();
+
+                if (Solicitud == null) {
+                    return false;
+                }
+
+                if (Solicitud.equals(Esperada)) {
+
+                    System.out.println(Esperada + " recibido de " + jugadoresConectados[Posicion].getIdentificador());
+
+                    return true;
+                }
+
+                SolicitudGuardada[Posicion] = Solicitud;
+            }
+
+        } catch (IOException e) {
+
+            System.out.println("No se pudo leer la solicitud " + Esperada + ": " + e.getMessage());
+        }
+
+        return false;
+    }
+
+
+    //*****************************************************
+    //*****************************************************
+
     // VALIDACIÓN FÍSICA DE UN PAGO (igual que el lanzamiento físico de dados).
     // Antes de cobrar, el Jugador que paga debe acercar su tarjeta RFID al lector.
     // Bloquea hasta que la Pico confirma la tarjeta correcta.
-    private void ValidarPagoFisico(Jugador Pagador, int PosicionPagador, String Motivo) throws IOException {
+    // Si "PuedeCancelar" es true (compras), el jugador puede cancelar desde la interfaz con CANCELAR_COMPRA.
+    // Devuelve true si el pago se validó y false si el jugador lo canceló.
+    private boolean ValidarPagoFisico(Jugador Pagador, int PosicionPagador, String Motivo,
+                                      boolean PuedeCancelar) throws IOException {
 
         System.out.println("Esperando validación RFID de " + Pagador.getIdentificador() + ": " + Motivo);
 
-        hardware.ValidarPago(
+        boolean Validado = hardware.ValidarPago(
                 Pagador.getIdentificador(),
 
                 Mensaje -> {
@@ -186,10 +235,17 @@ public class Server {
 
                     // Informar al Jugador que paga qué está esperando el hardware.
                     enviarRespuesta(PosicionPagador, "HARDWARE;" + Mensaje);
-                }
+                },
+
+                // Los pagos obligatorios (alquiler, cartas) no se pueden cancelar.
+                PuedeCancelar ? () -> RevisarSolicitudDigital(PosicionPagador, "CANCELAR_COMPRA") : null
         );
 
-        System.out.println("Pago validado por " + Pagador.getIdentificador());
+        System.out.println(Validado
+                ? "Pago validado por " + Pagador.getIdentificador()
+                : "Pago cancelado por " + Pagador.getIdentificador());
+
+        return Validado;
     }
 
 
@@ -592,7 +648,20 @@ public class Server {
             // Se utiliza el BufferedReader que ya fue creado cuando el jugador se conectó.
             // "posicion" indica cuál BufferedReader del arreglo entradas pertenece a ese jugador.
             // De esta forma se utiliza siempre el mismo lector mientras el jugador continúe conectado.
-            String solicitud = entradas[posicion].readLine();
+            String solicitud;
+
+            // Si mientras se esperaban los dados físicos llegó otra solicitud, se atiende primero esa.
+            if (SolicitudGuardada[posicion] != null) {
+
+                solicitud = SolicitudGuardada[posicion];
+
+                SolicitudGuardada[posicion] = null;
+            }
+
+            else {
+
+                solicitud = entradas[posicion].readLine();
+            }
 
             // Se lee la línea de texto enviada por el jugador.
             // El mensaje recibido corresponde a una de las solicitudes definidas para el servidor.
@@ -620,6 +689,14 @@ public class Server {
                 // La conexión ya terminó.
                 return;
             }
+
+            // Un "Cancelar" (compra) o "Lanzar dados" que llegó cuando la Pico ya había terminado
+            // esa operación no corresponde a nada: se ignora sin responder.
+            if (solicitud.equals("CANCELAR_COMPRA") || solicitud.equals("LANZAR_DADOS")) {
+
+                return;
+            }
+
             // "synchronized" es una palabra reservada de Java que permite controlar el acceso de varios Threads a un mismo objeto.
             // En este caso se utiliza el objeto "juego", porque es compartido por los Threads de los diferentes jugadores.
             // Esto permite que solamente un Thread a la vez entre a este bloque y trabaje con el estado del juego.
@@ -901,7 +978,11 @@ public class Server {
                                                 posicion,
                                                 "HARDWARE;" + mensaje
                                         );
-                                    }
+                                    },
+
+                                    // Después de validar la tarjeta, también se puede lanzar
+                                    // con el botón de la interfaz (LANZAR_DADOS).
+                                    () -> RevisarSolicitudDigital(posicion, "LANZAR_DADOS")
                             );
 
                             // Recuperar los resultados de los dados físicos.
@@ -1111,7 +1192,17 @@ public class Server {
 
                             try {
 
-                                ValidarPagoFisico(jugador, posicion, MotivoCompra);
+                                // El jugador se arrepintió y pulsó Cancelar: no se cobra nada.
+                                // La propiedad sigue disponible para comprar en este turno.
+                                if (!ValidarPagoFisico(jugador, posicion, MotivoCompra, true)) {
+
+                                    enviarRespuesta(posicion, "COMPRA_CANCELADA");
+
+                                    // Vuelve a habilitar el botón Comprar en el cliente.
+                                    actualizarClientes();
+
+                                    return;
+                                }
 
                             } catch (IOException e) {
 
@@ -1155,7 +1246,7 @@ public class Server {
 
                             try {
 
-                                ValidarPagoFisico(jugador, posicion, juego.GetMotivoPagoPendiente());
+                                ValidarPagoFisico(jugador, posicion, juego.GetMotivoPagoPendiente(), false);
 
                             } catch (IOException e) {
 
@@ -1579,6 +1670,31 @@ public class Server {
                         }
                     }
 
+                    // -------------------------------------------------
+                    // CONSULTAR_HISTORIAL;JUGADOR;TIPO;ORDEN
+                    // -------------------------------------------------
+
+                    // Consulta de la pantalla final: busca por jugador y/o por tipo y recorre
+                    // desde la más antigua o desde la más reciente usando HistorialTransacciones.
+                    // Ejemplo: CONSULTAR_HISTORIAL;J001;PAGO_ALQUILER;RECIENTE
+                    // "TODOS" en jugador o tipo significa que no se filtra por ese dato.
+                    else if (solicitud.startsWith("CONSULTAR_HISTORIAL;")) {
+
+                        String[] DatosConsulta = solicitud.split(";");
+
+                        String JugadorConsulta = DatosConsulta[1].equals("TODOS") ? null : DatosConsulta[1];
+
+                        TipoTransaccion TipoConsulta = DatosConsulta[2].equals("TODOS")
+                                ? null
+                                : TipoTransaccion.valueOf(DatosConsulta[2]);
+
+                        boolean DesdeReciente = DatosConsulta[3].equals("RECIENTE");
+
+                        String Resultado = juego.getHistorial().ObtenerConsulta(JugadorConsulta, TipoConsulta, DesdeReciente);
+
+                        enviarRespuesta(posicion, "CONSULTA;" + (Resultado.isEmpty() ? "SIN_TRANSACCIONES" : Resultado));
+                    }
+
 
                 }
 
@@ -1698,6 +1814,27 @@ public class Server {
         // Permite consultar las transacciones actuales del jugador (No es necesario que el jugador este en su turno).
             // Se revisa antes que "JUEGO EN CURSO" para poder ver el historial al final de la partida.
         else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
+            return true;
+        }
+
+        // Consulta por jugador / tipo / orden (pantalla final). Debe traer exactamente 4 partes
+        // y un tipo que exista en TipoTransaccion.
+        else if (solicitud.startsWith("CONSULTAR_HISTORIAL;")) {
+
+            String[] DatosConsulta = solicitud.split(";");
+
+            if (DatosConsulta.length != 4) {
+                return false;
+            }
+
+            if (!DatosConsulta[2].equals("TODOS")) {
+                try {
+                    TipoTransaccion.valueOf(DatosConsulta[2]);
+                } catch (IllegalArgumentException e) {
+                    return false;
+                }
+            }
+
             return true;
         }
 

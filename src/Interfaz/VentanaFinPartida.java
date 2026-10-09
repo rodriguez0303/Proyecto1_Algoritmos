@@ -1,10 +1,25 @@
 
 package Interfaz;
 
+import LogicaJuego.HistorialTransacciones;
+import LogicaJuego.TipoTransaccion;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.function.Consumer;
 
 public class VentanaFinPartida extends JFrame {
+
+    // Filtros de la consulta de transacciones (punto 2: buscar por jugador, por tipo,
+    // y recorrer desde la más antigua o desde la más reciente).
+    private JComboBox<String> CmbJugador;
+    private JComboBox<String> CmbTipo;
+    private JComboBox<String> CmbOrden;
+    private JButton BtnBuscar;
+    private JPanel PanelConsulta;
+
+    // Envía la consulta al servidor (la asigna VentanaJuego con SetAccionConsultar).
+    private Consumer<String> AccionConsultar;
 
     private JLabel lblGanador;
     private JLabel lblPatrimonio;
@@ -30,7 +45,7 @@ public class VentanaFinPartida extends JFrame {
         // -----------------------------------------
 
         setTitle("Monopoly TEC - Fin de partida");
-        setSize(700, 550);
+        setSize(980, 620);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setResizable(false);
@@ -128,31 +143,83 @@ public class VentanaFinPartida extends JFrame {
         areaTransacciones = new JTextArea();
 
         areaTransacciones.setEditable(false);
-        areaTransacciones.setLineWrap(true);
-        areaTransacciones.setWrapStyleWord(true);
+
+        // Sin ajuste de línea: las transacciones se muestran como tabla (una fila por transacción).
+        areaTransacciones.setLineWrap(false);
 
         areaTransacciones.setFont(
                 new Font("Monospaced", Font.PLAIN, 13)
         );
 
-        areaTransacciones.setText(
-                transacciones == null || transacciones.isBlank()
-                        ? "No hay transacciones registradas."
-                        : transacciones
-        );
+        areaTransacciones.setText(FormatearTabla(transacciones));
 
         scrollTransacciones = new JScrollPane(
                 areaTransacciones
         );
 
-        scrollTransacciones.setVisible(false);
+        // -----------------------------------------
+        // FILTROS DE LA CONSULTA
+        // -----------------------------------------
+
+        CmbJugador = new JComboBox<>(new String[] {"Todos", "J001", "J002", "J003", "J004"});
+
+        // "Todos" más un nombre legible por cada TipoTransaccion (en el mismo orden del enum).
+        TipoTransaccion[] Tipos = TipoTransaccion.values();
+        String[] NombresTipos = new String[Tipos.length + 1];
+        NombresTipos[0] = "Todos";
+        for (int i = 0; i < Tipos.length; i++) {
+            NombresTipos[i + 1] = Tipos[i].getNombre();
+        }
+        CmbTipo = new JComboBox<>(NombresTipos);
+
+        CmbOrden = new JComboBox<>(new String[] {"Más antigua primero", "Más reciente primero"});
+
+        BtnBuscar = new JButton("Buscar");
+
+        BtnBuscar.addActionListener(e -> {
+
+            if (AccionConsultar == null) {
+                return;
+            }
+
+            String Jugador = CmbJugador.getSelectedIndex() == 0
+                    ? "TODOS"
+                    : (String) CmbJugador.getSelectedItem();
+
+            String Tipo = CmbTipo.getSelectedIndex() == 0
+                    ? "TODOS"
+                    : Tipos[CmbTipo.getSelectedIndex() - 1].name();
+
+            String Orden = CmbOrden.getSelectedIndex() == 0 ? "ANTIGUA" : "RECIENTE";
+
+            areaTransacciones.setText("Buscando...");
+
+            AccionConsultar.accept("CONSULTAR_HISTORIAL;" + Jugador + ";" + Tipo + ";" + Orden);
+        });
+
+        JPanel PanelFiltros = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        PanelFiltros.setOpaque(false);
+        PanelFiltros.add(new JLabel("Jugador:"));
+        PanelFiltros.add(CmbJugador);
+        PanelFiltros.add(new JLabel("Tipo:"));
+        PanelFiltros.add(CmbTipo);
+        PanelFiltros.add(new JLabel("Orden:"));
+        PanelFiltros.add(CmbOrden);
+        PanelFiltros.add(BtnBuscar);
+
+        PanelConsulta = new JPanel(new BorderLayout(5, 5));
+        PanelConsulta.setOpaque(false);
+        PanelConsulta.add(PanelFiltros, BorderLayout.NORTH);
+        PanelConsulta.add(scrollTransacciones, BorderLayout.CENTER);
+
+        PanelConsulta.setVisible(false);
 
         btnConsultarTransacciones.addActionListener(e -> {
 
             boolean mostrar =
-                    !scrollTransacciones.isVisible();
+                    !PanelConsulta.isVisible();
 
-            scrollTransacciones.setVisible(mostrar);
+            PanelConsulta.setVisible(mostrar);
 
             btnConsultarTransacciones.setText(
                     mostrar
@@ -170,7 +237,7 @@ public class VentanaFinPartida extends JFrame {
         );
 
         panelHistorial.add(
-                scrollTransacciones,
+                PanelConsulta,
                 BorderLayout.CENTER
         );
 
@@ -277,12 +344,120 @@ public class VentanaFinPartida extends JFrame {
 
         SwingUtilities.invokeLater(() -> {
 
-            areaTransacciones.setText(
-                    transacciones == null || transacciones.isBlank()
-                            ? "No hay transacciones registradas."
-                            : transacciones
-            );
+            areaTransacciones.setText(FormatearTabla(transacciones));
         });
+    }
+
+    // Deja en el filtro solo a los jugadores de la partida (por ejemplo J001 y J002 en una de 2).
+    // Si no llega ninguno, se mantienen los cuatro.
+    public void SetJugadores(String[] Jugadores) {
+
+        if (Jugadores == null || Jugadores.length == 0) {
+            return;
+        }
+
+        CmbJugador.removeAllItems();
+        CmbJugador.addItem("Todos");
+
+        for (String Jugador : Jugadores) {
+            CmbJugador.addItem(Jugador);
+        }
+    }
+
+    // VentanaJuego indica cómo enviar la consulta al servidor.
+    public void SetAccionConsultar(Consumer<String> Accion) {
+        this.AccionConsultar = Accion;
+    }
+
+    // Muestra el resultado de una consulta (respuesta CONSULTA; del servidor).
+    public void MostrarConsulta(String Registros) {
+
+        SwingUtilities.invokeLater(() -> {
+
+            areaTransacciones.setText(FormatearTabla(Registros));
+
+            areaTransacciones.setCaretPosition(0);
+        });
+    }
+
+    // Convierte las transacciones del servidor en una tabla con las mismas columnas del TXT:
+    // número, turno, tipo, origen, destino, monto y descripción.
+    // Cada transacción llega como: T1|Turno: 2|Tipo: COMPRA_PROPIEDAD|Origen: J002|Destino: BANCO|Monto: 250.0|Descripcion: ...
+    // Las transacciones vienen separadas por salto de línea o por ";".
+    private String FormatearTabla(String Registros) {
+
+        if (Registros == null || Registros.isBlank() || Registros.equals("SIN_TRANSACCIONES")) {
+            return "No hay transacciones que coincidan.";
+        }
+
+        StringBuilder Tabla = new StringBuilder(HistorialTransacciones.EncabezadoTabla());
+
+        int Cantidad = 0;
+
+        for (String Registro : Registros.split("[;\\n]")) {
+
+            if (Registro.isBlank()) {
+                continue;
+            }
+
+            String[] Campos = Registro.split("\\|");
+
+            String Numero = Campos[0].trim();
+            int Turno = 0;
+            String Tipo = "";
+            String Origen = "";
+            String Destino = "";
+            double Monto = 0;
+            String Descripcion = "";
+
+            for (int i = 1; i < Campos.length; i++) {
+
+                int Separador = Campos[i].indexOf(": ");
+
+                if (Separador < 0) {
+                    continue;
+                }
+
+                String Clave = Campos[i].substring(0, Separador).trim();
+                String Valor = Campos[i].substring(Separador + 2).trim();
+
+                try {
+                    if (Clave.equals("Turno")) {
+                        Turno = Integer.parseInt(Valor);
+                    }
+                    else if (Clave.equals("Tipo")) {
+                        Tipo = TipoTransaccion.valueOf(Valor).getNombre();
+                    }
+                    else if (Clave.equals("Origen")) {
+                        Origen = Valor;
+                    }
+                    else if (Clave.equals("Destino")) {
+                        Destino = Valor;
+                    }
+                    else if (Clave.equals("Monto")) {
+                        Monto = Double.parseDouble(Valor);
+                    }
+                    else if (Clave.equals("Descripcion")) {
+                        Descripcion = Valor;
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Si un dato no tiene el formato esperado se deja tal como llegó.
+                    if (Clave.equals("Tipo")) {
+                        Tipo = Valor;
+                    }
+                }
+            }
+
+            Tabla.append("\n").append(
+                    HistorialTransacciones.FilaTabla(Numero, Turno, Tipo, Origen, Destino, Monto, Descripcion)
+            );
+
+            Cantidad++;
+        }
+
+        Tabla.append("\n\nTransacciones encontradas: ").append(Cantidad);
+
+        return Tabla.toString();
     }
 
     // -----------------------------------------
@@ -294,9 +469,9 @@ public class VentanaFinPartida extends JFrame {
         SwingUtilities.invokeLater(() -> {
 
             String transaccionesPrueba =
-                    "T1 - José Miguel compró Biblioteca\n"
-                    + "T2 - Luis pagó ₡100 de alquiler\n"
-                    + "T3 - José recibió ₡200 por Salida\n";
+                    "T1|Turno: 2|Tipo: COMPRA_PROPIEDAD|Origen: J001|Destino: BANCO|Monto: 250.0|Descripcion: Compra de la propiedad Biblioteca\n"
+                    + "T2|Turno: 3|Tipo: PAGO_ALQUILER|Origen: J002|Destino: J001|Monto: 100.0|Descripcion: Pago de alquiler de la propiedad Biblioteca\n"
+                    + "T3|Turno: 4|Tipo: PREMIO_POR_INICIO|Origen: BANCO|Destino: J003|Monto: 200.0|Descripcion: Premio por pasar por Salida\n";
 
             VentanaFinPartida ventana =
                     new VentanaFinPartida(
