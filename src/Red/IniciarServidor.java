@@ -24,8 +24,23 @@ public class IniciarServidor {
             }
         }
 
-        // Crear la partida con un máximo de 5 rondas.
-        Juego juego = new Juego(5);
+        int maxRondas = -1;
+
+        // Seleccionar la cantidad de rondas (§18). Una ronda termina cuando todos los jugadores jugaron su turno.
+            // Con 0 las rondas son indefinidas y la partida termina cuando queda un solo jugador activo.
+        while (maxRondas < 0) {
+
+            System.out.print("Cantidad de rondas (0 = indefinidas): ");
+
+            if (scanner.hasNextInt()) {
+                maxRondas = scanner.nextInt();
+            } else {
+                scanner.next();
+            }
+        }
+
+        // Crear la partida con la cantidad de rondas seleccionada.
+        Juego juego = new Juego(maxRondas);
 
         // Registrar solamente los jugadores seleccionados.
         for (int i = 1; i <= cantidadJugadores; i++) {

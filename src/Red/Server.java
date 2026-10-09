@@ -100,6 +100,9 @@ public class Server {
     // Indica si ya se envió FIN;GANADOR;ID a los jugadores, para no avisar el fin de la partida dos veces.
     private boolean FinAvisado;
 
+    // Nombre del archivo donde se guarda el historial de transacciones cuando termina la partida.
+    private static final String ARCHIVO_HISTORIAL = "historial_transacciones.txt";
+
 
     //*****************************************************
     //*****************************************************
@@ -392,6 +395,12 @@ public class Server {
         }
 
         FinAvisado = true;
+
+        // Se guarda el historial completo de la partida en un TXT, en la carpeta donde se ejecuta el servidor.
+        if (juego.getHistorial().exportarTXT(ARCHIVO_HISTORIAL)) {
+
+            System.out.println("Historial de transacciones guardado en " + ARCHIVO_HISTORIAL);
+        }
 
         Jugador Ganador = juego.GetGanador();
         String MensajeFin = "FIN;GANADOR;"
@@ -1248,10 +1257,30 @@ public class Server {
         }
 
         // -------------------------------------------------
+        // CONSULTAR_ESTADO
+        // -------------------------------------------------
+
+        // Permite consultar la información actual del jugador (No es necesario que el jugador este en su turno).
+            // Se revisa antes que "JUEGO EN CURSO" para que también se pueda consultar cuando la partida ya terminó.
+        else if (solicitud.equals("CONSULTAR_ESTADO")) {
+            return true;
+        }
+
+        // -------------------------------------------------
+        // CONSULTAR_TRANSACCIONES
+        // -------------------------------------------------
+
+        // Permite consultar las transacciones actuales del jugador (No es necesario que el jugador este en su turno).
+            // Se revisa antes que "JUEGO EN CURSO" para poder ver el historial al final de la partida.
+        else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
+            return true;
+        }
+
+        // -------------------------------------------------
         // JUEGO EN CURSO
         // -------------------------------------------------
 
-        // Después de conectarse, las demás solicitudes solamente pueden realizarse mientras la partida esté en curso.
+        // Las acciones de juego (dados, compra, turno) solamente pueden realizarse mientras la partida esté en curso.
         else if (juego.isEnCurso() == false) {
 
             return false;
@@ -1451,24 +1480,6 @@ public class Server {
             }
         }
 
-
-        // -------------------------------------------------
-        // CONSULTAR_ESTADO
-        // -------------------------------------------------
-
-        // Permite consultar la información actual del jugador (No es necesario que el jugador este en su turno)
-        else if (solicitud.equals("CONSULTAR_ESTADO")) {
-            return true;
-        }
-
-        // -------------------------------------------------
-        // CONSULTAR_TRANSACCIONES
-        // -------------------------------------------------
-
-        // Permite consultar las transacciones  actuales del jugador (No es necesario que el jugador este en su turno)
-        else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
-            return true;
-        }
 
         // -------------------------------------------------
         // SOLICITUD NO RECONOCIDA
