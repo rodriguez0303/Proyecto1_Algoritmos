@@ -27,7 +27,8 @@ public class Juego {
     private int PosicionCola;                  // Posición del jugador actual dentro de la cola (0 .. Tamaño-1), para detectar fin de ronda
     private boolean Curso;                     // Indica si la partida está activa
     private int MaxRondas;                     // Límite de rondas (§18); 0 = sin límite (termina cuando queda un jugador activo)
-    private Jugador Ganador;                   // Ganador de la partida (null mientras siga en curso)
+    private Jugador Ganador;                   // Ganador de la partida (null mientras siga en curso o si hubo empate)
+    private Jugador[] Empatados;               // Jugadores empatados en el mayor patrimonio (null si no hubo empate)
     private int ContadorTransacciones;         // Contador único para los IDs de transacción (T1, T2, T3...)
     private boolean DadosLanzados;             // Indica si ya se lanzaron los dados en este turno (evita lanzar dos veces)
     private Tablero Tablero;                   // Estructura del tablero (24 casillas enlazadas en circulo doble)
@@ -49,6 +50,7 @@ public class Juego {
         this.Curso = false;
         this.MaxRondas = MaxRondas;
         this.Ganador = null;
+        this.Empatados = null;
         this.ContadorTransacciones = 0;
         this.DadosLanzados = false;
         this.Tablero = new Tablero();
@@ -315,6 +317,9 @@ public class Juego {
     // Finaliza la partida y define al ganador (punto 18):
     // - Si queda un solo jugador activo, ese es el ganador (modo normal).
     // - Si no (se completaron las rondas), gana el jugador activo con mayor patrimonio.
+    // - Si dos o más jugadores comparten el mayor patrimonio, la partida termina
+    //   en empate: no hay Ganador y los empatados quedan en GetEmpatados().
+    //   Así el resultado no depende de a quién le tocaba el turno al terminar.
     public void finalizarPartida() {
         if (!Curso) {
             return;
@@ -322,26 +327,66 @@ public class Juego {
         Curso = false;
 
         Ganador = null;
+        Empatados = null;
         int Total = Jugadores.Tamaño();
+
+        // Primera vuelta: mayor patrimonio entre los activos y cuántos lo tienen
+        double MayorPatrimonio = 0;
+        int CantidadConMayor = 0;
         for (int i = 0; i < Total; i++) {
             Jugador J = Jugadores.Avanzar();
-            if (J != null && J.esActivo()
-                    && (Ganador == null || J.CalcularPatrimonio() > Ganador.CalcularPatrimonio())) {
-                Ganador = J;
+            if (J == null || !J.esActivo()) {
+                continue;
+            }
+            double Patrimonio = J.CalcularPatrimonio();
+            if (CantidadConMayor == 0 || Patrimonio > MayorPatrimonio) {
+                MayorPatrimonio = Patrimonio;
+                CantidadConMayor = 1;
+            } else if (Patrimonio == MayorPatrimonio) {
+                CantidadConMayor++;
             }
         }
 
-        if (Ganador != null) {
+        // Segunda vuelta: se guardan los que tienen ese patrimonio
+        Jugador[] ConMayor = new Jugador[CantidadConMayor];
+        int Indice = 0;
+        for (int i = 0; i < Total; i++) {
+            Jugador J = Jugadores.Avanzar();
+            if (J != null && J.esActivo() && J.CalcularPatrimonio() == MayorPatrimonio) {
+                ConMayor[Indice++] = J;
+            }
+        }
+
+        if (CantidadConMayor == 1) {
+            Ganador = ConMayor[0];
             System.out.println("Partida finalizada. Ganador: " + Ganador.getNombre()
-                    + " con un patrimonio de " + Ganador.CalcularPatrimonio());
+                    + " con un patrimonio de " + MayorPatrimonio);
+        } else if (CantidadConMayor > 1) {
+            Empatados = ConMayor;
+            String Nombres = Empatados[0].getNombre();
+            for (int i = 1; i < Empatados.length; i++) {
+                Nombres += ", " + Empatados[i].getNombre();
+            }
+            System.out.println("Partida finalizada en empate entre " + Nombres
+                    + " con un patrimonio de " + MayorPatrimonio);
         } else {
             System.out.println("Partida finalizada sin ganador");
         }
     }
 
-    // Ganador de la partida; null mientras siga en curso
+    // Ganador de la partida; null mientras siga en curso o si terminó en empate
     public Jugador GetGanador() {
         return Ganador;
+    }
+
+    // Indica si la partida terminó en empate por patrimonio
+    public boolean HayEmpate() {
+        return Empatados != null;
+    }
+
+    // Jugadores empatados en el mayor patrimonio; null si no hubo empate
+    public Jugador[] GetEmpatados() {
+        return Empatados;
     }
 
     // Server (isEnCurso), no cambiar

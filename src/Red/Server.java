@@ -430,7 +430,8 @@ public class Server {
     // Método que revisa si la partida terminó y, en ese caso, avisa a todos los jugadores conectados.
         // Si queda un único jugador activo, Juego finaliza la partida en ese mismo momento (punto 18).
             // También detecta el fin por límite de rondas, que Juego marca al pasar el turno.
-                // El mensaje es FIN;GANADOR;ID, o FIN;GANADOR;SIN_GANADOR si no quedó ningún jugador activo.
+                // El mensaje es FIN;GANADOR;ID, FIN;EMPATE;ID1,ID2 si empatan en patrimonio,
+                    // o FIN;GANADOR;SIN_GANADOR si no quedó ningún jugador activo.
                     // Debe llamarse dentro de un bloque synchronized (juego).
     private void RevisarFinPartida() {
 
@@ -448,9 +449,26 @@ public class Server {
             System.out.println("Historial de transacciones guardado en " + ARCHIVO_HISTORIAL);
         }
 
-        Jugador Ganador = juego.GetGanador();
-        String MensajeFin = "FIN;GANADOR;"
-                + (Ganador != null ? Ganador.getIdentificador() : "SIN_GANADOR");
+        String MensajeFin;
+
+        // Si hubo empate por patrimonio se envían los IDs empatados separados por coma.
+        if (juego.HayEmpate()) {
+
+            Jugador[] Empatados = juego.GetEmpatados();
+            String Ids = Empatados[0].getIdentificador();
+
+            for (int i = 1; i < Empatados.length; i++) {
+
+                Ids += "," + Empatados[i].getIdentificador();
+            }
+            MensajeFin = "FIN;EMPATE;" + Ids;
+        }
+        else {
+
+            Jugador Ganador = juego.GetGanador();
+            MensajeFin = "FIN;GANADOR;"
+                    + (Ganador != null ? Ganador.getIdentificador() : "SIN_GANADOR");
+        }
 
         for (int i = 0; i < clientesSocket.length; i++) {
 
