@@ -53,7 +53,7 @@ public class MazoEventos {
         AgregarCarta("Pago de matrícula: paga 150", TipoEvento.PAGAR_DINERO, 150);
         AgregarCarta("Salida libre del D3: guárdala por si te encierran", TipoEvento.SALIDA_LIBRE_D3, 0);
         AgregarCarta("Olvidaste el carné: retrocede 2 casillas", TipoEvento.RETROCEDER, 2);
-        AgregarCarta("Vas a visitar a un amigo al D3 (solo de visita, no pierdes turno)", TipoEvento.IR_A_CASILLA, Constantes.POSICION_D3);
+        AgregarCarta("Vas a visitar a un amigo al D3", TipoEvento.IR_A_CASILLA, Constantes.POSICION_D3);
         AgregarCarta("Ganaste el hackathon: recibe 150", TipoEvento.RECIBIR_DINERO, 150);
         AgregarCarta("Te quedaste dormido: pierdes un turno", TipoEvento.PERDER_TURNO, 0);
         AgregarCarta("Hora de almorzar: vas al Comedor Institucional", TipoEvento.IR_A_CASILLA, POSICION_COMEDOR);
