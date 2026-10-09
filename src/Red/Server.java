@@ -97,6 +97,13 @@ public class Server {
     private int turnoPendienteCompra;
 
 
+    // Indica si ya se envió FIN;GANADOR;ID a los jugadores, para no avisar el fin de la partida dos veces.
+    private boolean FinAvisado;
+
+    // Nombre del archivo donde se guarda el historial de transacciones cuando termina la partida.
+    private static final String ARCHIVO_HISTORIAL = "historial_transacciones.txt";
+
+
     //*****************************************************
     //*****************************************************
 
@@ -317,56 +324,20 @@ public class Server {
                                 // CONTINUAR LA PARTIDA
                                 // -------------------------------------------------
 
-                                // Se verifica que la partida todavía se encuentre en curso.
-                                if (juego.isEnCurso()) {
+                                // Con esta eliminación puede quedar un único Jugador activo.
+                                // RevisarFinPartida() termina la partida en ese caso, avisa FIN;GANADOR a todos y guarda el TXT.
+                                RevisarFinPartida();
 
-                                    // Si el Jugador desconectado tenía el turno actual, se debe avanzar al siguiente Jugador activo.
-                                    if (teniaTurno) {
+                                // Si la partida sigue y el Jugador desconectado tenía el turno, nadie más podría
+                                // enviar TERMINAR_TURNO por él: se avanza al siguiente Jugador activo.
+                                if (juego.isEnCurso() && teniaTurno) {
 
-                                        // finalizarTurno() pertenece a la clase Juego.
-                                        // Se reinicia el control de dados y llama a SiguienteTurno().
-                                        // SiguienteTurno() omite a los Jugadores eliminados.
-                                        // También se finaliza la partida si queda uno o ninguno activo.
-                                        juego.finalizarTurno();
-                                    }
+                                    // finalizarTurno() pertenece a la clase Juego.
+                                    // Se reinicia el control de dados y llama a SiguienteTurno(), que omite a los eliminados.
+                                    juego.finalizarTurno();
 
-                                    // Si el Jugador desconectado NO tenía el turno,
-                                    // Se valida que activo.
-                                    else {
-
-                                        // Se crea un contador para los Jugadores activos.
-                                        int jugadoresActivos = 0;
-
-                                        // Se recorren los cuatro identificadores del Juego.
-                                        for (int i = 1; i <= 4; i++) {
-
-                                            // Se construye el identificador correspondiente.
-                                            // Por ejemplo: J001, J002, J003 o J004.
-                                            String idJugador =
-                                                    String.format("J%03d", i);
-
-                                            // buscarJugadorPorIdentificador() pertenece a Juego.
-                                            // Permite obtener al Jugador sin modificar su turno.
-                                            Jugador jugador =
-                                                    juego.buscarJugadorPorIdentificador(idJugador);
-
-                                            // Se verifica que el Jugador exista y siga activo.
-                                            if (jugador != null && jugador.esActivo()) {
-
-                                                // Se aumenta el contador de Jugadores activos.
-                                                jugadoresActivos++;
-                                            }
-                                        }
-
-                                        // Si queda solamente uno o ningún Jugador activo,
-                                        // la partida debe terminar inmediatamente.
-                                        if (jugadoresActivos <= 1) {
-
-                                            // finalizarPartida() pertenece a la clase Juego.
-                                            // Cambia Curso a false y determina al ganador.
-                                            juego.finalizarPartida();
-                                        }
-                                    }
+                                    // Al pasar el turno la partida pudo terminar (límite de rondas).
+                                    RevisarFinPartida();
                                 }
 
                                 // -----------------------------------------------------------
@@ -463,6 +434,66 @@ public class Server {
 
         // La posición coincide con la posición de su conexión dentro del arreglo clientesSocket.
         jugadoresConectados[posicion] = jugador;
+    }
+
+    //*****************************************************
+    //*****************************************************
+
+    // Método que revisa si la partida terminó y, en ese caso, avisa a todos los jugadores conectados.
+        // Si queda un único jugador activo, Juego finaliza la partida en ese mismo momento (punto 18).
+            // También detecta el fin por límite de rondas, que Juego marca al pasar el turno.
+                // El mensaje es FIN;GANADOR;ID, o FIN;GANADOR;SIN_GANADOR si no quedó ningún jugador activo.
+                    // Debe llamarse dentro de un bloque synchronized (juego).
+    private void RevisarFinPartida() {
+
+        // Si la partida sigue en curso, o el fin ya fue avisado, no hay nada que enviar.
+        if (!juego.RevisarFinPartida() || FinAvisado) {
+
+            return;
+        }
+
+        FinAvisado = true;
+
+        // Se guarda el historial completo de la partida en un TXT, en la carpeta donde se ejecuta el servidor.
+        if (juego.getHistorial().exportarTXT(ARCHIVO_HISTORIAL)) {
+
+            System.out.println("Historial de transacciones guardado en " + ARCHIVO_HISTORIAL);
+        }
+
+        Jugador Ganador = juego.GetGanador();
+        String MensajeFin = "FIN;GANADOR;"
+                + (Ganador != null ? Ganador.getIdentificador() : "SIN_GANADOR");
+
+        for (int i = 0; i < clientesSocket.length; i++) {
+
+            if (clientesSocket[i] != null && !clientesSocket[i].isClosed()) {
+
+                enviarRespuesta(i, MensajeFin);
+            }
+        }
+    }
+
+    //*****************************************************
+    //*****************************************************
+
+    // Método que pasa el turno sin esperar TERMINAR_TURNO del jugador actual.
+        // Se usa cuando el Jugador del turno quedó eliminado o se desconectó, porque ya no puede terminarlo él mismo.
+            // Debe llamarse dentro de un bloque synchronized (juego).
+    private void PasarTurnoAutomaticamente() {
+
+        // La compra pendiente pertenecía al turno que se está cerrando, así que se descarta.
+        propiedadPendienteCompra = null;
+        jugadorPendienteCompra = null;
+        turnoPendienteCompra = 0;
+
+        // finalizarTurno() reinicia el control de dados y avanza al siguiente jugador activo.
+        juego.finalizarTurno();
+
+        // Al pasar el turno la partida pudo terminar (un solo jugador activo o límite de rondas).
+        RevisarFinPartida();
+
+        // Se informa a todos los jugadores conectados que el turno cambió.
+        actualizarClientes();
     }
 
     //*****************************************************
@@ -755,6 +786,20 @@ public class Server {
                                 enviarRespuesta(i, resultadoDados);
                             }
                         }
+
+                        // Si el Jugador quedó eliminado durante su propio movimiento (por alquiler o por una carta),
+                            // primero se revisa si con eso queda un único jugador activo (fin de partida).
+                        if (!jugador.esActivo()) {
+
+                            RevisarFinPartida();
+
+                            // Si la partida sigue, el Jugador eliminado ya no puede enviar TERMINAR_TURNO,
+                                // así que el Server pasa el turno automáticamente para que no quede trabada.
+                            if (juego.isEnCurso() && jugador == juego.obtenerJugadorActual()) {
+
+                                PasarTurnoAutomaticamente();
+                            }
+                        }
                     }
 
                     // -------------------------------------------------
@@ -827,6 +872,9 @@ public class Server {
                         // Se ejecuta después de que validarAccion() permitió terminar el turno.
                         // Permite finalizar el turno del jugador actual y continuar con el siguiente jugador.
                         juego.finalizarTurno();
+
+                        // Al pasar el turno la partida pudo terminar (un solo jugador activo o límite de rondas).
+                        RevisarFinPartida();
 
                         // actualizarClientes() es un método de la clase Server.
                         // Informa a todos los jugadores conectados que el estado del juego fue actualizado.
@@ -1272,28 +1320,34 @@ public class Server {
         }
 
         // -------------------------------------------------
+        // CONSULTAR_ESTADO
+        // -------------------------------------------------
+
+        // Permite consultar la información actual del jugador (No es necesario que el jugador este en su turno).
+            // Se revisa antes que "JUEGO EN CURSO" para que también se pueda consultar cuando la partida ya terminó.
+        else if (solicitud.equals("CONSULTAR_ESTADO")) {
+            return true;
+        }
+
+        // -------------------------------------------------
+        // CONSULTAR_TRANSACCIONES
+        // -------------------------------------------------
+
+        // Permite consultar las transacciones actuales del jugador (No es necesario que el jugador este en su turno).
+            // Se revisa antes que "JUEGO EN CURSO" para poder ver el historial al final de la partida.
+        else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
+            return true;
+        }
+
+        // -------------------------------------------------
         // JUEGO EN CURSO
         // -------------------------------------------------
 
-        // Se verifica si la partida ya terminó.
-        // isEnCurso() es un método de la clase Juego.
-        // Si devuelve false si la partida termino, por tanto, solamente se permiten las consultas.
+        // Las acciones de juego (dados, compra, turno) solamente pueden realizarse mientras la partida esté en curso.
+        // Las consultas ya se aceptaron arriba, así que aquí solo llegan acciones de juego.
         else if (juego.isEnCurso() == false) {
 
-            // Se permite consultar el estado aunque la partida haya terminado.
-            if (solicitud.equals("CONSULTAR_ESTADO")) {
-                return true;
-            }
-
-            // Se permite consultar el historial aunque la partida haya terminado.
-            else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
-                return true;
-            }
-
-            // Cualquier otra acción se rechaza porque la partida terminó.
-            else {
-                return false;
-            }
+            return false;
         }
 
         // -------------------------------------------------
@@ -1490,24 +1544,6 @@ public class Server {
             }
         }
 
-
-        // -------------------------------------------------
-        // CONSULTAR_ESTADO
-        // -------------------------------------------------
-
-        // Permite consultar la información actual del jugador (No es necesario que el jugador este en su turno)
-        else if (solicitud.equals("CONSULTAR_ESTADO")) {
-            return true;
-        }
-
-        // -------------------------------------------------
-        // CONSULTAR_TRANSACCIONES
-        // -------------------------------------------------
-
-        // Permite consultar las transacciones  actuales del jugador (No es necesario que el jugador este en su turno)
-        else if (solicitud.equals("CONSULTAR_TRANSACCIONES")) {
-            return true;
-        }
 
         // -------------------------------------------------
         // SOLICITUD NO RECONOCIDA

@@ -4,7 +4,8 @@ package LogicaJuego;
  * Clase CartaEvento: Representa una carta que se saca al caer en una
  * CasillaEvento y aplica su efecto sobre el jugador.
  *
- * Las cartas viven en un mazo (ColaCircular<CartaEvento> dentro de Juego):
+ * Las cartas viven en el mazo (ver MazoEventos), que crea Tablero y comparten
+ * las casillas de evento. El mazo las mezcla al azar:
  * al usarse una carta, el mazo avanza y la carta usada queda al final para
  * poder reutilizarse más adelante.
  *
@@ -57,6 +58,16 @@ public class CartaEvento {
 
             case IR_A_CASILLA:
                 Juego.MoverJugadorA(Jugador, Valor);
+                break;
+
+            case IR_AL_D3:
+                Juego.EnviarAlD3(Jugador);
+                break;
+
+            case SALIDA_LIBRE_D3:
+                // Jugador la guarda; Juego.EnviarAlD3() la usa si lo mandan al D3
+                Jugador.GuardarCartaSalidaD3();
+                System.out.println(Jugador.getNombre() + " guarda la carta para salir libre del D3");
                 break;
 
         }
