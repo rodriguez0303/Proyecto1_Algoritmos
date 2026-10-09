@@ -15,15 +15,24 @@ public class IniciarServidor {
         Scanner scanner = new Scanner(System.in);
 
         int cantidadJugadores = 0;
+        int maxRondas = -1;
 
-        // Elegir si se usará el hardware físico.
+        // -----------------------------------------
+        // SELECCIONAR MODO DE JUEGO
+        // -----------------------------------------
+
         boolean usarHardware = args.length > 0
                 && args[0].equalsIgnoreCase("hardware");
 
-        // Seleccionar cantidad de jugadores.
+        // -----------------------------------------
+        // SELECCIONAR CANTIDAD DE JUGADORES
+        // -----------------------------------------
+
         while (cantidadJugadores != 3 && cantidadJugadores != 4) {
 
-            System.out.print("Cantidad de jugadores (3 o 4): ");
+            System.out.print(
+                    "Cantidad de jugadores (3 o 4): "
+            );
 
             if (scanner.hasNextInt()) {
                 cantidadJugadores = scanner.nextInt();
@@ -32,9 +41,34 @@ public class IniciarServidor {
             }
         }
 
-        // Crear la partida.
-        Juego juego = new Juego(5);
+        // -----------------------------------------
+        // SELECCIONAR CANTIDAD DE RONDAS
+        // -----------------------------------------
 
+        // 0 significa rondas indefinidas.
+        // La partida también puede terminar cuando
+        // queda un único jugador activo.
+
+        while (maxRondas < 0) {
+
+            System.out.print(
+                    "Cantidad de rondas (0 = indefinidas): "
+            );
+
+            if (scanner.hasNextInt()) {
+                maxRondas = scanner.nextInt();
+            } else {
+                scanner.next();
+            }
+        }
+
+        // -----------------------------------------
+        // CREAR LA PARTIDA
+        // -----------------------------------------
+
+        Juego juego = new Juego(maxRondas);
+
+        // Registrar los jugadores en la lógica.
         for (int i = 1; i <= cantidadJugadores; i++) {
 
             String id = String.format("J%03d", i);
@@ -48,7 +82,15 @@ public class IniciarServidor {
             juego.AgregarJugador(jugador);
         }
 
-        // El recurso se cierra si el servidor termina.
+        // IMPORTANTE:
+        // No ejecutar juego.IniciarPartida() aquí.
+        // La partida se inicia desde la sala de espera
+        // cuando J001 presiona "Iniciar partida".
+
+        // -----------------------------------------
+        // INICIALIZAR HARDWARE (SI CORRESPONDE)
+        // -----------------------------------------
+
         try (ControlDadosHardware hardware =
                 usarHardware
                         ? new ControlDadosHardware("COM3")
@@ -73,7 +115,7 @@ public class IniciarServidor {
                         "Hardware conectado correctamente."
                 );
 
-                // Registrar las tarjetas RFID.
+                // Registrar tarjetas RFID.
                 for (int i = 1; i <= cantidadJugadores; i++) {
 
                     String id = String.format("J%03d", i);
@@ -99,7 +141,10 @@ public class IniciarServidor {
                 );
             }
 
-            // Crear el servidor con o sin hardware.
+            // -----------------------------------------
+            // CREAR E INICIAR SERVIDOR
+            // -----------------------------------------
+
             Server servidor = new Server(
                     "0.0.0.0",
                     5000,

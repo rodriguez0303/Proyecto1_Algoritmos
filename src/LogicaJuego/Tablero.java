@@ -22,6 +22,7 @@ package LogicaJuego;
 public class Tablero {
 
     private ListaCircularDoble<NodoCasilla> Lista;   // Lista circular doble propia con los nodos del tablero
+    private MazoEventos Mazo;                        // Mazo único que comparten las 4 casillas de evento
 
     // Nombres de las casillas, en el mismo orden que la GUI (VentanaJuego.nombresCasillas)
     private static final String[] NombresCasillas = {
@@ -65,6 +66,7 @@ public class Tablero {
     // La cantidad de casillas se toma de Constantes.NUMERO_CASILLAS.
     public Tablero() {
         this.Lista = new ListaCircularDoble<>();
+        this.Mazo = new MazoEventos();   // Se crea antes de las casillas porque las de evento lo necesitan
 
         NodoCasilla PrimerNodo = null;
         NodoCasilla NodoAnterior = null;
@@ -88,13 +90,16 @@ public class Tablero {
         PrimerNodo.setAnterior(NodoAnterior);
     }
 
-    // Decide qué tipo de casilla va en la posición "i" al armar el tablero.
+    // Decide qué tipo de casilla va en la posición "i" al armar el tablero:
+    // - CasillaEvento: el centro de cada lado; sacan cartas del mazo de eventos.
+    // - CasillaEspecial: las esquinas (Salida, Edificio D3, Especial, Ir al D3).
+    // - Propiedad: todas las demás.
     // Se llama una sola vez por casilla: el tipo de cada posición no cambia
     // durante la partida. Para mover los eventos, solo se cambia
     // Constantes.POSICIONES_EVENTO.
     private Casilla CrearCasilla(int i) {
         if (EsPosicionEvento(i)) {
-            return new CasillaEvento(NombresCasillas[i]);
+            return new CasillaEvento(NombresCasillas[i], Mazo);
         }
         switch (i) {
             case Constantes.POSICION_SALIDA:

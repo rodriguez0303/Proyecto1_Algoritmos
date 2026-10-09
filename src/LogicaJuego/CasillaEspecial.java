@@ -36,10 +36,8 @@ public class CasillaEspecial extends Casilla {
                 break;
 
             case IR_AL_D3:
-                // Va directo al D3 sin pasar por Salida (no cobra premio) y pierde su próximo turno
-                Jugador.setPosicionActual(Constantes.POSICION_D3);
-                Jugador.PerderTurno();
-                System.out.println(Jugador.getNombre() + " va directo al D3 y pierde su próximo turno");
+                // Va directo al D3 y pierde su próximo turno, salvo que tenga la carta "Salida libre del D3"
+                Juego.EnviarAlD3(Jugador);
                 break;
         }
     }

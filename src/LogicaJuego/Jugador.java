@@ -6,6 +6,7 @@ public class Jugador {
     private int posicionActual;
     private boolean activo;
     private boolean PierdeTurno; // true si debe saltarse su próximo turno (carta o D3)
+    private int CartasSalidaD3;  // Cartas "Salida libre del D3" que el Jugador tiene guardadas
 
     //Se guarda la lista de Propiedades que ha adquirido el Jugador durante la partida.
     private ListaSimplePropiedad propiedadesAdquiridas;
@@ -17,6 +18,7 @@ public class Jugador {
         this.posicionActual = 0; // Inicializa la posición en 0
         this.activo = true; // Inicializa el jugador como activo
         this.PierdeTurno = false; // Inicia sin turnos perdidos
+        this.CartasSalidaD3 = 0;  // Inicia sin cartas guardadas
 
         // Se crea una nueva lista de Propiedades para el Jugador (ListaSimplePropiedad).
             // "ListaSimplePropiedad" es la clase que representa la estructura lineal
@@ -116,6 +118,25 @@ public class Jugador {
     // Lo llama Juego.SiguienteTurno() cuando salta al Jugador: el turno perdido ya se cumplió.
     public void ConsumirTurnoPerdido() {
         this.PierdeTurno = false;
+    }
+
+    // Guarda una carta "Salida libre del D3" para usarla si lo mandan al D3.
+    public void GuardarCartaSalidaD3() {
+        this.CartasSalidaD3++;
+    }
+
+    // Usa una carta "Salida libre del D3" si tiene alguna guardada.
+        // Devuelve true si la usó (y se descuenta), false si no tenía.
+    public boolean UsarCartaSalidaD3() {
+        if (CartasSalidaD3 == 0) {
+            return false;
+        }
+        this.CartasSalidaD3--;
+        return true;
+    }
+
+    public int GetCartasSalidaD3() {
+        return CartasSalidaD3;
     }
 
     //*******************************************************************************

@@ -26,7 +26,7 @@ public class Juego {
     private int NumRonda;                      // Número de ronda actual (una ronda = todos los jugadores participaron una vez)
     private int PosicionCola;                  // Posición del jugador actual dentro de la cola (0 .. Tamaño-1), para detectar fin de ronda
     private boolean Curso;                     // Indica si la partida está activa
-    private int MaxRondas;                     // Límite de rondas; 0 = modo normal (termina cuando queda un jugador activo)
+    private int MaxRondas;                     // Límite de rondas (§18); 0 = sin límite (termina cuando queda un jugador activo)
     private Jugador Ganador;                   // Ganador de la partida (null mientras siga en curso)
     private int ContadorTransacciones;         // Contador único para los IDs de transacción (T1, T2, T3...)
     private boolean DadosLanzados;             // Indica si ya se lanzaron los dados en este turno (evita lanzar dos veces)
@@ -35,11 +35,12 @@ public class Juego {
     private Dado Dado1;                        // Dado ya implementada; el módulo RFID real (punto 14) podría integrarse más adelante
     private Dado Dado2;                        // Dado ya implementada; el módulo RFID real (punto 14) podría integrarse más adelante
     private HistorialTransacciones Historial;  // * pendiente: implementación final del historial
-    private ColaCircular<CartaEvento> Mazo;    // Mazo de cartas de evento: al usar una carta, pasa al final
     private boolean CartaEnCurso;              // Evita que una carta que mueve al jugador dispare otra carta en cadena
 
     // Constructor: Crea la partida y sus dependencias.
-    // MaxRondas > 0: partida por rondas; MaxRondas = 0: modo normal.
+    // La partida termina de dos formas (la que pase primero):
+    // - Queda un solo jugador activo (siempre aplica).
+    // - Se completan MaxRondas rondas (solo si MaxRondas > 0; con 0 las rondas son indefinidas).
     public Juego(int MaxRondas) {
         this.Jugadores = new ColaCircular<>();
         this.NumTurno = 0;
@@ -55,33 +56,7 @@ public class Juego {
         this.Dado1 = new Dado(1);
         this.Dado2 = new Dado(2);
         this.Historial = new HistorialTransacciones();
-        this.Mazo = new ColaCircular<>();
         this.CartaEnCurso = false;
-        CrearMazo();
-    }
-
-    // Llena el mazo con las cartas de evento, al menos una por cada TipoEvento (punto 10)
-    private void CrearMazo() {
-        Mazo.Agregar(new CartaEvento("C01", "Ganaste una beca: recibe 200", TipoEvento.RECIBIR_DINERO, 200));
-        Mazo.Agregar(new CartaEvento("C02", "Pago de matrícula: paga 150", TipoEvento.PAGAR_DINERO, 150));
-        Mazo.Agregar(new CartaEvento("C03", "Encontraste un atajo: avanza 3 casillas", TipoEvento.AVANZAR, 3));
-        Mazo.Agregar(new CartaEvento("C04", "Olvidaste algo: retrocede 2 casillas", TipoEvento.RETROCEDER, 2));
-        Mazo.Agregar(new CartaEvento("C05", "Te quedaste dormido: pierdes un turno", TipoEvento.PERDER_TURNO, 0));
-        Mazo.Agregar(new CartaEvento("C06", "Regresa a la casilla de inicio", TipoEvento.IR_A_CASILLA, 0));
-        Mazo.Agregar(new CartaEvento("C07", "Premio en un concurso: recibe 100", TipoEvento.RECIBIR_DINERO, 100));
-        Mazo.Agregar(new CartaEvento("C08", "Multa de tránsito: paga 50", TipoEvento.PAGAR_DINERO, 50));
-    }
-
-    // Saca la carta que está al frente del mazo y avanza la cola circular.
-    // Al avanzar, la carta recién usada queda justo antes del nuevo frente,
-    // es decir, al final de la cola, lista para reutilizarse.
-    public CartaEvento SacarCarta() {
-        if (Mazo.Vacio()) {
-            return null;
-        }
-        CartaEvento Carta = Mazo.ObtenerActual();
-        Mazo.Avanzar();
-        return Carta;
     }
 
     // Agrega un "Jugador" a la cola de turnos, solo si la partida aún no ha iniciado
@@ -111,7 +86,7 @@ public class Juego {
     }
 
     // Avanza al siguiente jugador activo y controla si la partida terminó
-    // (queda un solo jugador activo, o se completó el límite de rondas).
+    // (queda un solo jugador activo, o se completó la última ronda).
     public void SiguienteTurno() {
         if (!Curso) {
             return;
@@ -140,7 +115,7 @@ public class Juego {
             }
             Sig = AvanzarCola();
             if (!Curso) {
-                return;
+                return;   // Se completó la última ronda
             }
             Intentos--;
         }
@@ -150,8 +125,9 @@ public class Juego {
     }
 
     // Avanza la cola de turnos una posición. Cuando la cola da la vuelta
-    // completa (vuelve a la posición 0) termina una ronda; si ya se completó
-    // el límite de rondas, se finaliza la partida.
+    // completa (vuelve a la posición 0) todos los jugadores ya tiraron los dados
+    // y jugaron su turno: termina la ronda y empieza la siguiente.
+    // Si ya se completó la última ronda permitida, se finaliza la partida.
     private Jugador AvanzarCola() {
         Jugador Sig = Jugadores.Avanzar();
         PosicionCola = (PosicionCola + 1) % Jugadores.Tamaño();
@@ -178,6 +154,16 @@ public class Juego {
             }
         }
         return Activos;
+    }
+
+    // Revisa si queda un único jugador activo y, si es así, finaliza la partida (punto 18).
+    // Se llama justo después de cada eliminación, sin esperar al siguiente SiguienteTurno().
+    // Devuelve true si la partida ya terminó (por esta revisión o desde antes).
+    public boolean RevisarFinPartida() {
+        if (Curso && ContarJugadoresActivos() <= 1) {
+            finalizarPartida();
+        }
+        return !Curso;
     }
 
     // Server (finalizarTurno), no cambiar.
@@ -269,6 +255,19 @@ public class Juego {
         EjecutarCasilla(Jugador, NodoDestino);
     }
 
+    // Encierra a un Jugador en el D3 (lo usan la casilla "Ir al D3" y la carta IR_AL_D3).
+    // Va directo sin pasar por Salida (no cobra premio) y pierde su próximo turno.
+    // Si tiene guardada una carta "Salida libre del D3", la usa y no le pasa nada.
+    public void EnviarAlD3(Jugador Jugador) {
+        if (Jugador.UsarCartaSalidaD3()) {
+            System.out.println(Jugador.getNombre() + " usa su carta \"Salida libre del D3\" y se libra del encierro");
+            return;
+        }
+        Jugador.setPosicionActual(Constantes.POSICION_D3);
+        Jugador.PerderTurno();
+        System.out.println(Jugador.getNombre() + " va directo al D3 y pierde su próximo turno");
+    }
+
     // Deja cualquier posición dentro del rango 0 .. NumeroCasillas-1.
     // Se suma NumeroCasillas antes del segundo módulo porque en Java
     // -2 % 24 da -2 (y no 22), lo que dejaría al jugador en una posición negativa.
@@ -315,7 +314,7 @@ public class Juego {
 
     // Finaliza la partida y define al ganador (punto 18):
     // - Si queda un solo jugador activo, ese es el ganador (modo normal).
-    // - Si no (límite de rondas), gana el jugador activo con mayor patrimonio.
+    // - Si no (se completaron las rondas), gana el jugador activo con mayor patrimonio.
     public void finalizarPartida() {
         if (!Curso) {
             return;
