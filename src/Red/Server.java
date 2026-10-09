@@ -294,51 +294,9 @@ public class Server {
                                 // Este valor permitirá informar a los demás jugadores quien esta activo en el juego.
                                 String identificador = jugadorDesconectado.getIdentificador();
 
-                                // Se verifica si el Jugador desconectado tenía el turno actual.
-                                // obtenerJugadorActual() pertenece a la clase Juego.
-                                boolean teniaTurno = jugadorDesconectado == juego.obtenerJugadorActual();
-
-                                // eliminar() pertenece a la clase Jugador.
-                                // Libera las Propiedades adquiridas y cambia activo a false.
-                                // El Jugador permanece en la cola, pero ya no puede participar.
-                                jugadorDesconectado.eliminar();
-
-                                // -------------------------------------------------
-                                // CANCELAR COMPRA PENDIENTE
-                                // -------------------------------------------------
-
-                                // Se verifica si el Jugador desconectado tenía una Propiedad pendiente de comprar.
-                                if (jugadorPendienteCompra == jugadorDesconectado) {
-
-                                    // Se elimina la referencia a la Propiedad pendiente.
-                                    propiedadPendienteCompra = null;
-
-                                    // Se elimina la referencia al Jugador que debía decidir.
-                                    jugadorPendienteCompra = null;
-
-                                    // Se reinicia el número de turno asociado con la compra.
-                                    turnoPendienteCompra = 0;
-                                }
-
-                                // -------------------------------------------------
-                                // CONTINUAR LA PARTIDA
-                                // -------------------------------------------------
-
-                                // Con esta eliminación puede quedar un único Jugador activo.
-                                // RevisarFinPartida() termina la partida en ese caso, avisa FIN;GANADOR a todos y guarda el TXT.
-                                RevisarFinPartida();
-
-                                // Si la partida sigue y el Jugador desconectado tenía el turno, nadie más podría
-                                // enviar TERMINAR_TURNO por él: se avanza al siguiente Jugador activo.
-                                if (juego.isEnCurso() && teniaTurno) {
-
-                                    // finalizarTurno() pertenece a la clase Juego.
-                                    // Se reinicia el control de dados y llama a SiguienteTurno(), que omite a los eliminados.
-                                    juego.finalizarTurno();
-
-                                    // Al pasar el turno la partida pudo terminar (límite de rondas).
-                                    RevisarFinPartida();
-                                }
+                                // Se saca al Jugador de la partida: queda eliminado, sus Propiedades
+                                // se liberan y, si era su turno, el turno pasa al siguiente Jugador activo.
+                                SacarJugadorDeLaPartida(jugadorDesconectado);
 
                                 // -----------------------------------------------------------
                                 // NOTIFICAR A LOS DEMÁS JUGADORES QUE HAY UN JUGADOR INACTIVO
@@ -476,24 +434,54 @@ public class Server {
     //*****************************************************
     //*****************************************************
 
-    // Método que pasa el turno sin esperar TERMINAR_TURNO del jugador actual.
-        // Se usa cuando el Jugador del turno quedó eliminado o se desconectó, porque ya no puede terminarlo él mismo.
+    // Método único para sacar a un Jugador de la partida, ya sea porque se desconectó o porque quedó en bancarrota.
+        // No avisa a los clientes: cada caso envía sus propios mensajes después de llamarlo.
             // Debe llamarse dentro de un bloque synchronized (juego).
-    private void PasarTurnoAutomaticamente() {
+    private void SacarJugadorDeLaPartida(Jugador jugadorEliminado) {
 
-        // La compra pendiente pertenecía al turno que se está cerrando, así que se descarta.
-        propiedadPendienteCompra = null;
-        jugadorPendienteCompra = null;
-        turnoPendienteCompra = 0;
+        // Se verifica si el Jugador tenía el turno actual.
+        // obtenerJugadorActual() pertenece a la clase Juego.
+        boolean teniaTurno = jugadorEliminado == juego.obtenerJugadorActual();
 
-        // finalizarTurno() reinicia el control de dados y avanza al siguiente jugador activo.
-        juego.finalizarTurno();
+        // eliminar() pertenece a la clase Jugador.
+        // Libera las Propiedades adquiridas (otros jugadores ya pueden comprarlas) y cambia activo a false.
+        // El Jugador permanece en la cola, pero ya no puede participar ni volver a conectarse.
+        // En una bancarrota ya viene eliminado, por eso solo se llama si sigue activo.
+        if (jugadorEliminado.esActivo()) {
 
-        // Al pasar el turno la partida pudo terminar (un solo jugador activo o límite de rondas).
+            jugadorEliminado.eliminar();
+        }
+
+        // -------------------------------------------------
+        // CANCELAR COMPRA PENDIENTE
+        // -------------------------------------------------
+
+        // Si el Jugador tenía una Propiedad pendiente de comprar, la decisión se descarta.
+        if (jugadorPendienteCompra == jugadorEliminado) {
+
+            propiedadPendienteCompra = null;
+            jugadorPendienteCompra = null;
+            turnoPendienteCompra = 0;
+        }
+
+        // -------------------------------------------------
+        // CONTINUAR LA PARTIDA
+        // -------------------------------------------------
+
+        // Con esta eliminación puede quedar un único Jugador activo.
+        // RevisarFinPartida() termina la partida en ese caso, avisa FIN;GANADOR a todos y guarda el TXT.
         RevisarFinPartida();
 
-        // Se informa a todos los jugadores conectados que el turno cambió.
-        actualizarClientes();
+        // Si la partida sigue y el Jugador tenía el turno, nadie más podría enviar TERMINAR_TURNO por él.
+        if (juego.isEnCurso() && teniaTurno) {
+
+            // finalizarTurno() pertenece a la clase Juego.
+            // Se reinicia el control de dados y llama a SiguienteTurno(), que omite a los eliminados.
+            juego.finalizarTurno();
+
+            // Al pasar el turno la partida pudo terminar (límite de rondas).
+            RevisarFinPartida();
+        }
     }
 
     //*****************************************************
@@ -788,17 +776,13 @@ public class Server {
                         }
 
                         // Si el Jugador quedó eliminado durante su propio movimiento (por alquiler o por una carta),
-                            // primero se revisa si con eso queda un único jugador activo (fin de partida).
+                            // ya no puede enviar TERMINAR_TURNO: se saca de la partida igual que en una desconexión.
                         if (!jugador.esActivo()) {
 
-                            RevisarFinPartida();
+                            SacarJugadorDeLaPartida(jugador);
 
-                            // Si la partida sigue, el Jugador eliminado ya no puede enviar TERMINAR_TURNO,
-                                // así que el Server pasa el turno automáticamente para que no quede trabada.
-                            if (juego.isEnCurso() && jugador == juego.obtenerJugadorActual()) {
-
-                                PasarTurnoAutomaticamente();
-                            }
+                            // Se informa a todos los jugadores conectados que el estado cambió.
+                            actualizarClientes();
                         }
                     }
 
