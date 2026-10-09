@@ -131,9 +131,9 @@ public class Server {
 
     public Server(String ip, int puerto, Juego juego, int cantidadJugadoresEsperados, ControlDadosHardware hardware) {
 
-        if (cantidadJugadoresEsperados < 3 || cantidadJugadoresEsperados > 4) {
+        if (cantidadJugadoresEsperados < 2 || cantidadJugadoresEsperados > 4) {
 
-            throw new IllegalArgumentException("La partida debe tener 3 o 4 jugadores.");
+            throw new IllegalArgumentException("La partida debe tener 2,3 o 4 jugadores.");
         }
 
         this.ip = ip;
