@@ -992,13 +992,30 @@ public class Server {
                             }
                         }
 
-                        // Si el Jugador quedó eliminado durante su propio movimiento (por alquiler o por una carta),
-                            // ya no puede enviar TERMINAR_TURNO: se saca de la partida igual que en una desconexión.
+                        // -------------------------------------------------
+                        // NOTIFICAR LA ELIMINACIÓN DE UN JUGADOR
+                        // -------------------------------------------------
+
+                        // Se verifica si el Jugador quedó eliminado durante su movimiento por bancarrota o por una carta.
                         if (!jugador.esActivo()) {
 
+                            // Se retira al Jugador de la partida y se actualiza el control de turnos.
                             SacarJugadorDeLaPartida(jugador);
 
-                            // Se informa a todos los jugadores conectados que el estado cambió.
+                            // Se recorren los jugadores conectados para informar cuál de ellos quedó eliminado.
+                            for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                                // Se verifica que exista un Jugador conectado y que su conexión Socket continúe abierta.
+                                if (jugadoresConectados[i] != null
+                                        && clientesSocket[i] != null
+                                        && !clientesSocket[i].isClosed()) {
+
+                                    // Se envía el identificador del Jugador eliminado.Ejemplo: JUGADOR_ELIMINADO;J002
+                                    enviarRespuesta(i, "JUGADOR_ELIMINADO;" + jugador.getIdentificador());
+                                }
+                            }
+
+                            // Se informa a todos los clientes que el estado general de la partida cambió.
                             actualizarClientes();
                         }
                     }
