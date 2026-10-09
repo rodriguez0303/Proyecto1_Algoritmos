@@ -76,10 +76,10 @@ public class VentanaFinPartida extends JFrame {
                 Component.CENTER_ALIGNMENT
         );
 
-        lblGanador = new JLabel(
-                "Ganador: " + nombreGanador
-        );
+        String tituloResultado = nombreGanador.startsWith("Empate entre") || nombreGanador.equals("Sin ganador") ? "Resultado: " + nombreGanador : "Ganador: " + nombreGanador;
 
+        lblGanador = new JLabel(tituloResultado);
+        
         lblGanador.setFont(
                 new Font("SansSerif", Font.BOLD, 23)
         );
@@ -282,6 +282,12 @@ public class VentanaFinPartida extends JFrame {
                             ? "No hay transacciones registradas."
                             : transacciones
             );
+        });
+    }
+
+    public void actualizarPatrimonio(String patrimonio) {
+        SwingUtilities.invokeLater(() -> {
+                lblPatrimonio.setText("Patrimonio final: " + patrimonio);
         });
     }
 
