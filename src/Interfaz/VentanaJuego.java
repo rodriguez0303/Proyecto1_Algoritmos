@@ -1255,6 +1255,107 @@ public class VentanaJuego extends JFrame {
         return tarjeta;
     }
 
+    // Convierte una transacción del servidor en una línea fácil de leer.
+    // Llega como: T1|Turno: 5|Tipo: COMPRA_PROPIEDAD|Origen: J002|Destino: BANCO|Monto: 450.0|Descripcion: ...|FechaHora: ...
+    // Queda como: J002 pagó ₡450 al Banco (Compra de la propiedad BICITEC).
+    private String FormatearTransaccion(String Registro) {
+
+        String Origen = "";
+        String Destino = "";
+        String Monto = "";
+        String Descripcion = "";
+
+        for (String Campo : Registro.split("\\|")) {
+
+            int Separador = Campo.indexOf(": ");
+
+            if (Separador < 0) {
+                continue;
+            }
+
+            String Clave = Campo.substring(0, Separador).trim();
+            String Valor = Campo.substring(Separador + 2).trim();
+
+            if (Clave.equals("Origen")) {
+                Origen = Valor;
+            }
+            else if (Clave.equals("Destino")) {
+                Destino = Valor;
+            }
+            else if (Clave.equals("Monto")) {
+                Monto = Valor;
+            }
+            else if (Clave.equals("Descripcion")) {
+                Descripcion = Valor;
+            }
+        }
+
+        // Si el registro no trae el formato esperado se muestra tal como llegó.
+        if (Origen.isEmpty() || Destino.isEmpty() || Monto.isEmpty()) {
+            return Registro.replace("|", " - ");
+        }
+
+        // 450.0 -> 450
+        try {
+            Monto = String.valueOf((long) Double.parseDouble(Monto));
+        } catch (NumberFormatException e) {
+            // Se deja el monto como llegó.
+        }
+
+        String Linea;
+
+        if (Origen.equals("BANCO")) {
+            Linea = "El Banco pagó ₡" + Monto + " a " + Destino;
+        }
+        else if (Destino.equals("BANCO")) {
+            Linea = Origen + " pagó ₡" + Monto + " al Banco";
+        }
+        else {
+            Linea = Origen + " pagó ₡" + Monto + " a " + Destino;
+        }
+
+        if (!Descripcion.isEmpty()) {
+            Linea = Linea + " (" + Descripcion + ")";
+        }
+
+        return Linea + ".";
+    }
+
+    // Traduce los mensajes de la Pico (ESPERANDO_RFID;J001, RFID_OK;J001...) a instrucciones claras.
+    // Devuelve null para los avisos que no hace falta mostrar.
+    private String TraducirMensajeHardware(String MensajeHardware) {
+
+        String[] Partes = MensajeHardware.split(";");
+
+        String Tipo = Partes[0];
+        String Jugador = Partes.length > 1 ? Partes[1] : "";
+
+        if (Tipo.equals("ESPERANDO_RFID")) {
+            return "Acerque la tarjeta RFID de " + Jugador + " al lector.";
+        }
+        else if (Tipo.equals("RFID_OK")) {
+            return "Tarjeta de " + Jugador + " validada.";
+        }
+        else if (Tipo.equals("RFID_INCORRECTO")) {
+            return "Esa tarjeta no es de " + Jugador + ". Intente de nuevo.";
+        }
+        else if (Tipo.equals("RETIRAR_RFID")) {
+            return "Retire la tarjeta del lector.";
+        }
+        else if (Tipo.equals("ESPERANDO_BOTON")) {
+            return "Presione el botón para lanzar los dados.";
+        }
+        else if (Tipo.equals("PAGO_OK")) {
+            return "Pago autorizado.";
+        }
+        else if (Tipo.equals("ERROR")) {
+            return "Error del hardware: " + MensajeHardware.substring("ERROR;".length()).replace(";", " ");
+        }
+
+        // RFID_RETIRADO, DADOS y otros avisos internos no se muestran.
+        return null;
+    }
+
     private void agregarHistorialSimulado(String mensaje) {
         if (!areaHistorial.getText().isEmpty()) {
             areaHistorial.append("\n");
@@ -1375,11 +1476,16 @@ public class VentanaJuego extends JFrame {
 
                     SwingUtilities.invokeLater(() -> {
 
-                        // Agregar el lanzamiento al historial.
-                        agregarHistorialSimulado("[Servidor] " + mensaje);
-
                         // Verificar que recibimos los datos correctos.
                         if (datos.length == 4) {
+
+                            // Agregar el lanzamiento al historial.
+                            String QuienLanzo = indiceTurnoEnLinea >= 0
+                                    ? String.format("J%03d", indiceTurnoEnLinea + 1)
+                                    : "El jugador";
+
+                            agregarHistorialSimulado(QuienLanzo + " lanzó " + datos[1] + " y " + datos[2]
+                                    + " (total " + datos[3] + ").");
 
                             try {
 
@@ -1427,7 +1533,7 @@ public class VentanaJuego extends JFrame {
                             String identificador = separador >= 0 ? registro.substring(0, separador).trim() : registro.trim();
 
                             if (transaccionesMostradasEnLinea.add(identificador)) {
-                                agregarHistorialSimulado("[Economía] " + registro.replace("|", " . "));
+                                agregarHistorialSimulado(FormatearTransaccion(registro));
                             }
                         }
                     });
@@ -1447,8 +1553,7 @@ public class VentanaJuego extends JFrame {
                         SwingUtilities.invokeLater(() -> {
 
                             agregarHistorialSimulado(
-                                    "[Evento] " + jugadorEvento
-                                    + " recibió la carta "
+                                    jugadorEvento + " sacó la carta "
                                     + identificadorCarta
                                     + ": " + descripcionCarta
                             );
@@ -1457,13 +1562,83 @@ public class VentanaJuego extends JFrame {
                     }
                 }
 
+                // Un pago (compra o alquiler) espera la tarjeta RFID del jugador que paga.
+                else if (mensaje.startsWith("PAGO_PENDIENTE;")) {
+
+                    String[] DatosPago = mensaje.split(";", 3);
+
+                    if (DatosPago.length == 3) {
+
+                        SwingUtilities.invokeLater(() -> {
+
+                            agregarHistorialSimulado(
+                                    DatosPago[1] + " debe pagar: " + DatosPago[2] + "."
+                            );
+
+                        });
+                    }
+                }
+
+                // Este jugador debe pagar (alquiler o carta): inicia el pago automáticamente.
+                // El servidor pide la tarjeta RFID, cobra y después se habilita Terminar turno.
+                else if (mensaje.equals("COBRAR_PAGO")) {
+
+                    cliente.enviarSolicitud("REALIZAR_PAGO");
+                }
+
+                // Instrucciones del hardware (RFID y botón) para este jugador.
+                else if (mensaje.startsWith("HARDWARE;")) {
+
+                    String TextoHardware = TraducirMensajeHardware(
+                            mensaje.substring("HARDWARE;".length())
+                    );
+
+                    // Algunos avisos internos de la Pico no se muestran.
+                    if (TextoHardware != null) {
+
+                        SwingUtilities.invokeLater(() -> {
+                            agregarHistorialSimulado(TextoHardware);
+                        });
+                    }
+                }
+
+                // Un jugador perdió la conexión con el servidor.
+                else if (mensaje.startsWith("JUGADOR_DESCONECTADO;")) {
+
+                    String JugadorDesconectado = mensaje.substring("JUGADOR_DESCONECTADO;".length());
+
+                    SwingUtilities.invokeLater(() -> {
+                        agregarHistorialSimulado(JugadorDesconectado + " se desconectó y sale de la partida.");
+                    });
+                }
+
+                // Fin de la partida: FIN;GANADOR;ID, FIN;GANADOR;SIN_GANADOR o FIN;EMPATE;ID1,ID2
+                else if (mensaje.startsWith("FIN;")) {
+
+                    String[] DatosFin = mensaje.split(";");
+
+                    String TextoFin;
+
+                    if (DatosFin.length == 3 && DatosFin[1].equals("EMPATE")) {
+                        TextoFin = "Partida terminada en empate entre " + DatosFin[2].replace(",", ", ") + ".";
+                    }
+                    else if (DatosFin.length == 3 && !DatosFin[2].equals("SIN_GANADOR")) {
+                        TextoFin = "Partida terminada. Ganador: " + DatosFin[2] + ".";
+                    }
+                    else {
+                        TextoFin = "Partida terminada sin ganador.";
+                    }
+
+                    SwingUtilities.invokeLater(() -> {
+                        agregarHistorialSimulado(TextoFin);
+                    });
+                }
+
                 // Mostrar otras respuestas del servidor.
                 else {
 
                     SwingUtilities.invokeLater(() -> {
-                        agregarHistorialSimulado(
-                            "[Servidor] " + mensaje
-                        );
+                        agregarHistorialSimulado(mensaje);
                     });
                 }
             }

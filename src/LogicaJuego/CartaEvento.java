@@ -39,7 +39,12 @@ public class CartaEvento {
                 break;
 
             case PAGAR_DINERO:
-                AplicarPerdida(Jugador, Juego);
+                // Si los pagos están diferidos, el cobro queda pendiente y se hace después (Juego.CobrarPagoPendiente).
+                if (Juego.EsPagosDiferidos()) {
+                    Juego.DejarCartaPendiente(this);
+                } else {
+                    AplicarPerdida(Jugador, Juego);
+                }
                 break;
 
             case AVANZAR:
@@ -91,7 +96,8 @@ public class CartaEvento {
     // El Jugador le paga al banco y se registra una transacción PERDIDA_EVENTO.
     // Si no le alcanza el saldo, queda eliminado.
     // Banco.recibir() ya valida el saldo, por eso no se repite la validación aquí.
-    private void AplicarPerdida(Jugador Jugador, Juego Juego) {
+    // Sin "private" para que Juego.CobrarPagoPendiente() la use cuando el pago estaba pendiente.
+    void AplicarPerdida(Jugador Jugador, Juego Juego) {
         if (Juego.getBanco().recibir(Jugador, Valor)) {
             Juego.RegistrarTransaccion(new Transaccion(
                     Juego.GenerarIdTransaccion(),

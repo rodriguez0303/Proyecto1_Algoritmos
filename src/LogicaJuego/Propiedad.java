@@ -229,7 +229,15 @@ public class Propiedad extends Casilla {
                 // Se llama al método que se encargará de realizar el pago del alquiler.
                     // "jugador" contiene al Jugador que debe pagar.
                         // "juego" se envía porque dentro de Juego se encuentra el Banco de la partida.
-                pagarAlquiler(jugador, juego);
+                // Si el alquiler está diferido, solo queda pendiente: se cobra después, antes de terminar el turno.
+                if (juego.EsPagosDiferidos()) {
+
+                    juego.DejarAlquilerPendiente(this);
+                }
+                else {
+
+                    pagarAlquiler(jugador, juego);
+                }
             }
         }
     }

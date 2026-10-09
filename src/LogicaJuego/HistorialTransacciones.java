@@ -3,6 +3,8 @@ package LogicaJuego;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 
 public class HistorialTransacciones {
     private class Nodo {
@@ -138,18 +140,52 @@ public class HistorialTransacciones {
     public int getTamaño() {
         return tamaño;
     }
+    // Guarda el historial en un TXT fácil de leer, una transacción por línea:
+    // T1   Turno 5    12:59:03   J002 pagó ₡450 al Banco (Compra de la propiedad BICITEC)
+    // Se usa UTF-8 para que el símbolo ₡ y las tildes se guarden bien.
     public boolean exportarTXT(String nombreArchivo) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivo))) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(nombreArchivo, StandardCharsets.UTF_8))) {
+            writer.println("HISTORIAL DE TRANSACCIONES");
+            writer.println("==========================");
+            writer.println();
+
             Nodo actual = primero;
             while (actual != null) {
-                writer.println(actual.transaccion);
+                writer.println(FormatearLinea(actual.transaccion));
                 actual = actual.siguiente;
             }
+
+            writer.println();
+            writer.println("Total de transacciones: " + tamaño);
             return true;
         } catch (IOException e) {
             System.err.println("Error al exportar el historial a archivo TXT." + e.getMessage());
             return false;
         }
+    }
+
+    // Arma la línea del TXT: identificador, turno, hora y una frase con quién pagó a quién.
+    private String FormatearLinea(Transaccion Transaccion) {
+        String Origen = Transaccion.getJugadorOrigen();
+        String Destino = Transaccion.getJugadorDestino();
+        String Monto = "₡" + (long) Transaccion.getMonto();
+
+        String Frase;
+        if (Origen.equals("BANCO")) {
+            Frase = "El Banco pagó " + Monto + " a " + Destino;
+        } else if (Destino.equals("BANCO")) {
+            Frase = Origen + " pagó " + Monto + " al Banco";
+        } else {
+            Frase = Origen + " pagó " + Monto + " a " + Destino;
+        }
+
+        if (Transaccion.getDescripcion() != null && !Transaccion.getDescripcion().isBlank()) {
+            Frase = Frase + " (" + Transaccion.getDescripcion() + ")";
+        }
+
+        String Hora = Transaccion.getFechaHora().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        return String.format("%-5s Turno %-4d %s   %s", Transaccion.getIdentificador(), Transaccion.getNumeroTurno(), Hora, Frase);
     }
 }
 

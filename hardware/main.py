@@ -22,6 +22,13 @@
 #   -> RFID_RETIRADO;J001
 #   -> ESPERANDO_BOTON;J001
 #   -> DADOS;J001;dado1;dado2;suma
+#
+# VALIDAR_PAGO;J001
+#   -> ESPERANDO_RFID;J001
+#   -> RFID_OK;J001
+#   -> RETIRAR_RFID;J001
+#   -> RFID_RETIRADO;J001
+#   -> PAGO_OK;J001
 # =====================================================================
 
 from machine import Pin
@@ -724,6 +731,61 @@ class ControlHardware:
         )
 
     # -----------------------------------------------------------------
+    # VALIDACIÓN DE PAGOS
+    # -----------------------------------------------------------------
+
+    def ValidarPago(
+        self,
+        Identificador
+    ):
+        if Identificador not in self.Jugadores:
+            print(
+                "ERROR;JUGADOR_NO_REGISTRADO;{}".format(
+                    Identificador
+                )
+            )
+
+            return
+
+        JugadorPagador = self.Jugadores[
+            Identificador
+        ]
+
+        # 1. Solo la tarjeta del jugador que paga autoriza el pago.
+        print(
+            "ESPERANDO_RFID;"
+            + Identificador
+        )
+
+        self.EsperarTarjetaCorrecta(
+            JugadorPagador
+        )
+
+        print(
+            "RFID_OK;"
+            + Identificador
+        )
+
+        # 2. Esperar a que retire la tarjeta antes de la siguiente lectura.
+        print(
+            "RETIRAR_RFID;"
+            + Identificador
+        )
+
+        self.Lector.EsperarRetiro()
+
+        print(
+            "RFID_RETIRADO;"
+            + Identificador
+        )
+
+        # 3. Informar a Java que el pago quedó autorizado.
+        print(
+            "PAGO_OK;"
+            + Identificador
+        )
+
+    # -----------------------------------------------------------------
     # PROTOCOLO USB
     # -----------------------------------------------------------------
 
@@ -752,6 +814,16 @@ class ControlHardware:
             and Partes[0] == "TIRAR"
         ):
             self.ProcesarTiro(
+                Partes[1]
+            )
+
+            return
+
+        if (
+            len(Partes) == 2
+            and Partes[0] == "VALIDAR_PAGO"
+        ):
+            self.ValidarPago(
                 Partes[1]
             )
 

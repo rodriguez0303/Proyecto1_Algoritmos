@@ -278,6 +278,42 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    // Pide al jugador que paga pasar su tarjeta RFID por el lector.
+    // Bloquea hasta que la Pico confirma con PAGO_OK;<identificador>.
+    public void ValidarPago(
+            String Identificador,
+            Consumer<String> ReceptorEstado
+    ) throws IOException {
+
+        validarConexion();
+
+        synchronized (bloqueoHardware) {
+
+            enviar("VALIDAR_PAGO;" + Identificador);
+
+            while (true) {
+
+                String Mensaje = leerMensaje();
+
+                if (Mensaje == null) {
+                    continue;
+                }
+
+                notificar(ReceptorEstado, Mensaje);
+
+                if (Mensaje.equals("PAGO_OK;" + Identificador)) {
+                    return;
+                }
+
+                if (Mensaje.startsWith("ERROR;")) {
+                    throw new IOException(
+                            "Error del hardware: " + Mensaje
+                    );
+                }
+            }
+        }
+    }
+
     private void enviar(String mensaje) throws IOException {
 
         if (salida == null) {

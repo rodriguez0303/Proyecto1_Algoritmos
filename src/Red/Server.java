@@ -141,6 +141,55 @@ public class Server {
         this.juego = juego;
         this.cantidadJugadoresEsperados = cantidadJugadoresEsperados;
         this.hardware = hardware;
+
+        // Con hardware, el alquiler y las cartas de pago no se cobran al caer: quedan pendientes y se cobran
+        // después de que el Jugador que paga valide con su tarjeta RFID (antes de terminar el turno).
+        if (hardware != null) {
+            juego.SetPagosDiferidos(true);
+        }
+    }
+
+
+    //*****************************************************
+    //*****************************************************
+
+    // Informa a todos los jugadores qué pago está esperando la partida.
+    private void AvisarPagoPendiente(Jugador Pagador, String Motivo) {
+
+        String Aviso = "PAGO_PENDIENTE;" + Pagador.getIdentificador() + ";" + Motivo.replace(';', ',');
+
+        for (int i = 0; i < jugadoresConectados.length; i++) {
+            if (jugadoresConectados[i] != null && clientesSocket[i] != null && !clientesSocket[i].isClosed()) {
+                enviarRespuesta(i, Aviso);
+            }
+        }
+    }
+
+
+    //*****************************************************
+    //*****************************************************
+
+    // VALIDACIÓN FÍSICA DE UN PAGO (igual que el lanzamiento físico de dados).
+    // Antes de cobrar, el Jugador que paga debe acercar su tarjeta RFID al lector.
+    // Bloquea hasta que la Pico confirma la tarjeta correcta.
+    private void ValidarPagoFisico(Jugador Pagador, int PosicionPagador, String Motivo) throws IOException {
+
+        System.out.println("Esperando validación RFID de " + Pagador.getIdentificador() + ": " + Motivo);
+
+        hardware.ValidarPago(
+                Pagador.getIdentificador(),
+
+                Mensaje -> {
+
+                    // Mostrar las instrucciones en el servidor.
+                    System.out.println("PICO -> " + Mensaje);
+
+                    // Informar al Jugador que paga qué está esperando el hardware.
+                    enviarRespuesta(PosicionPagador, "HARDWARE;" + Mensaje);
+                }
+        );
+
+        System.out.println("Pago validado por " + Pagador.getIdentificador());
     }
 
 
@@ -553,6 +602,7 @@ public class Server {
             TIRAR_DADOS
             COMPRAR_PROPIEDAD
             NO_COMPRAR
+            REALIZAR_PAGO
             TERMINAR_TURNO
             CONSULTAR_ESTADO
             CONSULTAR_TRANSACCIONES
@@ -1010,6 +1060,27 @@ public class Server {
                             }
                         }
 
+                        // Si cayó en una Propiedad de otro Jugador o sacó una carta de pago (y hay hardware),
+                        // el pago quedó pendiente: debe pagarlo antes de terminar el turno.
+                        if (juego.HayPagoPendiente()) {
+
+                            // No le alcanza el saldo: misma lógica de siempre, queda eliminado.
+                            if (jugador.getSaldo() < juego.GetMontoPagoPendiente()) {
+
+                                juego.CobrarPagoPendiente(jugador);
+                            }
+
+                            // Le alcanza: se avisa a todos y se le pide a su ventana que inicie el pago (REALIZAR_PAGO).
+                            else {
+
+                                AvisarPagoPendiente(jugador,
+                                        juego.GetMotivoPagoPendiente()
+                                        + " (₡" + (int) juego.GetMontoPagoPendiente() + ")");
+
+                                enviarRespuesta(posicion, "COBRAR_PAGO");
+                            }
+                        }
+
                         // Si el Jugador quedó eliminado durante su propio movimiento (por alquiler o por una carta),
                             // ya no puede enviar TERMINAR_TURNO: se saca de la partida igual que en una desconexión.
                         if (!jugador.esActivo()) {
@@ -1030,6 +1101,32 @@ public class Server {
                     // Se envía el jugador que realiza la compra y la propiedad donde se encuentra.
                     else if (solicitud.equals("COMPRAR_PROPIEDAD")) {
 
+                        // Con hardware, el Jugador que compra valida el pago con su tarjeta RFID antes del cobro.
+                        if (hardware != null) {
+
+                            String MotivoCompra = "Compra de " + propiedad.getNombre()
+                                    + " (₡" + (int) propiedad.getPrecioCompra() + ")";
+
+                            AvisarPagoPendiente(jugador, MotivoCompra);
+
+                            try {
+
+                                ValidarPagoFisico(jugador, posicion, MotivoCompra);
+
+                            } catch (IOException e) {
+
+                                System.out.println("Error del hardware: " + e.getMessage());
+
+                                // La compra queda pendiente para que el Jugador lo intente de nuevo.
+                                enviarRespuesta(posicion, "No se pudo validar el pago: " + e.getMessage());
+
+                                // Vuelve a habilitar el botón Comprar en el cliente.
+                                actualizarClientes();
+
+                                return;
+                            }
+                        }
+
                         juego.comprarPropiedad(jugador, propiedad);
 
                         // Si la Propiedad ya fue comprada por el Jugador, se elimina la información que indicaba
@@ -1043,6 +1140,40 @@ public class Server {
                         turnoPendienteCompra = 0;
 
                         // Se informa a todos los jugadores conectados que el estado del juego cambió.
+                        actualizarClientes();
+                    }
+
+                    // -------------------------------------------------
+                    // REALIZAR_PAGO
+                    // -------------------------------------------------
+
+                    // El Jugador tiene un pago pendiente (alquiler o carta de pago).
+                    // Primero valida con su tarjeta RFID y después se cobra (igual que los dados).
+                    else if (solicitud.equals("REALIZAR_PAGO")) {
+
+                        if (hardware != null) {
+
+                            try {
+
+                                ValidarPagoFisico(jugador, posicion, juego.GetMotivoPagoPendiente());
+
+                            } catch (IOException e) {
+
+                                // El pago es obligatorio: se cobra aunque el hardware falle.
+                                System.out.println("Error del hardware: " + e.getMessage());
+                            }
+                        }
+
+                        // Se cobra con la lógica de siempre: si no le alcanza el saldo queda eliminado.
+                        juego.CobrarPagoPendiente(jugador);
+
+                        if (!jugador.esActivo()) {
+
+                            SacarJugadorDeLaPartida(jugador);
+                        }
+
+                        // Se informa a todos los jugadores conectados que el estado cambió
+                        // (el botón Terminar turno ya se puede usar).
                         actualizarClientes();
                     }
 
@@ -1768,11 +1899,29 @@ public class Server {
                 return false;
             }
 
+            // Si todavía tiene un pago pendiente (alquiler o carta), primero debe pagarlo.
+            else if (juego.HayPagoPendiente()) {
+
+                return false;
+            }
+
             // Si el jugador tiene el turno actual y ya lanzó los dados, se permite terminar el turno.
             else {
 
                 return true;
             }
+        }
+
+
+        // -------------------------------------------------
+        // REALIZAR_PAGO
+        // -------------------------------------------------
+
+        // Solo el Jugador del turno puede pagar, y solo si tiene un pago pendiente.
+        else if (solicitud.equals("REALIZAR_PAGO")) {
+
+            return jugador == juego.obtenerJugadorActual()
+                    && juego.HayPagoPendiente();
         }
 
 
@@ -1785,6 +1934,7 @@ public class Server {
         // TIRAR_DADOS
         // COMPRAR_PROPIEDAD
         // NO_COMPRAR
+        // REALIZAR_PAGO
         // TERMINAR_TURNO
         // CONSULTAR_ESTADO
         // CONSULTAR_TRANSACCIONES
