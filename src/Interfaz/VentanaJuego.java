@@ -67,6 +67,7 @@ public class VentanaJuego extends JFrame {
 
     private Random generador = new Random();
 
+    private String idParaPatrimonioFinal = null;
     private String historialTransaccionesFinal = "";
     private String identificadorLocalEnLinea = "";
     private String[] nombresCasillas = {
@@ -403,7 +404,7 @@ public class VentanaJuego extends JFrame {
         // RESUMEN DE LOS JUGADORES
         // -----------------------------------------------
 
-        JPanel panelResumenJugadores = new JPanel(new GridLayout(2, 2, 5, 5));
+        JPanel panelResumenJugadores = new JPanel(new GridLayout(0, 2, 5, 5));
 
         panelResumenJugadores.setBorder(BorderFactory.createTitledBorder("Jugadores"));
 
@@ -1034,6 +1035,8 @@ public class VentanaJuego extends JFrame {
 
         for (int i = 0; i < fichasJugadores.length; i++) {
             retirarFichaJugadorSimulado(i);
+
+            tarjetasJugadores[i].setVisible(false);
         }
 
         lblEstado.setText("Modo en línea: sincronizando con el servidor...");
@@ -1496,41 +1499,68 @@ public class VentanaJuego extends JFrame {
                 // FIN DE PARTIDA
                 // -------------------------------------------------
 
-                else if (mensaje.startsWith("FIN;GANADOR;")) {
+                else if (mensaje.startsWith("FIN;")) {
 
                     String[] datos = mensaje.split(";", 3);
 
-                    if (datos.length == 3) {
+                    if (datos.length == 3 &&
+                        (datos[1].equals("GANADOR") ||
+                        datos[1].equals("EMPATE"))) {
 
-                        String idGanador = datos[2];
+                        String primerId = datos[2].split(",")[0].trim();
+
+                        idParaPatrimonioFinal = primerId.matches("J00[1-4]") ? primerId : null;
+
+                        String resultado;
+
+                        if (datos[1].equals("EMPATE")) {
+
+                            resultado = "Empate entre "
+                                    + datos[2].replace(",", ", ");
+
+                        } else if (datos[2].equals("SIN_GANADOR")) {
+
+                            resultado = "Sin ganador";
+
+                        } else {
+
+                            resultado = datos[2];
+                        }
 
                         SwingUtilities.invokeLater(() -> {
 
-                            // Evitar abrir la pantalla final dos veces.
+                            // Evitar ventanas finales duplicadas.
                             if (ventanaFinPartida != null) {
                                 return;
                             }
 
-                            // Desactivar acciones de juego.
+                            // Bloquear las acciones del juego.
                             btnTirarDados.setEnabled(false);
                             btnComprar.setEnabled(false);
                             btnTerminarTurno.setEnabled(false);
 
-                            String ganadorMostrado =
-                                    idGanador.equals("SIN_GANADOR")
-                                            ? "Sin ganador"
-                                            : idGanador;
+                            boolean esAnfitrion =
+                                    identificadorLocalEnLinea.equals("J001");
 
-                            boolean esAnfitrion = identificadorLocalEnLinea.equals("J001");
-
-                            // Crear la pantalla final.
-                            ventanaFinPartida = new VentanaFinPartida(ganadorMostrado, "No disponible", historialTransaccionesFinal, esAnfitrion, null, null);
+                            ventanaFinPartida = new VentanaFinPartida(
+                                    resultado,
+                                    idParaPatrimonioFinal == null
+                                            ? "No corresponde"
+                                            : "Calculando...",
+                                    historialTransaccionesFinal,
+                                    esAnfitrion,
+                                    null,
+                                    null
+                            );
 
                             ventanaFinPartida.setVisible(true);
                         });
 
-                        // Solicitar las transacciones finales.
+                        // Recuperar las transacciones y el estado definitivos.
+                        // Del estado calculamos el patrimonio del ganador
+                        // o el patrimonio común en caso de empate.
                         cliente.enviarSolicitud("CONSULTAR_TRANSACCIONES");
+                        cliente.enviarSolicitud("CONSULTAR_ESTADO");
                     }
                 }
 
@@ -1565,14 +1595,25 @@ public class VentanaJuego extends JFrame {
         String[] campos = estado.split(";", -1);
 
         // Ahora recibimos 13 campos desde el servidor.
-        if (campos.length != 13) {
+        if (campos.length != 14) {
             System.out.println(
                     "Formato ESTADO inválido: " + campos.length
             );
             return;
         }
 
+        String patrimonioActual = calcularPatrimonioFinal(estado, campos[1]);
+
         String[] jugadores = campos[8].split("\\|");
+        
+        int maxRondasReales = Integer.parseInt(campos[13]);
+
+        // El servidor envia saldo y propietarios de las casillas.
+        // Sumarlos permite obtener el mismo patrimonio que Juego.java
+        // sin modificar la logica del servidor.
+        String patrimonioCalculado = calcularPatrimonioFinal(
+                estado, idParaPatrimonioFinal
+        );
 
         SwingUtilities.invokeLater(() -> {
 
@@ -1581,6 +1622,16 @@ public class VentanaJuego extends JFrame {
             String identificadorTurno = campos[6];
             identificadorLocalEnLinea = identificadorLocal;
 
+            if (patrimonioActual != null) {
+                lblPatrimonio.setText("Patrimonio: " + patrimonioActual);
+            }
+
+            // Actualizar la pantalla final si recibimos el estado
+            // solicitado tras FIN;GANADOR o FIN;EMPATE.
+            if (patrimonioCalculado != null && ventanaFinPartida != null) {
+                ventanaFinPartida.actualizarPatrimonio(patrimonioCalculado);
+            }
+
             lblNombre.setText(
                     "Jugador: " + identificadorLocal
             );
@@ -1588,6 +1639,13 @@ public class VentanaJuego extends JFrame {
             lblTurno.setText(
                     "Turno actual: " + identificadorTurno
             );
+
+            if (maxRondasReales == 0) {
+                lblNumeroRonda.setText("Ronda: " + campos[7] + " / Sin límite");
+
+            } else {
+                lblNumeroRonda.setText("Ronda: " + campos[7] +" / " + maxRondasReales);
+            }
 
             if (identificadorTurno.matches("J00[1-4]")) {
                 indiceTurnoEnLinea = Integer.parseInt(identificadorTurno.substring(1)) - 1;
@@ -1625,6 +1683,8 @@ public class VentanaJuego extends JFrame {
                 }
 
                 int indiceJugador = Integer.parseInt(datos[0].substring(1)) - 1;
+
+                tarjetasJugadores[indiceJugador].setVisible(true);
 
                 lblSaldoJugadores[indiceJugador].setText("Saldo: ₡" + datos[3]);
 
@@ -1849,6 +1909,72 @@ public class VentanaJuego extends JFrame {
 
         posicionesVisuales[jugador] = -1;
     }
+
+    private String calcularPatrimonioFinal(String estado, String idJugador) {
+
+        String[] campos = estado.split(";", -1);
+
+        if (campos.length != 14 || idJugador == null) {
+            return null;
+        }
+
+        double patrimonio = 0;
+        boolean encontrado = false;
+
+        // Obtener el saldo final del jugador.
+        String[] jugadores = campos[8].split("\\|");
+
+        for (String registro : jugadores) {
+
+            String[] datos = registro.split(",");
+
+            if (datos.length == 4 &&
+                    datos[0].equals(idJugador)) {
+
+                try {
+                    patrimonio = Double.parseDouble(datos[3]);
+                    encontrado = true;
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+
+                break;
+            }
+        }
+
+        if (!encontrado) {
+            return null;
+        }
+
+        // Sumar el valor de sus propiedades.
+        String[] propiedades = campos[9].split("\\|");
+
+        for (String registro : propiedades) {
+
+            String[] datos = registro.split(",");
+
+            if (datos.length != 2 ||
+                    !datos[1].equals(idJugador) ||
+                    !datos[0].matches("P\\d{2}")) {
+                continue;
+            }
+
+            int posicion = Integer.parseInt(
+                    datos[0].substring(1)
+            );
+
+            if (posicion >= 0 &&
+                    posicion < preciosPropiedadesSimulados.length) {
+
+                patrimonio += preciosPropiedadesSimulados[posicion];
+            }
+        }
+
+        return "₡" + String.format(
+                java.util.Locale.US, "%,.2f", patrimonio
+        );
+    }
+
     // Método principal
     public static void main(String[] args) {
 

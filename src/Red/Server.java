@@ -1404,6 +1404,7 @@ public class Server {
                         estado = estado + ";" + puedeTirar;
                         estado = estado + ";" + puedeComprar;
                         estado = estado + ";" + puedeTerminar;
+                        estado = estado + ";" + juego.GetMaxRondas();
 
                         // Se envía el estado únicamente al jugador que realizó la consulta.
                         // enviarRespuesta() es un método de la clase Server.

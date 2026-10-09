@@ -28,10 +28,10 @@ public class IniciarServidor {
         // SELECCIONAR CANTIDAD DE JUGADORES
         // -----------------------------------------
 
-        while (cantidadJugadores != 3 && cantidadJugadores != 4) {
+        while (cantidadJugadores != 2 && cantidadJugadores != 3 && cantidadJugadores != 4) {
 
             System.out.print(
-                    "Cantidad de jugadores (3 o 4): "
+                    "Cantidad de jugadores (2, 3 o 4): "
             );
 
             if (scanner.hasNextInt()) {
