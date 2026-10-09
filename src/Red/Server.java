@@ -4,6 +4,8 @@ import LogicaJuego.Juego;
 import LogicaJuego.Jugador;
 import LogicaJuego.Propiedad;
 import Hardware.ResultadoDados;
+import LogicaJuego.CasillaEvento;
+import LogicaJuego.CartaEvento;
 
 // Permite acceder a la lista donde se encuentran guardadas las propiedades adquiridas por un jugador.
 import LogicaJuego.ListaSimplePropiedad;
@@ -888,7 +890,52 @@ public class Server {
                         // Se mueve al jugador utilizando la suma obtenida al lanzar los dos dados.
                         // "jugador" corresponde al jugador asociado con esta conexión.
                         // "pasos" contiene la suma de valorDado1 + valorDado2.
+                        // Guardar la posición antes del movimiento.
+                        int posicionAnterior = jugador.getPosicionActual();
+
+                        // Calcular la casilla donde cae con los dados.
+                        int posicionCaida = (
+                                posicionAnterior + pasos
+                        ) % juego.getTablero().getNumeroCasillas();
+
+                        // Ejecutar el movimiento y el efecto de la casilla.
                         juego.MoverJugador(jugador, pasos);
+
+                        // Revisar la casilla de caída original.
+                        // La carta podría haber movido al jugador a otra posición.
+                        Casilla casillaCaida = juego.getTablero()
+                                .ObtenerNodo(posicionCaida)
+                                .getCasilla();
+
+                        if (casillaCaida instanceof CasillaEvento) {
+
+                            CartaEvento carta = ((CasillaEvento) casillaCaida)
+                                    .ObtenerCarta();
+
+                            if (carta != null) {
+
+                                String descripcion = carta.getDescripcion()
+                                        .replace(';', ',')
+                                        .replace('\n', ' ')
+                                        .replace('\r', ' ');
+
+                                String mensajeEvento = "EVENTO;"
+                                        + jugador.getIdentificador() + ";"
+                                        + carta.getId() + ";"
+                                        + descripcion;
+
+                                // Informar a todos los clientes conectados.
+                                for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                                    if (jugadoresConectados[i] != null
+                                            && clientesSocket[i] != null
+                                            && !clientesSocket[i].isClosed()) {
+
+                                        enviarRespuesta(i, mensajeEvento);
+                                    }
+                                }
+                            }
+                        }
 
                         // Se obtiene la Propiedad donde quedó ubicado el Jugador
                         // después de realizar el movimiento en el tablero.
@@ -1105,7 +1152,9 @@ public class Server {
                                 estadoJugadores = estadoJugadores
                                         + identificadorEstado + ","
                                         + posicionEstado + ","
-                                        + activoEstado;
+                                        + activoEstado + ","
+                                        + jugadorEstado.getSaldo();
+
                             }
 
                         }

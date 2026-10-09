@@ -58,7 +58,6 @@ public class VentanaJuego extends JFrame {
     private JButton btnTerminarTurno;
 
     private Cliente cliente;
-    private boolean modoEnLinea = false;
 
     private JTextArea lblPropiedades;
     private JTextArea areaHistorial;
@@ -99,6 +98,8 @@ public class VentanaJuego extends JFrame {
         "Vas directamente al Edificio D3.",
         "Vas directamente a la Salida."
     };
+
+    private final java.util.Set<String> transaccionesMostradasEnLinea = new java.util.HashSet<>();
 
     private int maxRondasSimulado;
     private int numeroRondaSimulada = 1;
@@ -154,6 +155,7 @@ public class VentanaJuego extends JFrame {
     private static final double ALQUILER_SIMULADO = 100;
     private static final double PREMIO_SALIDA_SIMULADO = 200;
 
+    private boolean modoEnLinea = false;
     private boolean partidaPorRondas;
     private boolean[] pierdeTurnoSimulado = {false, false, false, false};
     private boolean dadosLanzadosSimulados = false;
@@ -1352,6 +1354,7 @@ public class VentanaJuego extends JFrame {
                 else if (mensaje.equals("ACTUALIZAR_ESTADO")) {
 
                     cliente.enviarSolicitud("CONSULTAR_ESTADO");
+                    cliente.enviarSolicitud("CONSULTAR_TRANSACCIONES");
 
                 }
 
@@ -1393,6 +1396,52 @@ public class VentanaJuego extends JFrame {
                     cliente.enviarSolicitud("CONSULTAR_ESTADO");
                 }
 
+                else if(mensaje.startsWith("HISTORIAL;")) {
+                    String contenido = mensaje.substring("HISTORIAL;".length());
+
+                    if (!contenido.equals("SIN_TRANSACCIONES") && !contenido.isBlank()) {
+                        String[] registros = contenido.split(";");
+
+                        SwingUtilities.invokeLater(() -> {
+                            for (String registro : registros) {
+                            if (registro.isBlank()) {
+                                continue;
+                            }
+                            int separador = registro.indexOf("|");
+
+                            String identificador = separador >= 0 ? registro.substring(0, separador).trim() : registro.trim();
+
+                            if (transaccionesMostradasEnLinea.add(identificador)) {
+                                agregarHistorialSimulado("[Economía] " + registro.replace("|", " . "));
+                            }
+                        }
+                    });
+                }
+            }
+
+                else if (mensaje.startsWith("EVENTO;")) {
+
+                    String[] datos = mensaje.split(";", 4);
+
+                    if (datos.length == 4) {
+
+                        String jugadorEvento = datos[1];
+                        String identificadorCarta = datos[2];
+                        String descripcionCarta = datos[3];
+
+                        SwingUtilities.invokeLater(() -> {
+
+                            agregarHistorialSimulado(
+                                    "[Evento] " + jugadorEvento
+                                    + " recibió la carta "
+                                    + identificadorCarta
+                                    + ": " + descripcionCarta
+                            );
+
+                        });
+                    }
+                }
+
                 // Mostrar otras respuestas del servidor.
                 else {
 
@@ -1411,6 +1460,7 @@ public class VentanaJuego extends JFrame {
 
         // Solicitar el estado inicial.
         cliente.enviarSolicitud("CONSULTAR_ESTADO");
+        cliente.enviarSolicitud("CONSULTAR_TRANSACCIONES");
     }
 
 
@@ -1472,13 +1522,18 @@ public class VentanaJuego extends JFrame {
 
                 String[] datos = registro.split(",");
 
-                if (datos.length != 3
+                if (datos.length != 4
                         || !datos[0].matches("J00[1-4]")) {
                     continue;
                 }
 
-                int indiceJugador =
-                        Integer.parseInt(datos[0].substring(1)) - 1;
+                int indiceJugador = Integer.parseInt(datos[0].substring(1)) - 1;
+
+                lblSaldoJugadores[indiceJugador].setText("Saldo: ₡" + datos[3]);
+
+                boolean activo = Boolean.parseBoolean(datos[2]);
+
+                lblEstadoJugadores[indiceJugador].setText(activo ? "Activo" : "Eliminado");
 
                 if (datos[2].equalsIgnoreCase("false")) {
 
@@ -1505,6 +1560,76 @@ public class VentanaJuego extends JFrame {
                                 "Posición inválida recibida."
                         );
                     }
+                }
+            }
+            // -------------------------------------------------
+            // SINCRONIZAR PROPIETARIOS DE LAS CASILLAS
+            // -------------------------------------------------
+
+            String[] propiedades = campos[9].split("\\|");
+
+            for (String registroPropiedad : propiedades) {
+
+                String[] datosPropiedad = registroPropiedad.split(",");
+
+                if (datosPropiedad.length != 2
+                        || !datosPropiedad[0].matches("P\\d{2}")) {
+                    continue;
+                }
+
+                int posicion = Integer.parseInt(
+                        datosPropiedad[0].substring(1)
+                );
+
+                if (posicion < 0
+                        || posicion >= etiquetasPropietarios.length) {
+                    continue;
+                }
+
+                JLabel lblDueno = etiquetasPropietarios[posicion];
+                JLabel lblPrecio = etiquetasPrecios[posicion];
+
+                if (lblDueno == null || lblPrecio == null) {
+                    continue;
+                }
+
+                String identificadorDueno = datosPropiedad[1];
+
+                // Propiedad disponible.
+                if (identificadorDueno.equals("SIN_PROPIETARIO")) {
+
+                    lblDueno.setText(" ");
+                    lblDueno.setOpaque(false);
+                    lblDueno.setBorder(null);
+
+                    lblPrecio.setVisible(true);
+                }
+
+                // Propiedad comprada.
+                else if (identificadorDueno.matches("J00[1-4]")) {
+
+                    int indiceDueno = Integer.parseInt(
+                            identificadorDueno.substring(1)
+                    ) - 1;
+
+                    lblDueno.setText(
+                            "Dueño: J" + (indiceDueno + 1)
+                    );
+
+                    lblDueno.setOpaque(true);
+
+                    lblDueno.setBackground(
+                            fichasJugadores[indiceDueno].getBackground()
+                    );
+
+                    lblDueno.setForeground(Color.WHITE);
+
+                    lblDueno.setBorder(
+                            BorderFactory.createEmptyBorder(3, 5, 3, 5)
+                    );
+
+                    // Ocultar el precio cuando ya tiene dueño.
+                    lblPrecio.setVisible(false);
                 }
             }
         });
