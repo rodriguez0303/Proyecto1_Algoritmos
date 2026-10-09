@@ -1492,7 +1492,7 @@ public class VentanaJuego extends JFrame {
 
                             lblSaldoJugadores[indiceJugador].setForeground(Color.GRAY);
 
-                            agregarHistorialSimulado("[Partida] " + identificador + " se deconectó y quedó eliminado.");
+                            agregarHistorialSimulado(identificador + " se desconectó y quedó eliminado.");
                         });
                     }
                 }
@@ -1679,35 +1679,14 @@ public class VentanaJuego extends JFrame {
                     }
                 }
 
-                // Un jugador perdió la conexión con el servidor.
-                else if (mensaje.startsWith("JUGADOR_DESCONECTADO;")) {
+                // Fin de la partida por empate: FIN;EMPATE;ID1,ID2
+                // (FIN;GANADOR se maneja arriba y abre la pantalla final).
+                else if (mensaje.startsWith("FIN;EMPATE;")) {
 
-                    String JugadorDesconectado = mensaje.substring("JUGADOR_DESCONECTADO;".length());
-
-                    SwingUtilities.invokeLater(() -> {
-                        agregarHistorialSimulado(JugadorDesconectado + " se desconectó y sale de la partida.");
-                    });
-                }
-
-                // Fin de la partida: FIN;GANADOR;ID, FIN;GANADOR;SIN_GANADOR o FIN;EMPATE;ID1,ID2
-                else if (mensaje.startsWith("FIN;")) {
-
-                    String[] DatosFin = mensaje.split(";");
-
-                    String TextoFin;
-
-                    if (DatosFin.length == 3 && DatosFin[1].equals("EMPATE")) {
-                        TextoFin = "Partida terminada en empate entre " + DatosFin[2].replace(",", ", ") + ".";
-                    }
-                    else if (DatosFin.length == 3 && !DatosFin[2].equals("SIN_GANADOR")) {
-                        TextoFin = "Partida terminada. Ganador: " + DatosFin[2] + ".";
-                    }
-                    else {
-                        TextoFin = "Partida terminada sin ganador.";
-                    }
+                    String Empatados = mensaje.substring("FIN;EMPATE;".length()).replace(",", ", ");
 
                     SwingUtilities.invokeLater(() -> {
-                        agregarHistorialSimulado(TextoFin);
+                        agregarHistorialSimulado("Partida terminada en empate entre " + Empatados + ".");
                     });
                 }
 
