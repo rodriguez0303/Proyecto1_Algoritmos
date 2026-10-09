@@ -15,6 +15,7 @@ import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
 import javax.swing.JOptionPane;
 import javax.swing.ImageIcon;
+import javax.swing.Timer;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -106,6 +107,15 @@ public class VentanaJuego extends JFrame {
     private int indiceCartaEventosSimulada = 0;
     private int[] posicionesJugadoresSimulados = {0, 0, 0, 0};
     private int [] posicionesVisuales = {-1, -1, -1, -1};
+
+    // Animación de las fichas: avanzan casilla por casilla en lugar de saltar.
+    private static final int MS_POR_CASILLA = 250;      // Tiempo que la ficha se queda en cada casilla
+    private static final int MS_ANTES_DE_SALTO = 700;   // Pausa antes de que una carta o "Ir al D3" la mueva
+    private Timer[] animacionesFichas = new Timer[4];   // Animación en curso de cada ficha (null si está quieta)
+    private int[] destinosFichas = {-1, -1, -1, -1};    // Casilla final donde debe terminar cada ficha
+    private int pasosDadosPendientes = 0;               // Total de los últimos dados en línea, falta animarlo
+    private int jugadorDadosPendiente = -1;             // Jugador que lanzó esos dados
+    private int indiceTurnoEnLinea = -1;                // Jugador con el turno según el último ESTADO
     private int jugadorActualSimulado = 0;
     private int[] propietariosSimulados = new int[24];
 
@@ -839,7 +849,7 @@ public class VentanaJuego extends JFrame {
 
             if (jugadoresActivosSimulados[jugadorActualSimulado]) {
 
-                marcarPosicionJugador((jugadorActualSimulado), nuevaPosicion);
+                animarFicha(jugadorActualSimulado, total, nuevaPosicion);
 
             } else {
 
@@ -1382,6 +1392,11 @@ public class VentanaJuego extends JFrame {
 
                                     lblDado1.setText(obtenerCaraDado(dado1));
                                     lblDado2.setText(obtenerCaraDado(dado2));
+
+                                    // El próximo ESTADO trae la posición final del que lanzó:
+                                    // se anima avanzando estos pasos casilla por casilla.
+                                    pasosDadosPendientes = dado1 + dado2;
+                                    jugadorDadosPendiente = indiceTurnoEnLinea;
                                 }
 
                             } catch (NumberFormatException ex) {
@@ -1496,6 +1511,10 @@ public class VentanaJuego extends JFrame {
                     "Turno actual: " + identificadorTurno
             );
 
+            if (identificadorTurno.matches("J00[1-4]")) {
+                indiceTurnoEnLinea = Integer.parseInt(identificadorTurno.substring(1)) - 1;
+            }
+
             // Información real del jugador.
             lblSaldo.setText("Saldo: ₡" + campos[3]);
             lblPosicion.setText("Posición: " + campos[4]);
@@ -1548,7 +1567,7 @@ public class VentanaJuego extends JFrame {
                         if (posicion >= 0
                                 && posicion < panelesFichas.length) {
 
-                            marcarPosicionJugador(
+                            moverFichaDesdeEstado(
                                     indiceJugador,
                                     posicion
                             );
@@ -1662,7 +1681,83 @@ public class VentanaJuego extends JFrame {
         posicionesVisuales[jugador] = posicion;
     }
 
+    // Decide cómo mostrar la posición que llegó en un ESTADO:
+    // - Si la ficha se está animando, solo se actualiza el destino final.
+    // - Si es el jugador que acaba de lanzar, avanza casilla por casilla.
+    // - Si no, se coloca directo (el primer ESTADO, cuando la ficha aún no está en el tablero).
+    private void moverFichaDesdeEstado(int jugador, int posicion) {
+        if (animacionesFichas[jugador] != null) {
+            destinosFichas[jugador] = posicion;
+            return;
+        }
+        if (jugador == jugadorDadosPendiente && pasosDadosPendientes > 0) {
+            int pasos = pasosDadosPendientes;
+            pasosDadosPendientes = 0;
+            jugadorDadosPendiente = -1;
+            animarFicha(jugador, pasos, posicion);
+            return;
+        }
+        if (posicion != posicionesVisuales[jugador]) {
+            marcarPosicionJugador(jugador, posicion);
+        }
+    }
+
+    // Avanza la ficha "pasos" casillas, una cada MS_POR_CASILLA.
+    // Si al terminar no quedó en "destinoFinal" (una carta la movió o cayó en
+    // "Ir al D3"), espera MS_ANTES_DE_SALTO y salta a la casilla final.
+    private void animarFicha(int jugador, int pasos, int destinoFinal) {
+        detenerAnimacionFicha(jugador);
+
+        if (posicionesVisuales[jugador] == -1 || pasos <= 0) {
+            marcarPosicionJugador(jugador, destinoFinal);
+            return;
+        }
+
+        destinosFichas[jugador] = destinoFinal;
+        int[] pasosRestantes = {pasos};
+
+        Timer animacion = new Timer(MS_POR_CASILLA, null);
+        animacion.addActionListener(e -> {
+
+            // La ficha fue retirada (jugador eliminado) mientras se movía.
+            if (posicionesVisuales[jugador] == -1) {
+                detenerAnimacionFicha(jugador);
+                return;
+            }
+
+            if (pasosRestantes[0] > 0) {
+                pasosRestantes[0]--;
+                marcarPosicionJugador(jugador, (posicionesVisuales[jugador] + 1) % panelesFichas.length);
+
+                if (pasosRestantes[0] == 0) {
+                    if (posicionesVisuales[jugador] == destinosFichas[jugador]) {
+                        detenerAnimacionFicha(jugador);
+                    } else {
+                        animacion.setDelay(MS_ANTES_DE_SALTO);
+                    }
+                }
+                return;
+            }
+
+            // Salto final provocado por una carta o por "Ir al D3".
+            int destino = destinosFichas[jugador];
+            detenerAnimacionFicha(jugador);
+            marcarPosicionJugador(jugador, destino);
+        });
+
+        animacionesFichas[jugador] = animacion;
+        animacion.start();
+    }
+
+    private void detenerAnimacionFicha(int jugador) {
+        if (animacionesFichas[jugador] != null) {
+            animacionesFichas[jugador].stop();
+            animacionesFichas[jugador] = null;
+        }
+    }
+
     private void retirarFichaJugadorSimulado(int jugador) {
+        detenerAnimacionFicha(jugador);
         int posicion = posicionesVisuales[jugador];
 
         if (posicion == -1) {
