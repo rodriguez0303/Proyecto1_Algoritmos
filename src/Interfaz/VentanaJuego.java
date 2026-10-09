@@ -1358,6 +1358,31 @@ public class VentanaJuego extends JFrame {
 
                 }
 
+                else if (mensaje.startsWith("JUGADOR_DESCONECTADO")) {
+                    String[] datos = mensaje.split(";", 2);
+
+                    if (datos.length == 2 && datos[1].matches("J00[1-4]")) {
+                        String identificador = datos[1];
+                        int indiceJugador = Integer.parseInt(identificador.substring(1)) - 1;
+
+                        SwingUtilities.invokeLater(() -> {
+                            retirarFichaJugadorSimulado(indiceJugador);
+
+                            lblEstadoJugadores[indiceJugador].setText("Desconectado / Eliminado");
+
+                            tarjetasJugadores[indiceJugador].setEnabled(false);
+
+                            tarjetasJugadores[indiceJugador].setBackground(new Color(210, 210, 210));
+
+                            lblEstadoJugadores[indiceJugador].setForeground(Color.GRAY);
+
+                            lblSaldoJugadores[indiceJugador].setForeground(Color.GRAY);
+
+                            agregarHistorialSimulado("[Partida] " + identificador + " se deconectó y quedó eliminado.");
+                        });
+                    }
+                }
+
                 else if (mensaje.startsWith("DADOS;")) {
 
                     // Separar los valores recibidos.
