@@ -58,6 +58,7 @@ public class VentanaJuego extends JFrame {
     private JButton btnComprar;
     private JButton btnTerminarTurno;
 
+    private VentanaFinPartida ventanaFinPartida;
     private Cliente cliente;
 
     private JTextArea lblPropiedades;
@@ -66,6 +67,8 @@ public class VentanaJuego extends JFrame {
 
     private Random generador = new Random();
 
+    private String historialTransaccionesFinal = "";
+    private String identificadorLocalEnLinea = "";
     private String[] nombresCasillas = {
     "Salida",        // 0
     "Comedor Institucional",   // 1
@@ -1469,6 +1472,31 @@ public class VentanaJuego extends JFrame {
 
                 }
 
+                else if (mensaje.startsWith("JUGADOR_DESCONECTADO")) {
+                    String[] datos = mensaje.split(";", 2);
+
+                    if (datos.length == 2 && datos[1].matches("J00[1-4]")) {
+                        String identificador = datos[1];
+                        int indiceJugador = Integer.parseInt(identificador.substring(1)) - 1;
+
+                        SwingUtilities.invokeLater(() -> {
+                            retirarFichaJugadorSimulado(indiceJugador);
+
+                            lblEstadoJugadores[indiceJugador].setText("Desconectado / Eliminado");
+
+                            tarjetasJugadores[indiceJugador].setEnabled(false);
+
+                            tarjetasJugadores[indiceJugador].setBackground(new Color(210, 210, 210));
+
+                            lblEstadoJugadores[indiceJugador].setForeground(Color.GRAY);
+
+                            lblSaldoJugadores[indiceJugador].setForeground(Color.GRAY);
+
+                            agregarHistorialSimulado("[Partida] " + identificador + " se deconectó y quedó eliminado.");
+                        });
+                    }
+                }
+
                 else if (mensaje.startsWith("DADOS;")) {
 
                     // Separar los valores recibidos.
@@ -1520,6 +1548,14 @@ public class VentanaJuego extends JFrame {
                 else if(mensaje.startsWith("HISTORIAL;")) {
                     String contenido = mensaje.substring("HISTORIAL;".length());
 
+                    SwingUtilities.invokeLater(() -> {
+                        historialTransaccionesFinal = contenido.equals("SIN_TRANSACCIONES") ? "" : contenido.replace(";", "\n").replace("|", "|");
+
+                        if (ventanaFinPartida != null) {
+                            ventanaFinPartida.actualizarTransacciones(historialTransaccionesFinal);
+                        }
+                    });
+
                     if (!contenido.equals("SIN_TRANSACCIONES") && !contenido.isBlank()) {
                         String[] registros = contenido.split(";");
 
@@ -1559,6 +1595,47 @@ public class VentanaJuego extends JFrame {
                             );
 
                         });
+                    }
+                }
+                // -------------------------------------------------
+                // FIN DE PARTIDA
+                // -------------------------------------------------
+
+                else if (mensaje.startsWith("FIN;GANADOR;")) {
+
+                    String[] datos = mensaje.split(";", 3);
+
+                    if (datos.length == 3) {
+
+                        String idGanador = datos[2];
+
+                        SwingUtilities.invokeLater(() -> {
+
+                            // Evitar abrir la pantalla final dos veces.
+                            if (ventanaFinPartida != null) {
+                                return;
+                            }
+
+                            // Desactivar acciones de juego.
+                            btnTirarDados.setEnabled(false);
+                            btnComprar.setEnabled(false);
+                            btnTerminarTurno.setEnabled(false);
+
+                            String ganadorMostrado =
+                                    idGanador.equals("SIN_GANADOR")
+                                            ? "Sin ganador"
+                                            : idGanador;
+
+                            boolean esAnfitrion = identificadorLocalEnLinea.equals("J001");
+
+                            // Crear la pantalla final.
+                            ventanaFinPartida = new VentanaFinPartida(ganadorMostrado, "No disponible", historialTransaccionesFinal, esAnfitrion, null, null);
+
+                            ventanaFinPartida.setVisible(true);
+                        });
+
+                        // Solicitar las transacciones finales.
+                        cliente.enviarSolicitud("CONSULTAR_TRANSACCIONES");
                     }
                 }
 
@@ -1677,6 +1754,7 @@ public class VentanaJuego extends JFrame {
             // Identificación del jugador y del turno.
             String identificadorLocal = campos[1];
             String identificadorTurno = campos[6];
+            identificadorLocalEnLinea = identificadorLocal;
 
             lblNombre.setText(
                     "Jugador: " + identificadorLocal
