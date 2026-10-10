@@ -53,6 +53,18 @@ import LogicaJuego.Casilla;
 //*****************************************************
 //*****************************************************
 
+/**
+ * Servidor TCP autoritativo de Monopoly TEC.
+ * Recibe solicitudes de hasta cuatro jugadores, valida sus acciones contra
+ * Juego, sincroniza el tablero entre los clientes y gestiona el hardware RFID.
+ * Cada cliente conectado se atiende desde su propio hilo. Para proteger el
+ * estado mutable de la partida se utiliza un bloqueo compartido independiente
+ * del objeto Juego, ya que ese objeto puede reemplazarse al reiniciar.
+ *
+ * Los mensajes del protocolo son cadenas delimitadas por punto y coma:
+ * por ejemplo CONECTAR;J001;Nombre, ESTADO;..., HARDWARE;..., FIN;...
+ * y PARTIDA_INICIADA. El servidor valida antes de aplicar cada accion.
+ */
 public class Server {
 
     // Dirección IP de la computadora que funciona como servidor
@@ -136,14 +148,39 @@ public class Server {
     // Constructor de la clase Servidor.
     // Recibe la IP, el puerto y el objeto Juego que administrará el servidor. //("192.168.1.10", 5000, juegoMonopoly)
 
+    /**
+     * Crea un servidor para cuatro jugadores sin hardware fisico.
+     *
+     * @param ip direccion usada para identificar el servidor
+     * @param puerto puerto TCP de escucha
+     * @param juego partida que administrara el servidor
+     */
     public Server(String ip, int puerto, Juego juego) {
         this(ip, puerto, juego, 4, null);
     }
 
+    /**
+     * Crea el servidor con una cantidad esperada de jugadores y sin hardware.
+     *
+     * @param ip direccion del servidor
+     * @param puerto puerto TCP de escucha
+     * @param juego partida inicial
+     * @param cantidadJugadoresEsperados cantidad de jugadores de la partida
+     */
     public Server(String ip, int puerto, Juego juego, int cantidadJugadoresEsperados) {
         this(ip, puerto, juego, cantidadJugadoresEsperados, null);
     }
 
+    /**
+     * Configura la partida y su integracion opcional con el hardware.
+     * Cuando existe hardware se difieren los cobros hasta validar la tarjeta.
+     *
+     * @param ip direccion del servidor
+     * @param puerto puerto TCP de escucha
+     * @param juego partida que se administrara
+     * @param cantidadJugadoresEsperados cantidad de jugadores (2 a 4)
+     * @param hardware controlador de la Pico o null para modo digital
+     */
     public Server(String ip, int puerto, Juego juego, int cantidadJugadoresEsperados, ControlDadosHardware hardware) {
 
         if (cantidadJugadoresEsperados < 2 || cantidadJugadoresEsperados > 4) {
@@ -169,6 +206,12 @@ public class Server {
     //*****************************************************
 
     // Informa a todos los jugadores qué pago está esperando la partida.
+    /**
+     * Anuncia a los clientes que un jugador tiene un cobro por resolver.
+     *
+     * @param Pagador jugador al que corresponde el pago
+     * @param Motivo texto explicativo del cobro
+     */
     private void AvisarPagoPendiente(Jugador Pagador, String Motivo) {
 
         String Aviso = "PAGO_PENDIENTE;" + Pagador.getIdentificador() + ";" + Motivo.replace(';', ',');
@@ -189,6 +232,14 @@ public class Server {
     // está ocupado, así que aquí se revisa si el cliente envió la solicitud "Esperada":
     // LANZAR_DADOS (botón "Lanzar dados") o CANCELAR_COMPRA (botón "Cancelar" al comprar).
     // Si llega otra solicitud, se guarda para atenderla después.
+    /**
+     * Consulta solicitudes de la GUI mientras el hilo espera al hardware.
+     * Conserva una solicitud diferente de la esperada para procesarla luego.
+     *
+     * @param Posicion indice de la conexion del jugador
+     * @param Esperada comando que permite continuar o cancelar la operacion
+     * @return true si se recibio el comando esperado
+     */
     private boolean RevisarSolicitudDigital(int Posicion, String Esperada) {
 
         try {
@@ -228,6 +279,17 @@ public class Server {
     // Bloquea hasta que la Pico confirma la tarjeta correcta.
     // Si "PuedeCancelar" es true (compras), el jugador puede cancelar desde la interfaz con CANCELAR_COMPRA.
     // Devuelve true si el pago se validó y false si el jugador lo canceló.
+    /**
+     * Espera la validacion RFID de un cobro y envia avisos HARDWARE al cliente.
+     * Puede aceptar una cancelacion digital si la operacion lo permite.
+     *
+     * @param Pagador jugador que debe validar su tarjeta
+     * @param PosicionPagador indice de su conexion
+     * @param Motivo descripcion del pago pendiente
+     * @param PuedeCancelar indica si se permite cancelar la operacion
+     * @return true cuando la validacion se completa
+     * @throws IOException si ocurre un error de comunicacion con el hardware
+     */
     private boolean ValidarPagoFisico(Jugador Pagador, int PosicionPagador, String Motivo,
                                       boolean PuedeCancelar) throws IOException {
 
@@ -261,6 +323,10 @@ public class Server {
     //*****************************************************
 
     // Método que permite iniciar el servidor
+    /**
+     * Abre el puerto TCP y atiende conexiones mientras el servidor este activo.
+     * La espera de nuevas conexiones se interrumpe al cerrar el ServerSocket.
+     */
     public void iniciar() {
 
         try {
@@ -303,6 +369,11 @@ public class Server {
     //*****************************************************
 
     // Método que busca una posición disponible para guardar una nueva conexión.
+    /**
+     * Localiza una posicion libre en el arreglo de conexiones.
+     *
+     * @return indice disponible o -1 cuando no quedan posiciones libres
+     */
     public int buscarPosicionDisponible() {
 
         //Si un jugador se desconecta debe quedar el espacio disponible nuevamente para volverse a conectar
@@ -328,6 +399,11 @@ public class Server {
     //*****************************************************
     //*****************************************************
     // Método que permite aceptar la conexión de un jugador.
+    /**
+     * Acepta un socket entrante y prepara sus flujos de entrada y salida.
+     * Cada conexion aceptada dispone de un hilo para leer solicitudes;
+     * al finalizar se procesa la desconexion y se actualiza la partida.
+     */
     public void aceptarCliente() {
 
         try {
@@ -541,6 +617,12 @@ public class Server {
     //*****************************************************
     //*****************************************************
     // Método que guarda un jugador dentro del arreglo de jugadores conectados.
+    /**
+     * Asocia el objeto Jugador con la posicion de su conexion TCP.
+     *
+     * @param posicion indice de la conexion correspondiente
+     * @param jugador jugador identificado por esa conexion
+     */
     public void asignarJugador(int posicion, Jugador jugador) {
 
         // La posición coincide con la posición de su conexión dentro del arreglo clientesSocket.
@@ -556,6 +638,13 @@ public class Server {
                 // El mensaje es FIN;GANADOR;ID, FIN;EMPATE;ID1,ID2 si empatan en patrimonio,
                     // o FIN;GANADOR;SIN_GANADOR si no quedó ningún jugador activo.
                     // Debe llamarse dentro de un bloque synchronized (juego).
+    /**
+     * Comprueba el fin de la partida, exporta el historial y envia FIN a
+     * los clientes. Distingue ganador, empate y ausencia de ganador.
+     * Evita notificar dos veces un mismo fin de partida.
+     *
+     * Debe ejecutarse con el estado compartido de la partida protegido.
+     */
     private void RevisarFinPartida() {
 
         // Si la partida sigue en curso, o el fin ya fue avisado, no hay nada que enviar.
@@ -608,6 +697,12 @@ public class Server {
     // Método único para sacar a un Jugador de la partida, ya sea porque se desconectó o porque quedó en bancarrota.
         // No avisa a los clientes: cada caso envía sus propios mensajes después de llamarlo.
             // Debe llamarse dentro de un bloque synchronized (juego).
+    /**
+     * Retira a un jugador por desconexion o eliminacion, libera propiedades
+     * y permite avanzar el turno cuando corresponda.
+     *
+     * @param jugadorEliminado jugador que deja de participar
+     */
     private void SacarJugadorDeLaPartida(Jugador jugadorEliminado) {
 
         // Se verifica si el Jugador tenía el turno actual.
@@ -660,6 +755,13 @@ public class Server {
     // *****************************************************
     // Permitir que J001 reinicie la partida. Pero Si J001 se desconectó, J002 podrá hacerlo como respaldo.
 
+    /**
+     * Comprueba la autorizacion de reinicio: J001 tiene prioridad y J002
+     * puede actuar como respaldo si J001 ya no esta conectado.
+     *
+     * @param jugador jugador que solicita el reinicio
+     * @return true si tiene permiso para reiniciar
+     */
     private boolean puedeReiniciarPartida(Jugador jugador) {
 
         // Se verifica si J001 continúa conectado.
@@ -692,6 +794,13 @@ public class Server {
     // Este método permitirá comenzar una nueva partida.
         // Antes de reiniciar, verifica que existan al menos dos jugadores conectados.
             // Devuelve true si se puede continuar con el reinicio.
+    /**
+     * Crea una partida nueva sin obligar a reconectar los sockets existentes.
+     * Conserva los nombres y el limite de rondas, pero reinicia el estado de
+     * los jugadores, tablero, banco e historial.
+     *
+     * @return true cuando hay suficientes conexiones para iniciar otra partida
+     */
     private boolean reiniciarPartida() {
 
         // Se crea una variable para contar cuántos jugadores siguen conectados.
@@ -816,6 +925,13 @@ public class Server {
     // Permite que J001 cierre el servidor.
         // Si J001 está desconectado, J002 podrá hacerlo como respaldo.
             // J003 y J004 no tienen autorización para cerrar el servidor.
+    /**
+     * Controla quien puede cerrar el servidor: J001 o J002 como respaldo
+     * cuando J001 esta desconectado.
+     *
+     * @param jugador solicitante del cierre
+     * @return true si puede realizar la operacion
+     */
     private boolean puedeCerrarServidor(Jugador jugador) {
 
         // Se verifica si J001 continúa conectado al servidor.
@@ -854,6 +970,10 @@ public class Server {
 
         // Permite cerrar el servidor de forma controlada.
             // Notifica a los jugadores, cierra sus conexiones y detiene la aceptación de nuevos clientes.
+        /**
+         * Notifica SERVIDOR_CERRADO, cierra los sockets y detiene la escucha.
+         * Evita ejecutar el cierre dos veces.
+         */
         private void cerrarServidor() {
 
             // Se verifica si el servidor ya está cerrado.
@@ -935,6 +1055,13 @@ public class Server {
         //*****************************************************
         // Método que permite recibir una solicitud enviada por el jugador.
         // *****************************************************
+    /**
+     * Lee e interpreta una solicitud del jugador en la posicion indicada.
+     * Atiende conexion, movimientos, compras, pagos, consultas y acciones
+     * administrativas, utilizando las reglas de Juego y los bloqueos.
+     *
+     * @param posicion indice del cliente que envio la solicitud
+     */
     public void procesarSolicitud(int posicion) {
 
         try {
@@ -2166,6 +2293,12 @@ public class Server {
     // *****************************************************
 
     // Método que permite enviar una respuesta a un jugador específico.
+    /**
+     * Envia una linea del protocolo al cliente de la posicion indicada.
+     *
+     * @param posicion indice de la conexion de destino
+     * @param mensaje respuesta o notificacion a enviar
+     */
     public void enviarRespuesta(int posicion, String mensaje) {
 
         // Se verifica que la posición del jugador sea válida.
@@ -2207,6 +2340,15 @@ public class Server {
 
     // Método que valida si una solicitud enviada por un jugador se puede realizar o no
 
+    /**
+     * Evalua si la accion es valida para el estado actual de la partida.
+     * Incluye restricciones de turno, disponibilidad de propiedades y pagos.
+     *
+     * @param solicitud comando solicitado por el cliente
+     * @param jugador jugador que intenta ejecutar la accion
+     * @param propiedad propiedad involucrada, si corresponde
+     * @return true si la accion esta permitida
+     */
     public boolean validarAccion(String solicitud, Jugador jugador, Propiedad propiedad) {
 
         // -------------------------------------------------
@@ -2508,6 +2650,10 @@ public class Server {
     // *****************************************************
 
     // Método que permite informar a todos los jugadores conectados que el estado del juego fue actualizado.
+    /**
+     * Solicita a todos los clientes conectados que consulten el estado
+     * actualizado del juego mediante ACTUALIZAR_ESTADO.
+     */
     public void actualizarClientes() {
 
         // Se recorren las posiciones correspondientes a los 4 posibles jugadores.
@@ -2535,6 +2681,11 @@ public class Server {
     // Método de la clase Server que permite informar a los demás jugadores conectados que el estado del juego fue actualizado.
     // Recibe "posicionExcluir", que corresponde a la posición de la conexión del Jugador que acaba de recibir una respuesta directa del Server.
     // Ese Jugador no recibirá el mensaje ACTUALIZAR_ESTADO mediante este método.
+    /**
+     * Notifica cambios del estado a todos los clientes salvo al indicado.
+     *
+     * @param posicionExcluir indice del cliente que no recibira este aviso
+     */
     public void actualizarOtrosClientes(int posicionExcluir) {
 
         // Se recorren las 4 posiciones disponibles en los arreglos de conexiones del Server.
@@ -2565,6 +2716,10 @@ public class Server {
         }
     }
     
+    /**
+     * Publica la ocupacion de la sala de espera junto con los nombres e IDs
+     * de los jugadores conectados, mediante un mensaje SALA.
+     */
     private void enviarEstadoSala() {
 
         StringBuilder listaJugadores = new StringBuilder();

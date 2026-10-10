@@ -4,8 +4,19 @@ package Red;
 import LogicaJuego.Cliente;
 import java.util.Scanner;
 
+/**
+ * Cliente de prueba por consola para enviar comandos al servidor TCP.
+ * Es una herramienta auxiliar; la interfaz habitual usa VentanaInicio
+ * y la clase Cliente del paquete LogicaJuego.
+ */
 public class PruebaCliente {
 
+    /**
+     * Conecta un jugador de prueba, imprime mensajes del servidor y permite
+     * enviar solicitudes escritas en consola hasta introducir SALIR.
+     *
+     * @param args identificador opcional del jugador, por ejemplo J002
+     */
     public static void main(String[] args) {
 
         String idJugador = args.length > 0

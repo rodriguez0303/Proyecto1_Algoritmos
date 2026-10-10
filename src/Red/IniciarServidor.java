@@ -8,8 +8,19 @@ import LogicaJuego.Jugador;
 import java.io.IOException;
 import java.util.Scanner;
 
+/**
+ * Punto de entrada para configurar y levantar el servidor de Monopoly TEC.
+ * Permite iniciar la partida desde consola o desde la interfaz grafica,
+ * con dados digitales o con la Raspberry Pi Pico y tarjetas RFID.
+ */
 public class IniciarServidor {
 
+    /**
+     * Solicita por consola la cantidad de jugadores y el limite de rondas.
+     * El argumento "hardware" habilita el uso de la Pico.
+     *
+     * @param args argumentos de consola; el primero puede ser "hardware"
+     */
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
@@ -78,6 +89,16 @@ public class IniciarServidor {
     // Este método puede utilizarse tanto desde
     // la consola como desde la interfaz gráfica.
 
+    /**
+     * Valida la configuracion, crea Juego y registra los jugadores iniciales.
+     * Si se solicita hardware, conecta la Pico y registra las tarjetas RFID
+     * antes de abrir el servidor TCP. La partida comienza posteriormente,
+     * cuando el anfitrion la inicia desde la sala de espera.
+     *
+     * @param cantidadJugadores cantidad prevista de jugadores (entre 2 y 4)
+     * @param maxRondas numero maximo de rondas; 0 significa sin limite
+     * @param usarHardware true para habilitar Pico y validaciones RFID
+     */
     public static void iniciarServidor(int cantidadJugadores, int maxRondas, boolean usarHardware) {
 
         // -----------------------------------------
