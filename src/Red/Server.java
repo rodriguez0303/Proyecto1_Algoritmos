@@ -64,11 +64,19 @@ public class Server {
     // Juego que será administrado por el servidor
     private Juego juego;
 
+    // Se crea un objeto llamado bloqueoJuego para controlar el acceso de los Threads (hilos).
+        // Permite que solamente un Thread a la vez modifique la información de la partida.
+            // De esta forma, aunque se reinicie la partida, los Threads seguirán utilizando el mismo objeto para controlar el acceso al juego.
+    private final Object bloqueoJuego = new Object();
+
     private final ControlDadosHardware hardware;
 
     private final int cantidadJugadoresEsperados;
 
     private boolean partidaIniciada = false;
+
+    // volatile permite que los diferentes Threads observen los cambios realizados en esta variable.
+    private volatile boolean servidorActivo = true;
 
     // ServerSocket es una clase que Java ya tiene implementada.
     // Guardará el servidor en el que se abrió en un puerto y estará a la espera de las conexiones de los jugadores al servidor.
@@ -274,15 +282,13 @@ public class Server {
             // Se muestra un mensaje indicando que el servidor fue iniciado correctamente.
             System.out.println("Servidor iniciado");
 
-
-            // El servidor permanece esperando nuevas conexiones mientras continúe ejecutándose.
-            // aceptarCliente() se encarga de revisar si existe una posición disponible.
-            // De esta forma, si un jugador se desconecta, su espacio puede volver a utilizarse.
-            while (true) {
+            // El servidor continuará aceptando conexiones mientras la variable servidorActivo sea true.
+                // Cuando se solicite cerrar el servidor, el ciclo terminará.
+            while (servidorActivo) {
 
                 aceptarCliente();
-            }
 
+        }
         }
 
         catch (IOException e) {
@@ -318,11 +324,9 @@ public class Server {
         // no existe espacio disponible para otro jugador.
         return -1;
     }
-    //*****************************************************
-    //*****************************************************
-    //*****************************************************
-//*****************************************************
 
+    //*****************************************************
+    //*****************************************************
     // Método que permite aceptar la conexión de un jugador.
     public void aceptarCliente() {
 
@@ -391,13 +395,13 @@ public class Server {
 
 
                 // Se crea un Thread para atender las solicitudes de los jugadores.
-                // Cada jugador tendrá su propio Thread.
-                // Esto permitirá atender varias conexiones al mismo tiempo.
+                    // Cada jugador tendrá su propio Thread.
+                        // Esto permitirá atender varias conexiones al mismo tiempo.
                 Thread hiloCliente = new Thread(() -> {
 
                     // El Thread continúa solamente mientras la posición siga perteneciendo al mismo Socket.
-                    // Si el jugador se desconecta y la posición es reutilizada,
-                    // el Thread anterior ya no podrá procesar las solicitudes del nuevo cliente.
+                        // Si el jugador se desconecta y la posición es reutilizada,
+                            // el Thread anterior ya no podrá procesar las solicitudes del nuevo cliente.
                     while (clientesSocket[posicionJugador] == socketJugador && !socketJugador.isClosed()) {
 
                         procesarSolicitud(posicionJugador);
@@ -407,9 +411,8 @@ public class Server {
                     // -------------------------------------------------
 
                     // synchronized permite que solamente un Thread a la vez acceda a este bloque de código.
-                    // Se utiliza para evitar que otros Threads modifiquen simultáneamente el estado del Juego.
-                    // la eliminación del Jugador y la actualización de la partida se realizan sin interferencias de las solicitudes de los demás jugadores.
-                    synchronized (juego) {
+                        // Se utiliza para evitar que otros Threads modifiquen simultáneamente el estado del Juego.
+                    synchronized (bloqueoJuego) {
 
                         // Se verifica que la posición todavía pertenezca al mismo Socket.
                         // Se evita modificar una conexión que haya sido ocupada por otro jugador.
@@ -418,8 +421,11 @@ public class Server {
                             // Se obtiene el Jugador asociado con la conexión que terminó.
                             Jugador jugadorDesconectado = jugadoresConectados[posicionJugador];
 
-                            // Se verifica que la conexión tuviera un Jugador identificado.
-                            if (jugadorDesconectado != null && juego.isEnCurso()) {
+                            // Se verifica que exista un Jugador identificado.
+                                // Se comprueba que la partida esté en curso.
+                                    // Se valida que el servidor continúe activo.
+                                     // Esto evita eliminar jugadores cuando el servidor está cerrando voluntariamente todas las conexiones.
+                            if (jugadorDesconectado != null && juego.isEnCurso() && servidorActivo) {
 
                                 // Se obtiene el identificador del Jugador desconectado.
                                 // Este valor permitirá informar a los demás jugadores quien esta activo en el juego.
@@ -469,7 +475,12 @@ public class Server {
                             // Se libera la posición del Socket para futuras conexiones.
                             clientesSocket[posicionJugador] = null;
 
-                            if (!partidaIniciada) {
+                            // Se verifica que el servidor continúe activo.
+                             // También se comprueba que la partida no haya iniciado.
+                                // Esto evita enviar actualizaciones de la sala cuando el servidor está cerrando las conexiones de los jugadores.
+                            if (servidorActivo && !partidaIniciada) {
+
+                                // Se informa a los jugadores conectados sobre el estado actual de la sala.
                                 enviarEstadoSala();
                             }
                         }
@@ -511,15 +522,22 @@ public class Server {
 
         }
 
+
         catch (IOException e) {
 
-            // Se ejecuta si ocurre un problema al aceptar o preparar la conexión del cliente.
-            // Puede ocurrir al crear el Socket, BufferedReader o PrintWriter.
-            System.out.println(
-                    "Error al aceptar la conexión del cliente"
-            );
+            // Se verifica si el servidor continúa activo.
+                // Si servidorActivo es true, significa que ocurrió un error mientras se aceptaba una conexión.
+            if (servidorActivo) {
+
+                // Se informa que ocurrió un problema al aceptar o preparar la conexión de un cliente.
+                System.out.println("Error al aceptar la conexión del cliente");
+            }
+
+            // Si servidorActivo es false, significa que el servidor
+                // está cerrándose voluntariamente.En ese caso no se muestra un mensaje de error.
         }
-    }
+
+        }
     //*****************************************************
     //*****************************************************
     // Método que guarda un jugador dentro del arreglo de jugadores conectados.
@@ -638,9 +656,285 @@ public class Server {
     }
 
     //*****************************************************
+    // MÉTODO PARA VALIDAR QUIÉN PUEDE REINICIAR LA PARTIDA
+    // *****************************************************
+    // Permitir que J001 reinicie la partida. Pero Si J001 se desconectó, J002 podrá hacerlo como respaldo.
+
+    private boolean puedeReiniciarPartida(Jugador jugador) {
+
+        // Se verifica si J001 continúa conectado.
+        boolean jugador1Conectado = false;
+
+        for (int i = 0; i < jugadoresConectados.length; i++) {
+
+            if (jugadoresConectados[i] != null
+                    && clientesSocket[i] != null
+                    && !clientesSocket[i].isClosed()
+                    && jugadoresConectados[i].getIdentificador().equals("J001")) {
+
+                jugador1Conectado = true;
+                break;
+            }
+        }
+
+        // J001 tiene la prioridad para reiniciar.
+        if (jugador1Conectado) {
+            return jugador.getIdentificador().equals("J001");
+        }
+
+        // Si J001 está desconectado, J002 puede reiniciar.
+        return jugador.getIdentificador().equals("J002");
+    }
+    //*****************************************************
+    // MÉTODO PARA REINICIAR LA PARTIDA
     //*****************************************************
 
-    // Método que permite recibir una solicitud enviada por el jugador.
+    // Este método permitirá comenzar una nueva partida.
+        // Antes de reiniciar, verifica que existan al menos dos jugadores conectados.
+            // Devuelve true si se puede continuar con el reinicio.
+    private boolean reiniciarPartida() {
+
+        // Se crea una variable para contar cuántos jugadores siguen conectados.
+        int jugadoresActivosConectados = 0;
+
+        // Se recorren las cuatro posiciones del arreglo jugadoresConectados.
+        for (int i = 0; i < jugadoresConectados.length; i++) {
+
+            // Se verifica que exista un Jugador en esta posición.
+            // También se comprueba que tenga un Socket y que no esté cerrado.
+            // No se utiliza esActivo(), porque un jugador eliminado por bancarrota puede participar nuevamente cuando se reinicie la partida.
+            if (jugadoresConectados[i] != null
+                    && clientesSocket[i] != null
+                    && !clientesSocket[i].isClosed()) {
+
+                // Se aumenta el contador por cada jugador conectado.
+                jugadoresActivosConectados++;
+            }
+        }
+
+        // Se verifica que existan al menos dos jugadores conectados.  Si solamente queda uno o ninguno, no se permite el reinicio.
+        if (jugadoresActivosConectados < 2) {
+
+            // Se informa en la consola por qué no puede reiniciarse.
+            System.out.println("No se puede reiniciar: se necesitan al menos dos jugadores conectados.");
+
+            // false indica que no se puede continuar con el reinicio.
+            return false;
+        }
+
+        //*****************************************************
+        // CREAR UNA NUEVA PARTIDA
+        //*****************************************************
+
+        // GetMaxRondas() pertenece a la clase Juego.
+            // Permite obtener la cantidad máxima de rondas de la partida anterior.
+                // El valor se conserva para que al reiniciar el juego tenga el mismo límite.
+        int maxRondas = juego.GetMaxRondas();
+
+        // Se crea un nuevo objeto de la clase Juego.
+            // Se utiliza el constructor Juego(int MaxRondas) que ya existe.
+                // La nueva partida tendrá un tablero, banco, dados e historial nuevos.
+        Juego nuevoJuego = new Juego(maxRondas);
+
+        //*****************************************************
+        // AGREGAR LOS JUGADORES A LA NUEVA PARTIDA
+        //*****************************************************
+
+        // Se recorren las cuatro posiciones del arreglo jugadoresConectados.
+            // Cada posición puede contener un Jugador asociado a una conexión Socket.
+        for (int i = 0; i < jugadoresConectados.length; i++) {
+
+            // Se verifica que exista un Jugador y que su conexión siga abierta.
+                // Solamente estos jugadores participarán en la nueva partida.
+            if (jugadoresConectados[i] != null
+                    && clientesSocket[i] != null
+                    && !clientesSocket[i].isClosed()) {
+
+                // Se obtiene el Jugador que participaba en la partida anterior.
+                Jugador jugadorAnterior = jugadoresConectados[i];
+
+                // Se conserva el identificador del Jugador.
+                String identificador = jugadorAnterior.getIdentificador();
+
+                // Se conserva el nombre del Jugador.
+                String nombre = jugadorAnterior.getNombre();
+
+                // Se crea un nuevo Jugador con su identidad y el saldo inicial.
+                    // En la posición lo marca como activo y crea una lista de propiedades vacía.
+                Jugador nuevoJugador = new Jugador(identificador, nombre,1500);
+
+                // AgregarJugador() pertenece a la clase Juego.
+                    // Se agrega el nuevo Jugador a la cola de turnos de la nueva partida.
+                nuevoJuego.AgregarJugador(nuevoJugador);
+
+                // Se reemplaza el Jugador anterior por el nuevo Jugador.
+                    // Se conserva la misma posición del arreglo y su conexión Socket.
+                jugadoresConectados[i] = nuevoJugador;
+            }
+        }
+
+        // Se reemplaza el Juego anterior por el nuevo Juego.f
+            // A partir de este momento, el servidor utilizará la nueva partida con los jugadores recién creados.
+        juego = nuevoJuego;
+
+        //*****************************************************
+        // REINICIAR LAS VARIABLES DE CONTROL DEL SERVIDOR
+        //*****************************************************
+
+        // Se elimina la referencia a la Propiedad que estaba pendiente de comprar en la partida anterior.
+        propiedadPendienteCompra = null;
+
+        // Se elimina la referencia al Jugador que tenía una decisión de compra pendiente.
+        jugadorPendienteCompra = null;
+
+        // Se reinicia el número de turno asociado con la compra pendiente de la partida anterior.
+        turnoPendienteCompra = 0;
+
+        // Se permite que el servidor vuelva a informar cuando finalice la nueva partida.
+        FinAvisado = false;
+
+        //*****************************************************
+        // INICIAR LA NUEVA PARTIDA
+        //*****************************************************
+
+        // IniciarPartida() pertenece a la clase Juego.
+            // Permite iniciar la nueva partida con los jugadores que ya fueron agregados anteriormente a nuevoJuego.
+        juego.IniciarPartida();
+
+        // Se indica que la nueva partida ya se encuentra iniciada.
+            // Esto permite que el servidor vuelva a procesar las solicitudes correspondientes a los turnos.
+        partidaIniciada = true;
+
+        // true indica que la nueva partida fue creada e iniciada correctamente.
+        return true;
+    }
+
+    //*****************************************************
+    // MÉTODO PARA VALIDAR QUIÉN PUEDE CERRAR EL SERVIDOR
+    //*****************************************************
+
+    // Permite que J001 cierre el servidor.
+        // Si J001 está desconectado, J002 podrá hacerlo como respaldo.
+            // J003 y J004 no tienen autorización para cerrar el servidor.
+    private boolean puedeCerrarServidor(Jugador jugador) {
+
+        // Se verifica si J001 continúa conectado al servidor.
+        boolean jugador1Conectado = false;
+
+        // Se recorren las conexiones de los jugadores.
+        for (int i = 0; i < jugadoresConectados.length; i++) {
+
+            // Se verifica que exista un Jugador asociado.
+                // También se comprueba que su Socket continúe abierto.
+                    // Finalmente se verifica si corresponde a J001.
+            if (jugadoresConectados[i] != null
+                    && clientesSocket[i] != null
+                    && !clientesSocket[i].isClosed()
+                    && jugadoresConectados[i].getIdentificador().equals("J001")) {
+
+                // Se confirma que J001 continúa conectado.
+                jugador1Conectado = true;
+                break;
+            }
+        }
+
+        // Si J001 está conectado, solamente él puede cerrar.
+        if (jugador1Conectado) {
+
+            return jugador.getIdentificador().equals("J001");
+        }
+
+        // Si J001 está desconectado, solamente J002 puede cerrar.
+        return jugador.getIdentificador().equals("J002");
+    }
+
+        //*****************************************************
+        // MÉTODO PARA CERRAR EL SERVIDOR
+        //*****************************************************
+
+        // Permite cerrar el servidor de forma controlada.
+            // Notifica a los jugadores, cierra sus conexiones y detiene la aceptación de nuevos clientes.
+        private void cerrarServidor() {
+
+            // Se verifica si el servidor ya está cerrado.
+                // Evita ejecutar nuevamente el procedimiento de cierre.
+            if (!servidorActivo) {
+
+                return;
+            }
+
+            // Se cambia el estado del servidor a false.
+                // Esto permitirá detener el ciclo while de iniciar().
+            servidorActivo = false;
+
+            //*****************************************************
+            // NOTIFICAR A TODOS LOS JUGADORES DE SERVIDOR CERRADO
+            //*****************************************************
+
+            // Se recorren las conexiones de los jugadores.
+            for (int i = 0; i < clientesSocket.length; i++) {
+
+                // Se verifica que exista un Socket abierto.
+                if (clientesSocket[i] != null
+                        && !clientesSocket[i].isClosed()) {
+
+                    // Se informa al cliente que el servidor se cerrará.
+                    enviarRespuesta(i, "SERVIDOR_CERRADO");
+                }
+            }
+
+            //*****************************************************
+            // CERRAR LAS CONEXIONES DE LOS JUGADORES
+            //*****************************************************
+
+            // Se recorren nuevamente las conexiones de los jugadores.
+            for (int i = 0; i < clientesSocket.length; i++) {
+
+                try {
+
+                    // Se verifica que exista una conexión abierta.
+                    if (clientesSocket[i] != null
+                            && !clientesSocket[i].isClosed()) {
+
+                        // Se cierra el Socket del jugador.
+                        clientesSocket[i].close();
+                    }
+
+                } catch (IOException e) {
+
+                    // Se informa si ocurrió un error al cerrar la conexión.
+                    System.out.println(
+                            "Error al cerrar la conexión del cliente " + (i + 1)
+                    );
+                }
+            }
+
+            //*****************************************************
+            // CERRAR EL SERVERSOCKET
+            //*****************************************************
+
+            try {
+
+                // Se verifica que el ServerSocket exista y esté abierto.
+                if (serverSocket != null && !serverSocket.isClosed()) {
+
+                    // Se cierra el puerto utilizado por el servidor.
+                    serverSocket.close();
+                }
+
+            } catch (IOException e) {
+
+                // Se informa si ocurrió un error al cerrar el ServerSocket.
+                System.out.println("Error al cerrar el ServerSocket");
+            }
+
+            // Se informa en la consola que el cierre terminó.
+            System.out.println("Servidor cerrado correctamente.");
+        }
+
+        //*****************************************************
+        // Método que permite recibir una solicitud enviada por el jugador.
+        // *****************************************************
     public void procesarSolicitud(int posicion) {
 
         try {
@@ -698,9 +992,9 @@ public class Server {
             }
 
             // "synchronized" es una palabra reservada de Java que permite controlar el acceso de varios Threads a un mismo objeto.
-            // En este caso se utiliza el objeto "juego", porque es compartido por los Threads de los diferentes jugadores.
-            // Esto permite que solamente un Thread a la vez entre a este bloque y trabaje con el estado del juego.
-            synchronized (juego) {
+                // bloqueoJuego controla el acceso cuando los jugadores envían solicitudes.
+                    // Esto evita que dos Threads modifiquen simultáneamente la partida.
+            synchronized (bloqueoJuego) {
 
                 // -------------------------------------------------
                 // CONECTAR, IDENTIFICADOR
@@ -831,44 +1125,138 @@ public class Server {
 
 
                 // Se busca el jugador dentro del arreglo jugadoresConectados.
-                // "posicion" indica en cuál espacio del arreglo se debe buscar.
-                // El jugador encontrado se guarda en la variable "jugador".
+                    // "posicion" indica en cuál espacio del arreglo se debe buscar.
+                        // El jugador encontrado se guarda en la variable "jugador".
                 Jugador jugador = jugadoresConectados[posicion];
 
 
                 // Se verifica si existe un jugador guardado en esa posición.
-                // Si jugador contiene null, significa que no existe un objeto Jugador asociado con esa conexión.
-                // En ese caso no se puede continuar procesando la solicitud.
+                    // Si jugador contiene null, significa que no existe un objeto Jugador asociado con esa conexión.
                 if (jugador == null) {
 
                     // Se envía un mensaje al cliente que realizó la solicitud.
-                    // "posicion" permite identificar cuál conexión Socket se debe utilizar.
-                    // El mensaje indica que todavía no existe un jugador asignado a esa conexión.
+                        // "posicion" permite identificar cuál conexión Socket se debe utilizar.
+                            // El mensaje indica que todavía no existe un jugador asignado a esa conexión.
                     enviarRespuesta(posicion, "No existe un jugador asignado a esta conexión");
 
 
                     // La solicitud no puede continuar sino existe un jugador asociado.
-                    // Por lo tanto, se termina esta ejecución de procesarSolicitud().
+                        // Por lo tanto, se termina esta ejecución de procesarSolicitud().
                     return;
                 }
+
+
+                //*****************************************************
+                // VALIDAR SOLICITUD PARA CERRAR EL SERVIDOR
+                //*****************************************************
+
+                // Se verifica si el jugador solicitó cerrar el servidor.
+                if (solicitud.equals("CERRAR_SERVIDOR")) {
+
+                    // Se comprueba si el jugador tiene autorización.
+                    // J001 tiene prioridad y J002 puede hacerlo
+                    // solamente cuando J001 está desconectado.
+                    if (!puedeCerrarServidor(jugador)) {
+
+                        // Se informa que el jugador no tiene autorización.
+                        enviarRespuesta(
+                                posicion,
+                                "No tiene autorización para cerrar el servidor."
+                        );
+
+                        // Se termina esta solicitud sin cerrar el servidor.
+                        return;
+                    }
+
+                    //*****************************************************
+                    // EJECUTAR EL CIERRE DEL SERVIDOR
+                    //*****************************************************
+
+                    // El método notifica a todos los clientes,
+                    // cierra sus conexiones y detiene el servidor.
+                    cerrarServidor();
+
+                    // Se termina esta solicitud.
+                    return;
+                }
+
+
+                // *****************************************************
+                // VALIDAR SOLICITUD PARA REINICIAR LA PARTIDA
+                // *****************************************************
+
+                // Se verifica si la solicitud enviada por el cliente corresponde a REINICIAR_PARTIDA.
+                    // Esta solicitud permitirá que J001 reinicie la partida. Si J001 se desconectó, J002 podrá realizar esta acción como respaldo.
+                if (solicitud.equals("REINICIAR_PARTIDA")) {
+
+                    // puedeReiniciarPartida() es un método de la clase Server.
+                        // Recibe el objeto Jugador que está solicitando reiniciar la partida.
+                            // Devuelve true si el Jugador tiene autorización y false si no la tiene.
+                    if (!puedeReiniciarPartida(jugador)) {
+
+                        // enviarRespuesta() es un método de la clase Server.
+                        // "posicion" identifica la conexión Socket del Jugador que realizó la solicitud.
+                            // Se informa al Jugador que no tiene autorización para reiniciar la partida.
+                        enviarRespuesta(posicion, "No tiene autorización para reiniciar la partida.");
+
+                        // Se evita que un Jugador sin autorización pueda continuar con el reinicio.
+                        return;
+                    }
+
+                    //*****************************************************
+                    // EJECUTAR EL REINICIO DE LA PARTIDA
+                    //*****************************************************
+
+                    // reiniciarPartida() pertenece a la clase Server.
+                        // Devuelve true si se pudo preparar una nueva partida.
+                            // Devuelve false si no existen al menos dos jugadores conectados.
+                    if (!reiniciarPartida()) {
+
+                        // Se le notifica al Jugador que no puede reinicia porque no existe la cantidad mínima de jugadores.
+                        enviarRespuesta(posicion, "No se puede reiniciar: se necesitan al menos dos jugadores conectados.");
+
+                        // Se termina la solicitud sin continuar con el reinicio.
+                        return;
+                    }
+
+                    // Se informa al Jugador que la nueva partida fue reiniciada correctamente.
+                    enviarRespuesta(posicion, "La partida fue reiniciada e iniciada correctamente.");
+
+
+                    //*****************************************************
+                    // NOTIFICAR A TODOS LOS JUGADORES DE PARTIDA REINICIADA
+                    //*****************************************************
+
+                    // Se recorren las cuatro posiciones donde se guardan las conexiones de los jugadores.
+                    for (int i = 0; i < jugadoresConectados.length; i++) {
+
+                        // Se verifica que exista un Jugador asociado a la conexión.
+                        // También se comprueba que su Socket exista y continúe abierto.
+                        if (jugadoresConectados[i] != null
+                                && clientesSocket[i] != null
+                                && !clientesSocket[i].isClosed()) {
+
+                            // enviarRespuesta() pertenece a la clase Server.
+                                // Se informa a cada jugador conectado que la nueva partida inició.
+                                    // PARTIDA_INICIADA es el mensaje que ya utiliza el servidor cuando se inicia una partida normalmente.
+                            enviarRespuesta(i, "PARTIDA_INICIADA");
+                        }
+                    }
+                    // Se termina la solicitud REINICIAR_PARTIDA.
+                    return;
+
+                }
+
                 
                 if (solicitud.equals("INICIAR_PARTIDA")) {
 
-                    // No permitir iniciar dos veces.
-                    if (partidaIniciada) {
-                        enviarRespuesta(
-                                posicion,
-                                "La partida ya fue iniciada."
-                        );
+                    // No permite iniciar dos veces el juego.
+                    if (partidaIniciada) {enviarRespuesta(posicion, "La partida ya fue iniciada.");
                         return;
                     }
 
                     // Solamente J001 puede iniciar la partida.
-                    if (!jugador.getIdentificador().equals("J001")) {
-                        enviarRespuesta(
-                                posicion,
-                                "Solo J001 puede iniciar la partida."
-                        );
+                    if (!jugador.getIdentificador().equals("J001")) {enviarRespuesta(posicion, "Solo J001 puede iniciar la partida.");
                         return;
                     }
 
@@ -1741,11 +2129,19 @@ public class Server {
         }
 
         catch (IOException e) {
-            // Se ejecuta si ocurre un problema al recibir información del jugador.
-            // Esto puede suceder si el jugador cierra su conexión mientras el servidor esperaba una solicitud.
-            System.out.println(
-                    "Error al recibir la solicitud del cliente" + (posicion + 1)
-            );
+
+            // Se verifica si el servidor continúa activo.
+                // Si servidorActivo es true, significa que ocurrió un problema al recibir la solicitud del cliente.
+            if (servidorActivo) {
+
+                // Se informa cuál conexión presentó el problema.
+                 // Se suma 1 porque las posiciones del arreglo comienzan desde 0.
+                System.out.println("Error al recibir la solicitud del cliente " + (posicion + 1));
+            }
+
+            // Si servidorActivo es false, significa que el servidor
+                // se está cerrando voluntariamente.En ese caso no se muestra un mensaje de error.
+
 
             try {
 
@@ -1754,17 +2150,15 @@ public class Server {
                 if (clientesSocket[posicion] != null) {
 
                     // Se cierra la conexión Socket del jugador.
-                    // "posicion" indica cuál conexión pertenece al cliente que tuvo el error.
-                    // Después de cerrarla, esa conexión ya no puede seguir enviando solicitudes.
+                        // "posicion" indica cuál conexión pertenece al cliente que tuvo el error.
+                        // Después de cerrarla, esa conexión ya no puede seguir enviando solicitudes.
                     clientesSocket[posicion].close();
                 }
 
             } catch (IOException errorCierre) {
 
                 // Se ejecuta solamente si ocurre un problema al intentar cerrar la conexión.
-                System.out.println(
-                        "Error al cerrar la conexión del cliente" + (posicion + 1)
-                );
+                System.out.println("Error al cerrar la conexión del cliente" + (posicion + 1));
             }
         }
     }

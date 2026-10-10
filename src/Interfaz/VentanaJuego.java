@@ -76,7 +76,7 @@ public class VentanaJuego extends JFrame {
     private boolean EsperandoBotonDados = false;
 
     // Identificadores de los jugadores de la partida en línea (J001, J002...), según el último ESTADO.
-    private String[] JugadoresPartida = new String[0];
+    private String[] JugadoresPartida;
 
     // Carta de evento recibida que se mostrará en el tablero cuando la ficha llegue a la casilla.
     private String CartaPorMostrar = null;
@@ -1347,13 +1347,15 @@ public class VentanaJuego extends JFrame {
 
         boolean esAnfitrion = identificadorLocalEnLinea.equals("J001");
 
-        // Crear la pantalla final.
-        ventanaFinPartida = new VentanaFinPartida(TextoGanador, idParaPatrimonioFinal == null ? "No corresponde" : "Calculando...", historialTransaccionesFinal, esAnfitrion, null, null);
+        ventanaFinPartida = new VentanaFinPartida(TextoGanador,
+            idParaPatrimonioFinal == null
+            ? "No corresponde" : "Calculando...",
+            historialTransaccionesFinal,
+            esAnfitrion, () -> cliente.enviarSolicitud("REINICIAR_PARTIDA"),
+            () -> cliente.enviarSolicitud("CERRAR_SERVIDOR"));
 
-        // La consulta por jugador / tipo / orden se le pide al servidor.
         ventanaFinPartida.SetAccionConsultar(Consulta -> cliente.enviarSolicitud(Consulta));
 
-        // El filtro de jugador solo muestra a los que participaron en esta partida.
         ventanaFinPartida.SetJugadores(JugadoresPartida);
 
         ventanaFinPartida.setVisible(true);
@@ -1558,6 +1560,47 @@ public class VentanaJuego extends JFrame {
                             this,
                             "Se perdió la conexión con el servidor."
                         );
+                    });
+                    break;
+                }
+
+                // ----------------------
+                // REINICIO DE PARTIDA
+                //-----------------------
+
+                if (mensaje.equals("PARTIDA_INICIADA")) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (ventanaFinPartida != null) {
+                            ventanaFinPartida.dispose();
+                            ventanaFinPartida = null;
+                        }
+                        VentanaJuego nuevaVentana = new VentanaJuego();
+
+                        nuevaVentana.activarModoEnLinea(cliente);
+                        nuevaVentana.setVisible(true);
+                        dispose();
+                    });
+                    break;
+                }
+
+                // ----------------------------------
+                // CIERRE DEL SERVIDOR
+                // ----------------------------------
+
+                if (mensaje.equals("SERVIDOR_CERRADO")) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (ventanaFinPartida != null) {
+                            ventanaFinPartida.dispose();
+                            ventanaFinPartida = null;
+                        }
+                        JOptionPane.showMessageDialog(this,
+                            "El anfitirión ha finalizado la partida.\n" + "El servidor se ha cerrado.",
+                            "Partida finalizada",
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                        cliente.desconectar();
+
+                        dispose();
                     });
                     break;
                 }
