@@ -21,7 +21,7 @@ public class VentanaFinPartida extends JFrame {
     // Envía la consulta al servidor (la asigna VentanaJuego con SetAccionConsultar).
     private Consumer<String> AccionConsultar;
 
-    private JLabel lblGanador;
+    private JTextPane lblGanador;
     private JLabel lblPatrimonio;
     private JTextArea areaTransacciones;
 
@@ -93,15 +93,26 @@ public class VentanaFinPartida extends JFrame {
 
         String tituloResultado = nombreGanador.startsWith("Empate entre") || nombreGanador.equals("Sin ganador") ? "Resultado: " + nombreGanador : "Ganador: " + nombreGanador;
 
-        lblGanador = new JLabel(tituloResultado);
-        
-        lblGanador.setFont(
-                new Font("SansSerif", Font.BOLD, 23)
-        );
+        lblGanador = new JTextPane();
+        lblGanador.setText(tituloResultado);
 
-        lblGanador.setAlignmentX(
-                Component.CENTER_ALIGNMENT
-        );
+        lblGanador.setFont(new Font("SansSerif", Font.BOLD, 23));
+        lblGanador.setEditable(false);
+        lblGanador.setFocusable(false);
+        lblGanador.setOpaque(false);
+        lblGanador.setBorder(null);
+
+        // Centrar el texto.
+        javax.swing.text.SimpleAttributeSet estilo = new javax.swing.text.SimpleAttributeSet();
+
+        javax.swing.text.StyleConstants.setAlignment(estilo, javax.swing.text.StyleConstants.ALIGN_CENTER);
+
+        lblGanador.getStyledDocument().setParagraphAttributes(0, lblGanador.getDocument().getLength(), estilo, false);
+
+        // Permitir varias líneas.
+        lblGanador.setPreferredSize(new Dimension(860, 100));
+        lblGanador.setMaximumSize(new Dimension(860, 100));
+        lblGanador.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         lblPatrimonio = new JLabel(
                 "Patrimonio final: " + patrimonio
@@ -231,10 +242,15 @@ public class VentanaFinPartida extends JFrame {
             panelHistorial.repaint();
         });
 
-        panelHistorial.add(
-                btnConsultarTransacciones,
-                BorderLayout.NORTH
-        );
+        JPanel panelBotonConsulta = new JPanel(new FlowLayout(FlowLayout.CENTER,0 ,0));
+
+        panelBotonConsulta.setOpaque(false);
+
+        btnConsultarTransacciones.setPreferredSize(new Dimension(220, 38));
+
+        panelBotonConsulta.add(btnConsultarTransacciones);
+
+        panelHistorial.add(panelBotonConsulta, BorderLayout.NORTH);
 
         panelHistorial.add(
                 PanelConsulta,

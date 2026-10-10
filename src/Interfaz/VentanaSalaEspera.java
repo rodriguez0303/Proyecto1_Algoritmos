@@ -122,9 +122,26 @@ public class VentanaSalaEspera extends JFrame {
 
             StringBuilder texto = new StringBuilder();
 
-            for (String id : jugadoresConectados) {
-                texto.append(id)
-                     .append(" - Conectado\n");
+            
+            for (String registro : jugadoresConectados) {
+
+                String[] datosJugador = registro.split(",", 2);
+
+                if (datosJugador.length == 2) {
+
+                    String id = datosJugador[0];
+                    String nombre = datosJugador[1];
+
+                    texto.append(nombre)
+                        .append(" (")
+                        .append(id)
+                        .append(")")
+                        .append(" - Conectado\n");
+
+                } else {
+                    texto.append(registro)
+                        .append(" - Conectado\n");
+                }
             }
 
             txtJugadores.setText(texto.toString());
@@ -180,7 +197,7 @@ public class VentanaSalaEspera extends JFrame {
                         if (datos[2].isEmpty()) {
                             jugadoresConectados = new String[0];
                         } else {
-                            jugadoresConectados = datos[2].split(",");
+                            jugadoresConectados = datos[2].split("\\|");
                         }
 
                         actualizarJugadores(

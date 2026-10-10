@@ -41,6 +41,7 @@ public class VentanaJuego extends JFrame {
     private JPanel[] tarjetasJugadores = new JPanel[4];
     private JPanel panelContenidoCentro;
 
+    private JLabel[] lblNombreJugadores = new JLabel[4];
     private JLabel[] lblSaldoJugadores = new JLabel[4];
     private JLabel[] lblEstadoJugadores = new JLabel[4];
     private JLabel[] etiquetasPropietarios = new JLabel[24];
@@ -88,6 +89,8 @@ public class VentanaJuego extends JFrame {
 
     // Aviso "Confirmar compra" mientras se espera la tarjeta RFID (null si no hay ninguno abierto).
     private JDialog DialogoCompra = null;
+
+    private String[] nombresJugadoresEnLinea = new String[4];
     private String identificadorLocalEnLinea = "";
     private String[] nombresCasillas = {
     "Salida",        // 0
@@ -1312,15 +1315,15 @@ public class VentanaJuego extends JFrame {
                         BorderFactory.createLineBorder(
                         fichasJugadores[jugador].getBackground(), 2), 
                         BorderFactory.createEmptyBorder(5, 7, 5,7)));
-        JLabel lblJugador = new JLabel("J" + (jugador + 1));
+        lblNombreJugadores[jugador] = new JLabel("Jugador " + (jugador + 1));
 
-        lblJugador.setFont(lblJugador.getFont().deriveFont(Font.BOLD));
+        lblNombreJugadores[jugador].setFont(lblNombreJugadores[jugador].getFont().deriveFont(Font.BOLD));
 
         lblSaldoJugadores[jugador] = new JLabel("Saldo: ₡1500");
 
         lblEstadoJugadores[jugador] = new JLabel("Activo");
 
-        tarjeta.add(lblJugador);
+        tarjeta.add(lblNombreJugadores[jugador]);
         tarjeta.add(lblSaldoJugadores[jugador]);
         tarjeta.add(lblEstadoJugadores[jugador]);
 
@@ -1721,17 +1724,23 @@ public class VentanaJuego extends JFrame {
                         String resultado;
 
                         if (datos[1].equals("EMPATE")) {
+                            StringBuilder nombresEmpatados = new StringBuilder();
 
-                            resultado = "Empate entre "
-                                    + datos[2].replace(",", ", ");
+                            String[] idsEmpatados = datos[2].split(",");
 
+                            for (String id : idsEmpatados) {
+                                if (nombresEmpatados.length() > 0) {
+                                    nombresEmpatados.append(", ");
+                                }
+
+                                nombresEmpatados.append(obtenerNombreJugador(id.trim()));
+                            }
+
+                            resultado = "Empate entre " + nombresEmpatados;
                         } else if (datos[2].equals("SIN_GANADOR")) {
-
                             resultado = "Sin ganador";
-
                         } else {
-
-                            resultado = datos[2];
+                            resultado = obtenerNombreJugador(datos[2].trim());
                         }
 
                         SwingUtilities.invokeLater(() -> {
@@ -1928,7 +1937,7 @@ public class VentanaJuego extends JFrame {
             }
 
             lblNombre.setText(
-                    "Jugador: " + identificadorLocal
+                    "Jugador: " + campos[2] + " (" + identificadorLocal + ")"
             );
 
             lblTurno.setText(
@@ -1979,8 +1988,7 @@ public class VentanaJuego extends JFrame {
 
                 String[] datos = registro.split(",");
 
-                if (datos.length != 4
-                        || !datos[0].matches("J00[1-4]")) {
+                if (datos.length != 5 || !datos[0].matches("J00[1-4]")) {
                     continue;
                 }
 
@@ -1988,7 +1996,17 @@ public class VentanaJuego extends JFrame {
 
                 int indiceJugador = Integer.parseInt(datos[0].substring(1)) - 1;
 
+                String nombreJugador = datos[4];
+
+                nombresJugadoresEnLinea[indiceJugador] = nombreJugador;
+
+                lblNombreJugadores[indiceJugador].setText(nombreJugador + " (" + datos[0] + ")");
+
                 tarjetasJugadores[indiceJugador].setVisible(true);
+
+                if (datos[0].equals(identificadorTurno)) {
+                    lblTurno.setText("Turno actual: " + nombreJugador + " (" + identificadorTurno + ")");
+                }
 
                 lblSaldoJugadores[indiceJugador].setText("Saldo: ₡" + datos[3]);
 
@@ -2204,6 +2222,24 @@ public class VentanaJuego extends JFrame {
         return "¿Está seguro de comprar esta propiedad?";
     }
 
+    private String obtenerNombreJugador(String identificador) {
+
+        if (identificador == null
+                || !identificador.matches("J00[1-4]")) {
+            return identificador;
+        }
+
+        int indice = Integer.parseInt(identificador.substring(1)) - 1;
+
+        String nombre = nombresJugadoresEnLinea[indice];
+
+        if (nombre == null || nombre.isBlank()) {
+            return identificador;
+        }
+
+        return nombre + " (" + identificador + ")";
+    }
+
     // Aviso de compra con RFID: solo lo ve el jugador que compra.
     // Acercar la tarjeta acepta la compra; "Cancelar" (o cerrar el aviso) cancela la validación.
     private void MostrarDialogoCompraRfid(String TextoCompra) {
@@ -2384,7 +2420,7 @@ public class VentanaJuego extends JFrame {
 
             String[] datos = registro.split(",");
 
-            if (datos.length == 4 &&
+            if (datos.length == 5 &&
                     datos[0].equals(idJugador)) {
 
                 try {

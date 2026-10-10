@@ -234,6 +234,19 @@ public class VentanaInicio extends JFrame {
                 return;
             }
 
+            String nombreIngresado = JOptionPane.showInputDialog(this, "Ingrese su nombre de jugador:", "Jugador " + idJugador.substring(3));
+
+            if (nombreIngresado == null) {
+                return;
+            }
+
+            final String nombreJugador = nombreIngresado.trim();
+
+            if (nombreJugador.isEmpty() || nombreJugador.length() > 30 || nombreJugador.contains(";") || nombreJugador.contains(",") || nombreJugador.contains("|") || nombreJugador.contains("\n") || nombreJugador.contains("\r")) {
+                JOptionPane.showMessageDialog(this, "Nombre no válido. Utilice entre 1 y 30 caracteres.");
+                return;
+            }
+
             btnConectar.setEnabled(false);
 
             // Conectar en otro hilo para no bloquear Swing.
@@ -241,7 +254,7 @@ public class VentanaInicio extends JFrame {
 
                 Cliente nuevoCliente = new Cliente(
                     idJugador,
-                    "Jugador " + idJugador.substring(3),
+                    nombreJugador,
                     ipServidor,
                     5000
                 );
@@ -262,8 +275,7 @@ public class VentanaInicio extends JFrame {
 
                 // Identificarse ante el servidor.
                 nuevoCliente.enviarSolicitud(
-                    "CONECTAR;" + idJugador
-                );
+                    "CONECTAR;" + idJugador + ";" + nombreJugador);
 
                 String respuesta = nuevoCliente.recibirRespuesta();
 

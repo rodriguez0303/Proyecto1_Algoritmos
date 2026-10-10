@@ -728,13 +728,13 @@ public class Server {
                     // Se divide la solicitud utilizando el punto y coma.
                     // datosConexion[0] guardará "CONECTAR".
                     // datosConexion[1] guardará el identificador enviado por el jugador.
-                    String[] datosConexion = solicitud.split(";");
+                    String[] datosConexion = solicitud.split(";", -1);
 
 
                     // Se verifica que la solicitud tenga exactamente las dos partes necesarias.
                     // La primera parte corresponde a CONECTAR y la segunda al identificador.
                     // Si no existen las dos partes, la solicitud de conexión no puede continuar.
-                    if (datosConexion.length != 2) {
+                    if (datosConexion.length != 2 && datosConexion.length != 3) {
 
                         enviarRespuesta(posicion, "Solicitud de conexión no válida");
 
@@ -795,6 +795,17 @@ public class Server {
 
                             return;
                         }
+                    }
+
+                    if (datosConexion.length == 3) {
+                        String nombreElegido = datosConexion[2].trim();
+
+                        if (nombreElegido.isEmpty() || nombreElegido.length() > 30 || nombreElegido.contains(",") || nombreElegido.contains("|")) {
+
+                            enviarRespuesta(posicion, "Nombre de jugador no válido.");
+                            return;
+                        }
+                        jugadorEncontrado.setNombre(nombreElegido);
                     }
 
 
@@ -1408,7 +1419,8 @@ public class Server {
                                         + identificadorEstado + ","
                                         + posicionEstado + ","
                                         + activoEstado + ","
-                                        + jugadorEstado.getSaldo();
+                                        + jugadorEstado.getSaldo() + ","
+                                        + jugadorEstado.getNombre();
 
                             }
 
@@ -2172,12 +2184,14 @@ public class Server {
                     && !clientesSocket[i].isClosed()) {
 
                 if (cantidadConectados > 0) {
-                    listaJugadores.append(",");
+                    listaJugadores.append("|");
                 }
 
-                listaJugadores.append(
-                        jugadoresConectados[i].getIdentificador()
-                );
+                listaJugadores.append(jugadoresConectados[i].getIdentificador());
+
+                listaJugadores.append(",");
+
+                listaJugadores.append(jugadoresConectados[i].getNombre());
 
                 cantidadConectados++;
             }
