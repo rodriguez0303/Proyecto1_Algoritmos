@@ -1,12 +1,21 @@
 
 package Interfaz;
 
+/**
+ * Convierte los registros de transacciones recibidos del servidor en mensajes legibles.
+ * Es una clase de utilidad y no mantiene estado ni modifica la partida.
+ */
 public final class FormateadorTransacciones {
 
     private FormateadorTransacciones() {
         // Clase de utilidad: no necesita instancias.
     }
 
+    /**
+     * Interpreta los campos de una transacciÃ³n separados por barras verticales.
+     * @param Registro registro emitido por el servidor.
+     * @return mensaje legible; si faltan campos obligatorios, conserva el contenido recibido.
+     */
     public static String formatear(String Registro) {
 
         String Origen = "";

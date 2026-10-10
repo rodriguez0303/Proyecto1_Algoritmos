@@ -24,14 +24,26 @@ import java.awt.Font;
 import java.awt.Color;
 
 
+/**
+ * Pantalla inicial de Monopoly TEC.
+ * Permite elegir una partida simulada, crear un servidor o unirse a una partida en lÃ­nea.
+ */
 public class VentanaInicio extends JFrame {
 
+    /**
+     * Controles para seleccionar el tipo de partida y configurar sus lÃ­mites.
+     */
     private JRadioButton rbPorRondas;
     private JRadioButton rbNormal;
 
     private JSpinner spRondas;
     private JSpinner spJugadores;
 
+    /**
+     * Construye la pantalla de inicio y registra las acciones de los botones.
+     * La creaciÃ³n del servidor y la conexiÃ³n del cliente usan hilos independientes
+     * para no bloquear el hilo de eventos de Swing.
+     */
     public VentanaInicio() {
 
         // -------------------------------------------------
@@ -424,6 +436,10 @@ public class VentanaInicio extends JFrame {
     }
 
 
+    /**
+     * Inicia la aplicaciÃ³n mostrando la pantalla de selecciÃ³n de partida.
+     * @param args argumentos de consola; no se utilizan.
+     */
     public static void main(String[] args) {
 
         SwingUtilities.invokeLater(() -> {

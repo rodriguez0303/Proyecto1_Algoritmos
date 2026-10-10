@@ -8,10 +8,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.function.Consumer;
 
+/**
+ * Muestra el resultado final de la partida y permite consultar transacciones.
+ * Las acciones de reinicio y cierre se reciben como callbacks desde VentanaJuego.
+ */
 public class VentanaFinPartida extends JFrame {
 
     // Filtros de la consulta de transacciones (punto 2: buscar por jugador, por tipo,
     // y recorrer desde la más antigua o desde la más reciente).
+    /**
+     * Filtros utilizados para consultar transacciones por jugador, tipo y orden.
+     */
     private JComboBox<String> CmbJugador;
     private JComboBox<String> CmbTipo;
     private JComboBox<String> CmbOrden;
@@ -32,6 +39,15 @@ public class VentanaFinPartida extends JFrame {
     private JScrollPane scrollTransacciones;
 
     // Constructor de la pantalla final.
+    /**
+     * Construye la pantalla de resultados y configura las acciones permitidas.
+     * @param nombreGanador texto del resultado, incluidos los casos de empate.
+     * @param patrimonio resumen del patrimonio final.
+     * @param transacciones historial disponible al abrir la pantalla.
+     * @param esAnfitrion indica si esta ventana puede administrar la partida.
+     * @param accionVolverAJugar operaciÃ³n solicitada al pulsar Volver a jugar.
+     * @param accionFinalizar operaciÃ³n solicitada al pulsar Finalizar.
+     */
     public VentanaFinPartida(
             String nombreGanador,
             String patrimonio,
@@ -356,6 +372,10 @@ public class VentanaFinPartida extends JFrame {
 
     // Permite actualizar el historial cuando
     // lleguen nuevas transacciones del servidor.
+    /**
+     * Actualiza el historial completo mostrado en la pantalla final.
+     * @param transacciones registros actuales enviados por el servidor.
+     */
     public void actualizarTransacciones(String transacciones) {
 
         SwingUtilities.invokeLater(() -> {
@@ -364,6 +384,10 @@ public class VentanaFinPartida extends JFrame {
         });
     }
 
+    /**
+     * Actualiza el resumen de patrimonio mostrado al finalizar la partida.
+     * @param patrimonio texto con los valores finales.
+     */
     public void actualizarPatrimonio(String patrimonio) {
         SwingUtilities.invokeLater(() -> {
                 lblPatrimonio.setText("Patrimonio final: " + patrimonio);
@@ -372,6 +396,10 @@ public class VentanaFinPartida extends JFrame {
 
     // Deja en el filtro solo a los jugadores de la partida (por ejemplo J001 y J002 en una de 2).
     // Si no llega ninguno, se mantienen los cuatro.
+    /**
+     * Limita el filtro de jugadores a los participantes reales de la partida.
+     * @param Jugadores identificadores de los jugadores conectados.
+     */
     public void SetJugadores(String[] Jugadores) {
 
         if (Jugadores == null || Jugadores.length == 0) {
@@ -387,11 +415,19 @@ public class VentanaFinPartida extends JFrame {
     }
 
     // VentanaJuego indica cómo enviar la consulta al servidor.
+    /**
+     * Registra la operaciÃ³n que envÃ­a las consultas de transacciones al servidor.
+     * @param Accion funciÃ³n receptora del mensaje de consulta.
+     */
     public void SetAccionConsultar(Consumer<String> Accion) {
         this.AccionConsultar = Accion;
     }
 
     // Muestra el resultado de una consulta (respuesta CONSULTA; del servidor).
+    /**
+     * Muestra en la tabla la respuesta a una consulta filtrada de transacciones.
+     * @param Registros registros devueltos por el servidor.
+     */
     public void MostrarConsulta(String Registros) {
 
         SwingUtilities.invokeLater(() -> {
@@ -406,6 +442,11 @@ public class VentanaFinPartida extends JFrame {
     // número, turno, tipo, origen, destino, monto y descripción.
     // Cada transacción llega como: T1|Turno: 2|Tipo: COMPRA_PROPIEDAD|Origen: J002|Destino: BANCO|Monto: 250.0|Descripcion: ...
     // Las transacciones vienen separadas por salto de línea o por ";".
+    /**
+     * Transforma los registros del protocolo en una tabla de texto alineada.
+     * @param Registros transacciones separadas por punto y coma o saltos de lÃ­nea.
+     * @return representaciÃ³n tabular con el nÃºmero de resultados.
+     */
     private String FormatearTabla(String Registros) {
 
         if (Registros == null || Registros.isBlank() || Registros.equals("SIN_TRANSACCIONES")) {
@@ -486,6 +527,10 @@ public class VentanaFinPartida extends JFrame {
     // PRUEBA INDEPENDIENTE DE LA INTERFAZ
     // -----------------------------------------
 
+    /**
+     * Permite probar esta pantalla de manera independiente al servidor.
+     * @param args argumentos de consola; no se utilizan.
+     */
     public static void main(String[] args) {
 
         SwingUtilities.invokeLater(() -> {

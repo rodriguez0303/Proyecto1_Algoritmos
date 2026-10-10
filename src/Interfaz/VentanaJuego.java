@@ -34,8 +34,16 @@ import java.util.Arrays;
 
 
 // Clase principal de la interfaz gráfica del juego
+/**
+ * Ventana principal del tablero del Monopoly TEC.
+ * Construye la representaciÃ³n grÃ¡fica, gestiona la simulaciÃ³n local y
+ * muestra el estado de las partidas en lÃ­nea recibido desde el servidor.
+ */
 public class VentanaJuego extends JFrame {
 
+    /**
+     * Componentes visuales del tablero y de las fichas de los jugadores.
+     */
     private JPanel [] casillasVisuales = new JPanel[24];
     private JPanel[] panelesFichas = new JPanel[24];
     private JPanel[] tarjetasJugadores = new JPanel[4];
@@ -60,6 +68,9 @@ public class VentanaJuego extends JFrame {
     private JButton btnComprar;
     private JButton btnTerminarTurno;
 
+    /**
+     * Pantalla final y conexiÃ³n con el cliente que atiende los mensajes del servidor.
+     */
     private VentanaFinPartida ventanaFinPartida;
     private Cliente cliente;
 
@@ -92,6 +103,9 @@ public class VentanaJuego extends JFrame {
 
     private String[] nombresJugadoresEnLinea = new String[4];
     private String identificadorLocalEnLinea = "";
+    /**
+     * Orden visual de las 24 casillas del tablero, numeradas del 0 al 23.
+     */
     private String[] nombresCasillas = {
     "Salida",        // 0
     "Comedor Institucional",   // 1
@@ -118,6 +132,9 @@ public class VentanaJuego extends JFrame {
     "BICITEC",  // 22
     "UberTEC"   // 23
     };
+    /**
+     * Textos de eventos empleados exclusivamente en el modo simulado.
+     */
     private String[] cartasEventoSimuladas = {
         "Recibe ₡100 por beca del TEC.",
         "Paga ₡100 por romper algo de laboratorio.",
@@ -126,8 +143,14 @@ public class VentanaJuego extends JFrame {
         "Vas directamente a la Salida."
     };
 
+    /**
+     * Evita repetir en el historial grÃ¡fico una transacciÃ³n ya recibida.
+     */
     private final java.util.Set<String> transaccionesMostradasEnLinea = new java.util.HashSet<>();
 
+    /**
+     * Datos internos del modo local: rondas, cartas, posiciones y jugadores.
+     */
     private int maxRondasSimulado;
     private int numeroRondaSimulada = 1;
     private int indiceCartaEventosSimulada = 0;
@@ -145,6 +168,9 @@ public class VentanaJuego extends JFrame {
     private int jugadorActualSimulado = 0;
     private int[] propietariosSimulados = new int[24];
 
+    /**
+     * Saldo y propiedades del modo local; el modo en lÃ­nea usa al servidor como autoridad.
+     */
     private double[] saldosJugadoresSimulados = {1500, 1500, 1500, 1500};
     private double[] preciosPropiedadesSimulados = {
         0,      // 0 Salida
@@ -198,10 +224,19 @@ public class VentanaJuego extends JFrame {
     private boolean[] jugadoresActivosSimulados = { true, true, true, true};
 
     // Constructor de la ventana principal
+    /**
+     * Crea un tablero con la configuraciÃ³n predeterminada de simulaciÃ³n.
+     * TambiÃ©n se utiliza para inicializar la vista en modo en lÃ­nea.
+     */
     public VentanaJuego() {
         this(true, 5);
     }
 
+    /**
+     * Construye el tablero y prepara sus controles, casillas y fichas.
+     * @param partidaPorRondas indica si la simulaciÃ³n tiene lÃ­mite de rondas.
+     * @param maxRondasSimulado lÃ­mite utilizado por el modo simulado.
+     */
     public VentanaJuego(boolean partidaPorRondas, int maxRondasSimulado) {
 
         this.partidaPorRondas = partidaPorRondas;
@@ -1089,6 +1124,11 @@ public class VentanaJuego extends JFrame {
         agregarHistorialSimulado("Partida iniciada. Turno de J1");
     }
 
+    /**
+     * Vincula el tablero a una conexiÃ³n cliente-servidor y desactiva los controles
+     * que solo corresponden a la simulaciÃ³n local.
+     * @param clienteConectado cliente ya conectado y autenticado en la sala.
+     */
     public void activarModoEnLinea(Cliente clienteConectado) {
         if (clienteConectado == null) {
             throw new IllegalArgumentException("El cliente no puede ser null.");
@@ -1115,6 +1155,11 @@ public class VentanaJuego extends JFrame {
         iniciarEscuchaServidor();
     }
 
+    /**
+     * Determina el color del grupo de propiedades para una posiciÃ³n del tablero.
+     * @param posicion Ã­ndice de casilla.
+     * @return color asignado al grupo de propiedades.
+     */
     private Color obtenerColorGrupoPropiedadSimulada(int posicion) {
         if (posicion == 1 || posicion == 2) {
             return new Color(150, 95, 60);
@@ -1143,6 +1188,11 @@ public class VentanaJuego extends JFrame {
         return new Color(200, 200, 200);
     }
 
+    /**
+     * Selecciona el color de fondo de una casilla de la representaciÃ³n grÃ¡fica.
+     * @param posicion Ã­ndice de casilla.
+     * @return color que debe utilizar la casilla.
+     */
     private Color obtenerColorCasillaSimulada(int posicion) {
 
         if (posicion == 0) {
@@ -1168,6 +1218,9 @@ public class VentanaJuego extends JFrame {
         return new Color(240, 235, 220);       // Propiedades
     }
 
+    /**
+     * Refresca los datos visibles del jugador activo en la simulaciÃ³n local.
+     */
     private void actualizarPanelJugadorSimulado() {
 
         lblNombre.setText("Jugador actual: J" + (jugadorActualSimulado + 1));
@@ -1190,6 +1243,11 @@ public class VentanaJuego extends JFrame {
         actualizarTarjetasJugadoresSimulados();
     }
 
+    /**
+     * Presenta el resultado calculado por la simulaciÃ³n local.
+     * @param motivo razÃ³n por la que terminÃ³ la partida.
+     * @param ganador Ã­ndice del jugador ganador, cuando corresponde.
+     */
     private void mostrarFinDePartidaSimulado(String motivo, int ganador) {
         double patrimonioGanador = calcularPatrimonioSim(ganador);
 
@@ -1206,6 +1264,10 @@ public class VentanaJuego extends JFrame {
         JOptionPane.showMessageDialog(this, mensaje, "Fin de la partida", JOptionPane.INFORMATION_MESSAGE);
     }
 
+    /**
+     * Compara el patrimonio de los participantes en la simulaciÃ³n.
+     * @return Ã­ndice del jugador que tiene el mayor patrimonio segÃºn la lÃ³gica local.
+     */
     private int obtenerGanadorPorPatrimonioSimulado () {
         int ganador = -1;
         double mayorPatrimonio = -1;
@@ -1225,6 +1287,10 @@ public class VentanaJuego extends JFrame {
         return ganador;
     }
 
+    /**
+     * Obtiene la siguiente carta del conjunto de eventos de la simulaciÃ³n.
+     * @return descripciÃ³n del evento correspondiente.
+     */
     private String obtenerCartaEventosSimulada() {
         String carta = cartasEventoSimuladas[indiceCartaEventosSimulada];
 
@@ -1233,6 +1299,11 @@ public class VentanaJuego extends JFrame {
         return carta;
     }
 
+    /**
+     * Comprueba si una posiciÃ³n corresponde a una casilla de evento.
+     * @param posicion casilla consultada.
+     * @return true si la casilla es de evento.
+     */
     private boolean esCasillaEventoSimulada(int posicion) {
         return posicion == 3 ||
         posicion == 9 ||
@@ -1240,6 +1311,11 @@ public class VentanaJuego extends JFrame {
         posicion == 21;
     }
 
+    /**
+     * Calcula el patrimonio de un jugador del modo local.
+     * @param jugador Ã­ndice del participante.
+     * @return suma del saldo y del valor de sus propiedades.
+     */
     private double calcularPatrimonioSim(int jugador) {
         double patrimonio = saldosJugadoresSimulados[jugador];
 
@@ -1251,6 +1327,10 @@ public class VentanaJuego extends JFrame {
         return patrimonio;
     }
 
+    /**
+     * Devuelve al tablero las propiedades de un jugador eliminado en la simulaciÃ³n.
+     * @param jugador Ã­ndice del participante.
+     */
     private void liberarPropiedadesJugadorSimulado(int jugador) {
         for (int i = 0; i < propietariosSimulados.length; i++) {
             if (propietariosSimulados[i] == jugador) {
@@ -1265,6 +1345,11 @@ public class VentanaJuego extends JFrame {
         }
     }
 
+    /**
+     * Construye una descripciÃ³n de las propiedades del jugador simulado.
+     * @param jugador Ã­ndice del participante.
+     * @return texto con las propiedades que posee.
+     */
     private String obtenerPropiedadesJugadorSim(int jugador) {
         StringBuilder texto = new StringBuilder("Propiedades: ");
         boolean tienePropiedades = false;
@@ -1284,6 +1369,11 @@ public class VentanaJuego extends JFrame {
         return texto.toString();
     }
 
+    /**
+     * Determina si la casilla es una propiedad comprable en el modo simulado.
+     * @param posicion casilla consultada.
+     * @return true cuando es una propiedad.
+     */
     private boolean esPropiedadSimulada(int posicion) {
         return posicion != 0 &&
         posicion != 3 &&
@@ -1295,6 +1385,10 @@ public class VentanaJuego extends JFrame {
         posicion != 21;
     }
 
+    /**
+     * Cuenta los participantes que continÃºan activos en el modo simulado.
+     * @return cantidad de jugadores activos.
+     */
     private int contarJugadoresActivos() {
         int cantidad = 0;
 
@@ -1306,6 +1400,11 @@ public class VentanaJuego extends JFrame {
         return cantidad;
     }
 
+    /**
+     * Construye la tarjeta lateral de informaciÃ³n para un participante.
+     * @param jugador Ã­ndice del jugador.
+     * @return panel Swing con su informaciÃ³n.
+     */
     private JPanel crearTarjetaJugador(int jugador) {
         JPanel tarjeta = new JPanel();
 
@@ -1333,6 +1432,11 @@ public class VentanaJuego extends JFrame {
     }
 
     // Abre la pantalla final (ganador, empate o sin ganador). Se llama desde el hilo de Swing.
+    /**
+     * Abre la ventana de resultados de una partida en lÃ­nea.
+     * Asocia las acciones de consultar transacciones, reiniciar y finalizar.
+     * @param TextoGanador descripciÃ³n del resultado que se presentarÃ¡.
+     */
     private void AbrirPantallaFinal(String TextoGanador) {
 
         // Evitar abrir la pantalla final dos veces.
@@ -1361,6 +1465,10 @@ public class VentanaJuego extends JFrame {
         ventanaFinPartida.setVisible(true);
     }
 
+    /**
+     * Agrega un mensaje al historial visible y desplaza la vista al final.
+     * @param mensaje texto que se desea registrar.
+     */
     private void agregarHistorialSimulado(String mensaje) {
         if (!areaHistorial.getText().isEmpty()) {
             areaHistorial.append("\n");
@@ -1370,6 +1478,9 @@ public class VentanaJuego extends JFrame {
         areaHistorial.setCaretPosition(areaHistorial.getDocument().getLength());
     }
 
+    /**
+     * Actualiza la etiqueta de ronda a partir del estado del modo simulado.
+     */
     private void actualizarEtiquetaRonda() {
         if (partidaPorRondas) {
             lblNumeroRonda.setText("Ronda: " + numeroRondaSimulada + " / " + maxRondasSimulado);
@@ -1379,6 +1490,11 @@ public class VentanaJuego extends JFrame {
         }
     }
 
+    /**
+     * Obtiene el carÃ¡cter visual correspondiente al resultado de un dado.
+     * @param valor nÃºmero de la cara del dado.
+     * @return representaciÃ³n visual de la cara.
+     */
     private String obtenerCaraDado(int valor) {
         switch (valor) {
             case 1:
@@ -1398,6 +1514,9 @@ public class VentanaJuego extends JFrame {
         }
     }
 
+    /**
+     * Actualiza las tarjetas laterales con saldos y estados de los jugadores.
+     */
     private void actualizarTarjetasJugadoresSimulados() {
         for (int i = 0; i < 4; i++) {
             lblSaldoJugadores[i].setText("Saldo: ₡" + saldosJugadoresSimulados[i]);
@@ -1426,6 +1545,9 @@ public class VentanaJuego extends JFrame {
         }
     }
 
+    /**
+     * Destaca la posiciÃ³n del participante con el turno en la simulaciÃ³n.
+     */
     private void resaltarCasillaJugadorActualSimulado() {
         
         for (int i = 0; i < casillasVisuales.length; i++) {
@@ -1441,6 +1563,11 @@ public class VentanaJuego extends JFrame {
         
     }
 
+    /**
+     * Procesa mensajes de red de manera continua en un hilo receptor.
+     * Interpreta estados, movimientos, eventos, compras y finalizaciÃ³n; los cambios
+     * de componentes Swing se delegan al hilo de eventos cuando corresponde.
+     */
     private void iniciarEscuchaServidor() {
 
         Thread hiloReceptor = new Thread(() -> {
@@ -1814,6 +1941,12 @@ public class VentanaJuego extends JFrame {
     }
 
 
+    /**
+     * Interpreta un mensaje ESTADO del servidor y sincroniza el tablero grÃ¡fico.
+     * Actualiza posiciones, turno, propietarios y datos econÃ³micos sin alterar
+     * las reglas de negocio almacenadas en el servidor.
+     * @param estado cadena de estado enviada por el servidor.
+     */
     private void actualizarFichasDesdeEstado(String estado) {
 
         if (estado == null || !estado.startsWith("ESTADO;")) {
@@ -2055,6 +2188,11 @@ public class VentanaJuego extends JFrame {
         });
     }
     
+    /**
+     * Convierte los Ã­ndices de propiedades incluidos en el estado a sus nombres.
+     * @param propiedades representaciÃ³n textual de las posiciones del tablero.
+     * @return lista legible de nombres de propiedades.
+     */
     private String obtenerNombresPropiedades(String propiedades) {
 
         if (propiedades == null
@@ -2088,6 +2226,11 @@ public class VentanaJuego extends JFrame {
         return nombres.length() == 0 ? "ninguna" : nombres.toString();
     }
 
+    /**
+     * Coloca una ficha en su casilla visual y actualiza el resaltado del tablero.
+     * @param jugador Ã­ndice de la ficha.
+     * @param posicion Ã­ndice de la casilla de destino.
+     */
     private void marcarPosicionJugador(int jugador, int posicion) {
         if (jugador < 0 || jugador >= fichasJugadores.length) {
         return;
@@ -2121,6 +2264,11 @@ public class VentanaJuego extends JFrame {
     }
 
     // Marca una sola casilla con un borde del color del jugador (las demás vuelven al borde normal).
+    /**
+     * Resalta una casilla con el borde del color del participante.
+     * @param Posicion Ã­ndice de la casilla.
+     * @param ColorJugador color visual del participante.
+     */
     private void ResaltarCasilla(int Posicion, Color ColorJugador) {
 
         for (int i = 0; i < casillasVisuales.length; i++) {
@@ -2135,6 +2283,10 @@ public class VentanaJuego extends JFrame {
     }
 
     // Texto de confirmación de compra, por ejemplo: "¿Está seguro de comprar Bosque de Bambúes por ₡250?"
+    /**
+     * Genera el texto de confirmaciÃ³n de compra de la propiedad actual.
+     * @return mensaje que se mostrarÃ¡ al jugador.
+     */
     private String TextoConfirmarCompra() {
 
         if (PosicionLocalEnLinea >= 0 && PosicionLocalEnLinea < nombresCasillas.length) {
@@ -2146,6 +2298,11 @@ public class VentanaJuego extends JFrame {
         return "¿Está seguro de comprar esta propiedad?";
     }
 
+    /**
+     * Obtiene el nombre visible asociado al identificador de un participante.
+     * @param identificador cÃ³digo del jugador, como J001.
+     * @return nombre registrado o texto identificador de respaldo.
+     */
     private String obtenerNombreJugador(String identificador) {
 
         if (identificador == null
@@ -2166,6 +2323,11 @@ public class VentanaJuego extends JFrame {
 
     // Aviso de compra con RFID: solo lo ve el jugador que compra.
     // Acercar la tarjeta acepta la compra; "Cancelar" (o cerrar el aviso) cancela la validación.
+    /**
+     * Abre el diÃ¡logo para validar una compra con tarjeta RFID.
+     * La compra o cancelaciÃ³n real se comunica al servidor.
+     * @param TextoCompra descripciÃ³n de la propiedad pendiente.
+     */
     private void MostrarDialogoCompraRfid(String TextoCompra) {
 
         CerrarDialogoCompra();
@@ -2200,6 +2362,9 @@ public class VentanaJuego extends JFrame {
     }
 
     // Cierra el aviso de compra (la tarjeta se validó, se canceló o hubo un error).
+    /**
+     * Cierra el diÃ¡logo de compra que pudiera permanecer abierto.
+     */
     private void CerrarDialogoCompra() {
 
         if (DialogoCompra != null) {
@@ -2215,6 +2380,9 @@ public class VentanaJuego extends JFrame {
     // Muestra en el tablero la carta de evento que salió (a todos los jugadores).
     // Se llama cuando la ficha llega a la casilla de evento, antes de que la carta la mueva.
     // La ventana no es modal: no bloquea el juego (por ejemplo, el pago con la tarjeta).
+    /**
+     * Presenta la carta recibida desde el servidor cuando corresponde mostrarla.
+     */
     private void MostrarCartaPendiente() {
 
         if (CartaPorMostrar == null) {
@@ -2234,6 +2402,11 @@ public class VentanaJuego extends JFrame {
     // - Si la ficha se está animando, solo se actualiza el destino final.
     // - Si es el jugador que acaba de lanzar, avanza casilla por casilla.
     // - Si no, se coloca directo (el primer ESTADO, cuando la ficha aún no está en el tablero).
+    /**
+     * Decide entre animar o colocar directamente una ficha a partir de ESTADO.
+     * @param jugador Ã­ndice del participante.
+     * @param posicion casilla de destino reportada por el servidor.
+     */
     private void moverFichaDesdeEstado(int jugador, int posicion) {
         if (animacionesFichas[jugador] != null) {
             destinosFichas[jugador] = posicion;
@@ -2254,6 +2427,12 @@ public class VentanaJuego extends JFrame {
     // Avanza la ficha "pasos" casillas, una cada MS_POR_CASILLA.
     // Si al terminar no quedó en "destinoFinal" (una carta la movió o cayó en
     // "Ir al D3"), espera MS_ANTES_DE_SALTO y salta a la casilla final.
+    /**
+     * Mueve gradualmente una ficha por el tablero mediante un Timer de Swing.
+     * @param jugador Ã­ndice de la ficha.
+     * @param pasos nÃºmero de casillas que debe recorrer.
+     * @param destinoFinal casilla de destino confirmada por el servidor.
+     */
     private void animarFicha(int jugador, int pasos, int destinoFinal) {
         detenerAnimacionFicha(jugador);
 
@@ -2303,6 +2482,10 @@ public class VentanaJuego extends JFrame {
         animacion.start();
     }
 
+    /**
+     * Detiene la animaciÃ³n activa de un participante, si existe.
+     * @param jugador Ã­ndice de la ficha.
+     */
     private void detenerAnimacionFicha(int jugador) {
         if (animacionesFichas[jugador] != null) {
             animacionesFichas[jugador].stop();
@@ -2310,6 +2493,10 @@ public class VentanaJuego extends JFrame {
         }
     }
 
+    /**
+     * Retira visualmente la ficha de un participante eliminado o desconectado.
+     * @param jugador Ã­ndice del participante.
+     */
     private void retirarFichaJugadorSimulado(int jugador) {
         detenerAnimacionFicha(jugador);
         int posicion = posicionesVisuales[jugador];
@@ -2326,6 +2513,13 @@ public class VentanaJuego extends JFrame {
         posicionesVisuales[jugador] = -1;
     }
 
+    /**
+     * Calcula el patrimonio total de un participante a partir de ESTADO.
+     * Utiliza el saldo y el valor de las propiedades recibidos del servidor.
+     * @param estado estado completo de la partida.
+     * @param idJugador identificador del jugador consultado.
+     * @return patrimonio convertido a texto para la pantalla final.
+     */
     private String calcularPatrimonioFinal(String estado, String idJugador) {
 
         String[] campos = estado.split(";", -1);
@@ -2392,6 +2586,10 @@ public class VentanaJuego extends JFrame {
     }
 
     // Método principal
+    /**
+     * Abre el tablero de manera independiente para pruebas de interfaz.
+     * @param args argumentos de consola; no se utilizan.
+     */
     public static void main(String[] args) {
 
         SwingUtilities.invokeLater(() -> {

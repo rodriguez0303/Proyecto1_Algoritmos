@@ -1,12 +1,21 @@
 
 package Interfaz;
 
+/**
+ * Traduce los codigos de estado del hardware a indicaciones para el jugador.
+ * No realiza operaciones sobre la Pico ni valida fÃ­sicamente tarjetas RFID.
+ */
 public final class TraductorMensajesHardware {
 
     private TraductorMensajesHardware() {
         // Clase de utilidad: no necesita instancias.
     }
 
+    /**
+     * Asocia un aviso del protocolo de hardware con un texto mostrado en el tablero.
+     * @param mensajeHardware texto recibido, por ejemplo ESPERANDO_RFID;J001.
+     * @return texto visible para el jugador o null para avisos internos.
+     */
     public static String traducir(String mensajeHardware) {
 
         String[] partes = mensajeHardware.split(";");

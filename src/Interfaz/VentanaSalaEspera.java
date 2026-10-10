@@ -6,8 +6,15 @@ import LogicaJuego.Cliente;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Presenta el estado de una sala antes del inicio de una partida en lÃ­nea.
+ * Muestra a los participantes y permite al anfitriÃ³n solicitar el inicio.
+ */
 public class VentanaSalaEspera extends JFrame {
 
+    /**
+     * ConexiÃ³n compartida con el servidor y cÃ³digo del jugador de esta ventana.
+     */
     private final Cliente cliente;
     private final String idJugador;
 
@@ -15,6 +22,11 @@ public class VentanaSalaEspera extends JFrame {
     private JTextArea txtJugadores;
     private JButton btnIniciar;
 
+    /**
+     * Prepara la sala de espera para un jugador ya conectado al servidor.
+     * @param cliente conexiÃ³n activa que se seguirÃ¡ usando al abrir el tablero.
+     * @param idJugador identificador del jugador, por ejemplo J001.
+     */
     public VentanaSalaEspera(Cliente cliente, String idJugador) {
 
         this.cliente = cliente;
@@ -108,6 +120,13 @@ public class VentanaSalaEspera extends JFrame {
     }
 
     // Actualiza los jugadores que están conectados.
+    /**
+     * Actualiza el contador y la lista de participantes de la sala.
+     * El botÃ³n de inicio solo se habilita cuando la sala estÃ¡ completa y
+     * esta ventana corresponde al anfitriÃ³n.
+     * @param cantidadEsperada cantidad de jugadores prevista para la partida.
+     * @param jugadoresConectados registros de jugadores anunciados por el servidor.
+     */
     public void actualizarJugadores(
             int cantidadEsperada,
             String[] jugadoresConectados) {
@@ -157,6 +176,11 @@ public class VentanaSalaEspera extends JFrame {
             );
         });
     }
+    /**
+     * Escucha mensajes de sala en un hilo separado.
+     * Actualiza la interfaz mediante SwingUtilities y espera la notificaciÃ³n
+     * PARTIDA_INICIADA antes de abrir el tablero.
+     */
     public void iniciarEscuchaServidor() {
         Thread hiloReceptor = new Thread(() -> {
 
@@ -247,6 +271,10 @@ public class VentanaSalaEspera extends JFrame {
         hiloReceptor.start();
     }
     // Se llamará cuando el servidor autorice iniciar.
+    /**
+     * Cierra la sala de espera y abre la ventana de juego en modo en lÃ­nea.
+     * Conserva la misma conexiÃ³n cliente-servidor para el tablero.
+     */
     public void abrirTablero() {
 
         SwingUtilities.invokeLater(() -> {
