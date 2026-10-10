@@ -10,6 +10,13 @@ import java.io.PrintWriter;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
+/**
+ * Adaptador entre el servidor de Monopoly TEC y la Raspberry Pi Pico.
+ * Utiliza comunicacion serial mediante jSerialComm para registrar las
+ * tarjetas RFID, solicitar tiradas de dados y validar pagos fisicos.
+ * El bloqueoHardware impide ejecutar operaciones simultaneas sobre la Pico.
+ * Las respuestas del hardware se reenvian mediante Consumer<String>.
+ */
 public class ControlDadosHardware implements AutoCloseable {
 
     private final String nombrePuerto;
@@ -21,10 +28,22 @@ public class ControlDadosHardware implements AutoCloseable {
     // Solo puede existir una operación física a la vez sobre la Pico.
     private final Object bloqueoHardware = new Object();
 
+    /**
+     * Define el puerto serial que se usara para comunicarse con la Pico.
+     * La conexion no se abre hasta ejecutar conectar().
+     *
+     * @param nombrePuerto nombre del puerto, por ejemplo COM3
+     */
     public ControlDadosHardware(String nombrePuerto) {
         this.nombrePuerto = nombrePuerto;
     }
 
+    /**
+     * Abre el puerto serial a 115200 baudios y comprueba la comunicacion.
+     * Envia PING y espera la respuesta PONG de la Pico antes de continuar.
+     *
+     * @return true si el puerto y la comunicacion se habilitaron
+     */
     public boolean conectar() {
 
         if (estaConectado()) {
@@ -108,10 +127,25 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    /**
+     * Consulta si el puerto serial esta abierto.
+     *
+     * @return true cuando existe una conexion serial abierta
+     */
     public boolean estaConectado() {
         return puerto != null && puerto.isOpen();
     }
 
+    /**
+     * Solicita a la Pico registrar la tarjeta RFID de un jugador.
+     * La operacion mantiene ocupado el hardware hasta obtener la respuesta
+     * del registro; los estados intermedios se entregan al receptor.
+     *
+     * @param identificador ID del jugador, por ejemplo J001
+     * @param receptorEstado recibe los mensajes informativos de la Pico
+     * @return UID de la tarjeta registrada
+     * @throws IOException si falla la comunicacion serial
+     */
     public String registrarJugador(
             String identificador,
             Consumer<String> receptorEstado
@@ -201,6 +235,15 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    /**
+     * Realiza un lanzamiento utilizando la validacion RFID y el boton fisico.
+     * Delega al metodo sobrecargado sin proveedor de lanzamiento digital.
+     *
+     * @param identificador ID del jugador que lanza
+     * @param receptorEstado recibe los estados de la operacion
+     * @return resultado de los dos dados
+     * @throws IOException si falla la comunicacion serial
+     */
     public ResultadoDados tirarDados(
             String identificador,
             Consumer<String> receptorEstado
@@ -212,6 +255,18 @@ public class ControlDadosHardware implements AutoCloseable {
     // Igual que tirarDados(), pero además del botón físico acepta el botón de la interfaz:
     // mientras la Pico espera el botón, se pregunta a "LanzamientoDigital" si el jugador
     // pulsó el botón en la interfaz; si es así, se le envía BOTON;<identificador> a la Pico.
+    /**
+     * Solicita una tirada de dados tras validar la tarjeta RFID.
+     * Admite tanto el boton fisico como la solicitud desde la interfaz;
+     * cuando LanzamientoDigital lo indica, informa a la Pico del boton digital.
+     * El bloqueoHardware evita cruces entre los mensajes de distintos turnos.
+     *
+     * @param identificador ID del jugador que tiene el turno
+     * @param receptorEstado recibe mensajes de progreso del hardware
+     * @param LanzamientoDigital consulta opcional al boton de la interfaz
+     * @return valores de ambos dados asociados al jugador
+     * @throws IOException si falla la comunicacion serial
+     */
     public ResultadoDados tirarDados(
             String identificador,
             Consumer<String> receptorEstado,
@@ -318,6 +373,18 @@ public class ControlDadosHardware implements AutoCloseable {
     // Si "Cancelacion" devuelve true mientras se espera la tarjeta (el jugador pulsó Cancelar
     // en la interfaz), se le envía CANCELAR;<identificador> a la Pico.
     // Devuelve true si el pago se validó y false si se canceló.
+    /**
+     * Comprueba con la Pico la tarjeta RFID del jugador que debe pagar.
+     * La cancelacion digital se permite cuando se proporciona el callback
+     * y la tarjeta aun no ha sido validada; el servidor decide si esa
+     * cancelacion corresponde a una compra opcional.
+     *
+     * @param Identificador ID del jugador que valida el pago
+     * @param ReceptorEstado recibe el avance de la validacion RFID
+     * @param Cancelacion callback opcional para cancelar antes de validar
+     * @return true si la Pico autorizo el pago; false si se cancelo
+     * @throws IOException si ocurre un error de comunicacion
+     */
     public boolean ValidarPago(
             String Identificador,
             Consumer<String> ReceptorEstado,
@@ -377,6 +444,12 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    /**
+     * Envia una linea del protocolo al puerto serial.
+     *
+     * @param mensaje comando que se enviara a la Pico
+     * @throws IOException si no existe salida o falla el envio
+     */
     private void enviar(String mensaje) throws IOException {
 
         if (salida == null) {
@@ -395,6 +468,13 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    /**
+     * Lee y limpia el siguiente mensaje serial.
+     * Los tiempos de espera normales no se consideran errores de hardware.
+     *
+     * @return mensaje recibido o null si no hay uno disponible
+     * @throws IOException si la lectura presenta un fallo real
+     */
     private String leerMensaje() throws IOException {
 
         try {
@@ -421,6 +501,12 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    /**
+     * Notifica un estado al callback, cuando existe un receptor.
+     *
+     * @param receptorEstado consumidor que recibe los estados
+     * @param mensaje texto enviado por la Pico
+     */
     private void notificar(
             Consumer<String> receptorEstado,
             String mensaje
@@ -431,6 +517,11 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    /**
+     * Impide operar el hardware cuando el puerto esta desconectado.
+     *
+     * @throws IOException si el puerto no esta abierto
+     */
     private void validarConexion() throws IOException {
 
         if (!estaConectado()) {
@@ -441,6 +532,12 @@ public class ControlDadosHardware implements AutoCloseable {
         }
     }
 
+    /**
+     * Libera los flujos y cierra el puerto serial.
+     * Permite usar ControlDadosHardware con try-with-resources.
+     *
+     * @throws IOException si falla el cierre de un flujo
+     */
     @Override
     public void close() throws IOException {
 

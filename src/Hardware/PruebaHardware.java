@@ -1,9 +1,20 @@
 package Hardware;
 
+/**
+ * Prueba manual de la integracion fisica con la Raspberry Pi Pico.
+ * Registra tarjetas RFID y ejecuta una ronda de dados por jugador.
+ * No requiere abrir el tablero ni el servidor TCP.
+ */
 public class PruebaHardware {
 
     private static final int MAX_JUGADORES = 4;
 
+    /**
+     * Conecta COM3, registra las tarjetas indicadas y comprueba una ronda
+     * de lanzamientos con el boton fisico.
+     *
+     * @param args cantidad opcional de jugadores; por defecto son tres
+     */
     public static void main(String[] args) {
 
         // Nosotros somos 3, pero queda preparado para máximo 4.
