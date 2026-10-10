@@ -1955,9 +1955,7 @@ public class VentanaJuego extends JFrame {
             } catch (NumberFormatException ex) {
                 PosicionLocalEnLinea = -1;
             }
-            lblPropiedades.setText(
-                    "Propiedades: " + campos[5]
-            );
+            lblPropiedades.setText("Propiedades: " + obtenerNombresPropiedades(campos[5]));
 
             // Permisos calculados por el servidor.
             boolean puedeTirar =
@@ -2113,6 +2111,39 @@ public class VentanaJuego extends JFrame {
                 }
             }
         });
+    }
+    
+    private String obtenerNombresPropiedades(String propiedades) {
+
+        if (propiedades == null
+                || propiedades.isBlank()
+                || propiedades.equals("SIN_PROPIEDADES")) {
+
+            return "ninguna";
+        }
+
+        StringBuilder nombres = new StringBuilder();
+
+        for (String identificador : propiedades.split(",")) {
+
+            String id = identificador.trim();
+
+            if (id.matches("P\\d{2}")) {
+
+                int posicion = Integer.parseInt(id.substring(1));
+
+                if (posicion >= 0 && posicion < nombresCasillas.length) {
+
+                    if (nombres.length() > 0) {
+                        nombres.append(", ");
+                    }
+
+                    nombres.append(nombresCasillas[posicion]);
+                }
+            }
+        }
+
+        return nombres.length() == 0 ? "ninguna" : nombres.toString();
     }
 
     private void marcarPosicionJugador(int jugador, int posicion) {
