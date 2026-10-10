@@ -1361,110 +1361,6 @@ public class VentanaJuego extends JFrame {
         ventanaFinPartida.setVisible(true);
     }
 
-    // Convierte una transacción del servidor en una línea fácil de leer.
-    // Llega como: T1|Turno: 5|Tipo: COMPRA_PROPIEDAD|Origen: J002|Destino: BANCO|Monto: 450.0|Descripcion: ...|FechaHora: ...
-    // Queda como: J002 pagó ₡450 al Banco (Compra de la propiedad BICITEC).
-    private String FormatearTransaccion(String Registro) {
-
-        String Origen = "";
-        String Destino = "";
-        String Monto = "";
-        String Descripcion = "";
-
-        for (String Campo : Registro.split("\\|")) {
-
-            int Separador = Campo.indexOf(": ");
-
-            if (Separador < 0) {
-                continue;
-            }
-
-            String Clave = Campo.substring(0, Separador).trim();
-            String Valor = Campo.substring(Separador + 2).trim();
-
-            if (Clave.equals("Origen")) {
-                Origen = Valor;
-            }
-            else if (Clave.equals("Destino")) {
-                Destino = Valor;
-            }
-            else if (Clave.equals("Monto")) {
-                Monto = Valor;
-            }
-            else if (Clave.equals("Descripcion")) {
-                Descripcion = Valor;
-            }
-        }
-
-        // Si el registro no trae el formato esperado se muestra tal como llegó.
-        if (Origen.isEmpty() || Destino.isEmpty() || Monto.isEmpty()) {
-            return Registro.replace("|", " - ");
-        }
-
-        // 450.0 -> 450
-        try {
-            Monto = String.valueOf((long) Double.parseDouble(Monto));
-        } catch (NumberFormatException e) {
-            // Se deja el monto como llegó.
-        }
-
-        String Linea;
-
-        if (Origen.equals("BANCO")) {
-            Linea = "El Banco pagó ₡" + Monto + " a " + Destino;
-        }
-        else if (Destino.equals("BANCO")) {
-            Linea = Origen + " pagó ₡" + Monto + " al Banco";
-        }
-        else {
-            Linea = Origen + " pagó ₡" + Monto + " a " + Destino;
-        }
-
-        if (!Descripcion.isEmpty()) {
-            Linea = Linea + " (" + Descripcion + ")";
-        }
-
-        return Linea + ".";
-    }
-
-    // Traduce los mensajes de la Pico (ESPERANDO_RFID;J001, RFID_OK;J001...) a instrucciones claras.
-    // Devuelve null para los avisos que no hace falta mostrar.
-    private String TraducirMensajeHardware(String MensajeHardware) {
-
-        String[] Partes = MensajeHardware.split(";");
-
-        String Tipo = Partes[0];
-        String Jugador = Partes.length > 1 ? Partes[1] : "";
-
-        if (Tipo.equals("ESPERANDO_RFID")) {
-            return "Acerque la tarjeta RFID de " + Jugador + " al lector.";
-        }
-        else if (Tipo.equals("RFID_OK")) {
-            return "Tarjeta de " + Jugador + " validada.";
-        }
-        else if (Tipo.equals("RFID_INCORRECTO")) {
-            return "Esa tarjeta no es de " + Jugador + ". Intente de nuevo.";
-        }
-        else if (Tipo.equals("RETIRAR_RFID")) {
-            return "Retire la tarjeta del lector.";
-        }
-        else if (Tipo.equals("ESPERANDO_BOTON")) {
-            return "Presione el botón físico o \"Lanzar dados\" en la ventana.";
-        }
-        else if (Tipo.equals("BOTON_DIGITAL")) {
-            return "Dados lanzados desde la ventana.";
-        }
-        else if (Tipo.equals("PAGO_OK")) {
-            return "Pago autorizado.";
-        }
-        else if (Tipo.equals("ERROR")) {
-            return "Error del hardware: " + MensajeHardware.substring("ERROR;".length()).replace(";", " ");
-        }
-
-        // RFID_RETIRADO, DADOS y otros avisos internos no se muestran.
-        return null;
-    }
-
     private void agregarHistorialSimulado(String mensaje) {
         if (!areaHistorial.getText().isEmpty()) {
             areaHistorial.append("\n");
@@ -1716,7 +1612,7 @@ public class VentanaJuego extends JFrame {
                             String identificador = separador >= 0 ? registro.substring(0, separador).trim() : registro.trim();
 
                             if (transaccionesMostradasEnLinea.add(identificador)) {
-                                agregarHistorialSimulado(FormatearTransaccion(registro));
+                                agregarHistorialSimulado(FormateadorTransacciones.formatear(registro));
                             }
                         }
                     });
@@ -1827,7 +1723,7 @@ public class VentanaJuego extends JFrame {
 
                     String MensajeHardware = mensaje.substring("HARDWARE;".length());
 
-                    String TextoHardware = TraducirMensajeHardware(MensajeHardware);
+                    String TextoHardware = TraductorMensajesHardware.traducir(MensajeHardware);
 
                     SwingUtilities.invokeLater(() -> {
 
@@ -1897,21 +1793,6 @@ public class VentanaJuego extends JFrame {
                     }
                 }
 
-                // Fin de la partida por empate: FIN;EMPATE;ID1,ID2
-                // (FIN;GANADOR se maneja arriba y abre la pantalla final).
-                else if (mensaje.startsWith("FIN;EMPATE;")) {
-
-                    String Empatados = mensaje.substring("FIN;EMPATE;".length()).replace(",", ", ");
-
-                    SwingUtilities.invokeLater(() -> {
-                        agregarHistorialSimulado("Partida terminada en empate entre " + Empatados + ".");
-
-                        AbrirPantallaFinal("Empate entre " + Empatados);
-                    });
-
-                    // Solicitar las transacciones finales.
-                    cliente.enviarSolicitud("CONSULTAR_TRANSACCIONES");
-                }
 
                 // Mostrar otras respuestas del servidor.
                 else {
