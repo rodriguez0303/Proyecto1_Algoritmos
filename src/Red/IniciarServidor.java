@@ -28,7 +28,9 @@ public class IniciarServidor {
         // SELECCIONAR CANTIDAD DE JUGADORES
         // -----------------------------------------
 
-        while (cantidadJugadores != 2 && cantidadJugadores != 3 && cantidadJugadores != 4) {
+        while (cantidadJugadores != 2
+                && cantidadJugadores != 3
+                && cantidadJugadores != 4) {
 
             System.out.print(
                     "Cantidad de jugadores (2, 3 o 4): "
@@ -63,6 +65,34 @@ public class IniciarServidor {
         }
 
         // -----------------------------------------
+        // INICIAR SERVIDOR CON LA CONFIGURACIÓN
+        // -----------------------------------------
+
+        iniciarServidor(cantidadJugadores, maxRondas, usarHardware);
+    }
+
+    // -----------------------------------------
+    // MÉTODO PARA INICIAR EL SERVIDOR
+    // -----------------------------------------
+
+    // Este método puede utilizarse tanto desde
+    // la consola como desde la interfaz gráfica.
+
+    public static void iniciarServidor(int cantidadJugadores, int maxRondas, boolean usarHardware) {
+
+        // -----------------------------------------
+        // VALIDAR CONFIGURACIÓN
+        // -----------------------------------------
+
+        if (cantidadJugadores < 2 || cantidadJugadores > 4) {
+            throw new IllegalArgumentException("La cantidad de jugadores debe estar entre 2 y 4.");
+        }
+
+        if (maxRondas < 0) {
+                throw new IllegalArgumentException("La cantidad de rondas no puede ser negativa.");
+        }
+
+        // -----------------------------------------
         // CREAR LA PARTIDA
         // -----------------------------------------
 
@@ -73,11 +103,7 @@ public class IniciarServidor {
 
             String id = String.format("J%03d", i);
 
-            Jugador jugador = new Jugador(
-                    id,
-                    "Jugador" + i,
-                    1500
-            );
+            Jugador jugador = new Jugador(id, "Jugador" + i, 1500);
 
             juego.AgregarJugador(jugador);
         }

@@ -1,6 +1,7 @@
 package Interfaz;
 
 import LogicaJuego.Cliente;
+import Red.IniciarServidor;
 
 import javax.swing.JOptionPane;
 import javax.swing.JFrame;
@@ -29,6 +30,7 @@ public class VentanaInicio extends JFrame {
     private JRadioButton rbNormal;
 
     private JSpinner spRondas;
+    private JSpinner spJugadores;
 
     public VentanaInicio() {
 
@@ -38,7 +40,7 @@ public class VentanaInicio extends JFrame {
 
         setTitle("Monopoly TEC");
 
-        setSize(450, 410);
+        setSize(500, 500);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -112,13 +114,33 @@ public class VentanaInicio extends JFrame {
 
         JLabel lblRondas = new JLabel("Número de rondas: ");
 
-        spRondas =new JSpinner(new SpinnerNumberModel(5, 1, 100, 1));
+        spRondas = new JSpinner(new SpinnerNumberModel(5, 1, null, 1));
 
         spRondas.setMaximumSize(new Dimension(70, 30));
 
         panelRondas.add(lblRondas);
         panelRondas.add(spRondas);
         panelRondas.setOpaque(false);
+
+        
+        // -------------------------------------------------
+        // CANTIDAD DE JUGADORES
+        // -------------------------------------------------
+
+        JPanel panelJugadores = new JPanel();
+        panelJugadores.setLayout(new BoxLayout(panelJugadores, BoxLayout.X_AXIS));
+
+        panelJugadores.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panelJugadores.setOpaque(false);
+
+        JLabel lblJugadores = new JLabel("Cantidad de jugadores: ");
+
+        spJugadores = new JSpinner(new SpinnerNumberModel(2, 2, 4, 1));
+
+        spJugadores.setMaximumSize(new Dimension(70, 30));
+
+        panelJugadores.add(lblJugadores);
+        panelJugadores.add(spJugadores);
 
         // -------------------------------------------------
         // BOTÓN INICIAR
@@ -138,6 +160,17 @@ public class VentanaInicio extends JFrame {
 
         btnIniciar.setFocusPainted(false);
 
+        JButton btnCrearServidor = new JButton("Crear partida en línea");
+
+        btnCrearServidor.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnCrearServidor.setMaximumSize(new Dimension(230, 35));
+
+        btnCrearServidor.setBackground(new Color(35, 90, 65));
+        btnCrearServidor.setForeground(Color.WHITE);
+
+        btnCrearServidor.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnCrearServidor.setFocusPainted(false);
+
         JButton btnConectar = new JButton("Unirse a partida en línea");
 
         btnConectar.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -148,6 +181,41 @@ public class VentanaInicio extends JFrame {
 
         btnConectar.setFont(new Font("SansSerif", Font.BOLD, 13));
         btnConectar.setFocusPainted(false);
+        
+        // -------------------------------------------------
+        // CREAR PARTIDA EN LÍNEA
+        // -------------------------------------------------
+
+        btnCrearServidor.addActionListener(e -> {
+
+            int cantidadJugadores = (int) spJugadores.getValue();
+
+            int maxRondas = rbPorRondas.isSelected() ? (int) spRondas.getValue() : 0;
+
+            // Evitar iniciar varios servidores desde esta ventana.
+            btnCrearServidor.setEnabled(false);
+
+            // Ejecutar el servidor en un hilo independiente
+            // para que la interfaz gráfica no se congele.
+            Thread hiloServidor = new Thread(() -> {
+
+                IniciarServidor.iniciarServidor(cantidadJugadores, maxRondas, true);
+
+            }, "Servidor-Monopoly");
+
+            hiloServidor.setDaemon(true);
+            hiloServidor.start();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Inicializando servidor para "
+                    + cantidadJugadores + " jugadores.\n"
+                    + "Rondas: "
+                    + (maxRondas == 0 ? "Indefinidas" : maxRondas)
+                    + "\n\nCuando el servidor esté listo, "
+                    + "podrás conectarte desde esta ventana."
+            );
+        });
 
         // -------------------------------------------------
         // ACTIVAR / DESACTIVAR RONDAS
@@ -313,6 +381,8 @@ public class VentanaInicio extends JFrame {
         // AGREGAR COMPONENTES
         // -------------------------------------------------
 
+        panelOpciones.add(panelJugadores);
+        panelOpciones.add(Box.createVerticalStrut(15));
         panelOpciones.add(lblModo);
 
         panelOpciones.add(
@@ -340,6 +410,11 @@ public class VentanaInicio extends JFrame {
         panelOpciones.add(btnIniciar);
 
         panelOpciones.add(Box.createVerticalStrut(10));
+        
+        panelOpciones.add(btnCrearServidor);
+
+        panelOpciones.add(Box.createVerticalStrut(10));
+
         panelOpciones.add(btnConectar);
 
         add(
