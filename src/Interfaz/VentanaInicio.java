@@ -210,7 +210,7 @@ public class VentanaInicio extends JFrame {
             // Ejecutar el servidor en un hilo independiente
             // para que la interfaz gráfica no se congele.
             Thread hiloServidor = new Thread(() -> {
-
+                // Para usar sin hw poner false
                 IniciarServidor.iniciarServidor(cantidadJugadores, maxRondas, true);
 
             }, "Servidor-Monopoly");
