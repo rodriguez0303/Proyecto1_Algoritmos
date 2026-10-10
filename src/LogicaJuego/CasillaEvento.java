@@ -23,6 +23,9 @@ public class CasillaEvento extends Casilla {
     private CartaEvento Carta;   // Última carta sacada en esta casilla (null si nadie ha caído aún)
 
     // Constructor: Crea la casilla con su nombre y el mazo del que va a sacar cartas.
+    /**
+     * Asocia la casilla de evento con el mazo de cartas disponible.
+     */
     public CasillaEvento(String Nombre, MazoEventos Mazo) {
         super(Nombre);
         this.Mazo = Mazo;
@@ -32,6 +35,9 @@ public class CasillaEvento extends Casilla {
     // Se llama cuando un Jugador cae en esta casilla: saca una carta y la aplica.
     // @Override hace que el compilador avise si el nombre no coincide con el de Casilla.
     @Override
+    /**
+     * Extrae una carta del mazo y aplica su efecto mediante la partida.
+     */
     public void ejecutar(Jugador Jugador, Juego Juego) {
         Carta = Mazo.SacarCarta();
 
@@ -44,6 +50,9 @@ public class CasillaEvento extends Casilla {
 
     // Devuelve la última carta sacada aquí.
     // Server la puede usar para avisar a los clientes qué carta salió.
+    /**
+     * Recupera una carta del mazo asociado a esta casilla.
+     */
     public CartaEvento ObtenerCarta() {
         return Carta;
     }

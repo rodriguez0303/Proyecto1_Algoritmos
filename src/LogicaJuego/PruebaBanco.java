@@ -1,7 +1,13 @@
 package LogicaJuego;
 
+/**
+ * Prueba manual de las operaciones económicas del banco; no pertenece al flujo normal de la interfaz.
+ */
 public class PruebaBanco {
 
+    /**
+     * Ejecuta pruebas manuales de pagos y transferencias del banco.
+     */
     public static void main(String[] args) {
 
         Jugador jose = new Jugador("J001", "Jose", 1500);

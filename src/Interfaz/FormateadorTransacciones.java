@@ -12,7 +12,7 @@ public final class FormateadorTransacciones {
     }
 
     /**
-     * Interpreta los campos de una transacciÃ³n separados por barras verticales.
+     * Interpreta los campos de una transaccion separados por barras verticales.
      * @param Registro registro emitido por el servidor.
      * @return mensaje legible; si faltan campos obligatorios, conserva el contenido recibido.
      */

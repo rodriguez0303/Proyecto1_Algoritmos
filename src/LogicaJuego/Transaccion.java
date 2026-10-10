@@ -25,6 +25,9 @@ public class Transaccion {
     private String descripcion;
     private LocalDateTime fechaHora;
 
+    /**
+     * Crea un registro de operación con los datos económicos y participantes correspondientes.
+     */
     public Transaccion(String identificador, int numeroTurno, TipoTransaccion tipo,
                        String jugadorOrigen, String jugadorDestino,
                        double monto, String descripcion){
@@ -43,6 +46,9 @@ public class Transaccion {
     // Convierte el texto al enum; si el texto no coincide con ningún valor
     // de TipoTransaccion, lanza IllegalArgumentException.
     // Borrarlo cuando Propiedad use TipoTransaccion directamente.
+    /**
+     * Crea un registro de operación con los datos económicos y participantes correspondientes.
+     */
     public Transaccion(String identificador, int numeroTurno, String tipo,
                        String jugadorOrigen, String jugadorDestino,
                        double monto, String descripcion){
@@ -50,32 +56,59 @@ public class Transaccion {
                 jugadorOrigen, jugadorDestino, monto, descripcion);
     }
 
+    /**
+     * Obtiene el identificador único de la operación.
+     */
     public String getIdentificador() {
         return identificador;
     }
+    /**
+     * Consulta el turno de la partida en que se registró.
+     */
     public int getNumeroTurno() {
         return numeroTurno;
     }
+    /**
+     * Consulta la categoría del movimiento económico.
+     */
     public TipoTransaccion getTipo() {
         return tipo;
     }
+    /**
+     * Obtiene el identificador que figura como origen de la operación.
+     */
     public String getJugadorOrigen() {
         return jugadorOrigen;
     }
+    /**
+     * Obtiene el identificador que figura como destino de la operación.
+     */
     public String getJugadorDestino() {
         return jugadorDestino;
     }
+    /**
+     * Consulta el importe asociado a la transacción.
+     */
     public double getMonto() {
         return monto;
     }
+    /**
+     * Obtiene el motivo textual del movimiento.
+     */
     public String getDescripcion() {
         return descripcion;
     }
+    /**
+     * Consulta la fecha y hora registrada de la operación.
+     */
     public LocalDateTime getFechaHora() {
         return fechaHora;
     }
 
     // Resumen de la transacción en una línea (lo usa el TXT del punto 13)
+    /**
+     * Genera un resumen textual de la transacción.
+     */
     public String getResumen() {
         DateTimeFormatter formato = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return identificador + "|Turno: " + numeroTurno
@@ -88,6 +121,9 @@ public class Transaccion {
     }
 
     @Override
+    /**
+     * Convierte el registro en texto para las consultas y transmisiones.
+     */
     public String toString() {
         return getResumen();
     }

@@ -8,6 +8,9 @@ package LogicaJuego;
 
 // PROPIEDAD (extends) hereda los elementos de la clase CASILLA.
     // Esto permite que una PROPIEDAD tenga el comportamiento general de una CASILLA y además sus propias características.
+/**
+ * Casilla comprable que administra propietario, precio, alquiler y transacciones asociadas.
+ */
 public class Propiedad extends Casilla {
 
     // Atributo que guarda el identificador único de cada propiedad.
@@ -28,6 +31,9 @@ public class Propiedad extends Casilla {
 
     // Constructor de la clase PROPIEDAD. Recibe los datos necesarios para crear una nueva propiedad.
         // Estos valores se utilizan para guardar el nombre, identificador, precio de compra y alquiler de la propiedad.
+    /**
+     * Define identificador, nombre, precio y alquiler de una casilla comprable.
+     */
     public Propiedad(String identificador, String nombre, double precioCompra, double alquiler) {
 
         // Se utiliza "super" para llamar al CONSTRUCTOR de la clase padre CASILLA.
@@ -61,6 +67,9 @@ public class Propiedad extends Casilla {
             // nombre = "Cartago",
             // precioCompra = 200.0
             // alquiler = 50.0.
+    /**
+     * Devuelve el identificador propio de la propiedad.
+     */
     public String getIdentificador() {
         return identificador;
     }
@@ -70,6 +79,9 @@ public class Propiedad extends Casilla {
 
     // Método que permite obtener el precio de compra de la propiedad.
         // No recibe ningún parámetro porque el precio ya está guardado dentro del objeto PROPIEDAD.
+    /**
+     * Consulta el valor de compra utilizado también en el patrimonio.
+     */
     public double getPrecioCompra() {
         return precioCompra;
     }
@@ -79,6 +91,9 @@ public class Propiedad extends Casilla {
 
     // Método que permite obtener el monto del alquiler de la propiedad.
         // No recibe ningún parámetro porque el alquiler ya está guardado dentro del objeto PROPIEDAD.
+    /**
+     * Consulta el importe que debe pagar quien cae en una propiedad ajena.
+     */
     public double getAlquiler() {
         return alquiler;
     }
@@ -89,6 +104,9 @@ public class Propiedad extends Casilla {
     // Método que permite obtener al jugador que es propietario de la propiedad.
         // "Jugador" es una clase y se utiliza aquí como el tipo de dato que puede guardar la variable "propietario".
             // Ejemplo: si propietario contiene al Jugador ID001, retorna ese Jugador; si nadie la ha comprado todavía, retorna null.
+    /**
+     * Devuelve el jugador dueño o nulo si aún no tiene.
+     */
     public Jugador getPropietario() {
         return propietario;
     }
@@ -99,6 +117,9 @@ public class Propiedad extends Casilla {
     // Método que permite saber si la propiedad todavía está disponible para ser comprada.
         // La variable "propietario" guarda al Jugador que compró la propiedad.
             // Si "propietario" contiene null, significa que ningún Jugador es dueño de la propiedad y retorna true.
+    /**
+     * Comprueba si la propiedad sigue libre para ser adquirida.
+     */
     public boolean isDisponible() {
         return propietario == null;
     }
@@ -109,6 +130,9 @@ public class Propiedad extends Casilla {
     // Método que permite realizar la compra de una PROPIEDAD.
         // "jugador" contiene al Jugador que quiere comprar la PROPIEDAD.
             // "juego" contiene la información de la partida y permite utilizar el Banco.
+    /**
+     * Intenta cobrar el precio, registrar la compra y asociar la propiedad al jugador.
+     */
     public boolean comprar(Jugador jugador, Juego juego) {
 
         // Se verifica si la PROPIEDAD todavía está disponible para ser comprada.
@@ -217,6 +241,9 @@ public class Propiedad extends Casilla {
         // "jugador" recibe al Jugador que cayó en esta PROPIEDAD.
             // "juego" recibe el objeto Juego correspondiente a la partida.
     @Override
+    /**
+     * Resuelve lo que ocurre cuando un jugador cae en esta propiedad.
+     */
     public void ejecutar(Jugador jugador, Juego juego) {
 
         // Se verifica si la propiedad ya tiene un propietario.
@@ -248,6 +275,9 @@ public class Propiedad extends Casilla {
     // Método que se utiliza cuando un Jugador debe pagar el alquiler de una PROPIEDAD.
         // "jugador" contiene al Jugador que debe pagar el alquiler.
             // "juego" contiene la información de la partida, incluyendo el objeto Banco que utiliza el juego.
+    /**
+     * Gestiona la transferencia del alquiler y la posible eliminación por falta de saldo.
+     */
     public void pagarAlquiler(Jugador jugador, Juego juego) {
 
         // "Banco" es la clase y "banco" es la variable donde guardamos ese objeto.
@@ -352,6 +382,9 @@ public class Propiedad extends Casilla {
 
     }
 
+    /**
+     * Retira la referencia al dueño y devuelve la propiedad al mercado.
+     */
     public void liberarPropiedad() {
         propietario = null;
     }

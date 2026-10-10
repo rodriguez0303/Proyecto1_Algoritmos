@@ -30,6 +30,9 @@ public class CartaEvento {
 
     // Aplica el efecto de la carta sobre el Jugador que la sacó.
     // Lo llama CasillaEvento.ejecutar() después de sacar la carta del mazo.
+    /**
+     * Ejecuta el efecto de la carta sobre el jugador y la partida según su tipo.
+     */
     public void Aplicar(Jugador Jugador, Juego Juego) {
         System.out.println(Jugador.getNombre() + " saca la carta " + Id + ": " + Descripcion);
 
@@ -80,6 +83,9 @@ public class CartaEvento {
 
     // El banco le paga al Jugador y se registra una transacción GANANCIA_EVENTO.
     // Si el banco no tiene saldo suficiente, no se registra nada.
+    /**
+     * Procesa una carta que entrega dinero al jugador.
+     */
     private void AplicarGanancia(Jugador Jugador, Juego Juego) {
         if (Juego.getBanco().pagar(Jugador, Valor)) {
             Juego.RegistrarTransaccion(new Transaccion(
@@ -113,24 +119,39 @@ public class CartaEvento {
         }
     }
 
+    /**
+     * Consulta el identificador de la carta.
+     */
     public String getId() {
         return Id;
     }
 
+    /**
+     * Consulta el texto que describe el evento.
+     */
     public String getDescripcion() {
         return Descripcion;
     }
 
+    /**
+     * Consulta el tipo de efecto de la carta.
+     */
     public TipoEvento getTipo() {
         return Tipo;
     }
 
+    /**
+     * Consulta el valor asociado al efecto de la carta.
+     */
     public int getValor() {
         return Valor;
     }
 
     // Resumen de la carta en una línea (útil para pruebas y para mostrarla en consola)
     @Override
+    /**
+     * Representa la carta como texto para su presentación o depuración.
+     */
     public String toString() {
         return Id + " | " + Tipo + " | " + Valor + " | " + Descripcion;
     }

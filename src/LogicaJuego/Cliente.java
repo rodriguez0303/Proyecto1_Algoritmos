@@ -24,6 +24,9 @@ import java.io.IOException;
 //*****************************************************
 
 // Esta clase permitirá conectarse con el servidor, enviar solicitudes y recibir las respuestas enviadas por el servidor.
+/**
+ * Gestiona la conexión TCP con el servidor y el intercambio de solicitudes y respuestas del protocolo del juego.
+ */
 public class Cliente {
 
     // Guarda el identificador único del cliente.
@@ -59,6 +62,9 @@ public class Cliente {
     //*****************************************************
 
     // Se recibe los datos necesarios para identificar al cliente y establecer posteriormente la conexión con el servidor.
+    /**
+     * Configura la identidad del jugador y los datos de conexión al servidor.
+     */
     public Cliente(String id, String nombre, String ip, int puerto) {
 
         // Guarda el identificador recibido en el atributo id del Cliente.
@@ -78,6 +84,9 @@ public class Cliente {
     //*****************************************************
 
     // Método que permite establecer la conexión entre este Cliente y el servidor.
+    /**
+     * Intenta abrir una conexión TCP con el servidor y preparar los flujos de comunicación.
+     */
     public boolean conectar() {
 
         try {
@@ -126,6 +135,9 @@ public class Cliente {
     //*****************************************************
 
     // Método que permite enviar una solicitud desde el Cliente hacia el servidor.
+    /**
+     * Envía una orden o consulta al servidor utilizando el protocolo de texto de la partida.
+     */
     public void enviarSolicitud(String solicitud) {
 
         // Las solicitudes deben enviarse utilizando el formato que espera el Server:
@@ -148,6 +160,9 @@ public class Cliente {
     //*****************************************************
 
     // Método que permite recibir una respuesta enviada por el servidor.
+    /**
+     * Lee la siguiente respuesta del servidor; permite que la interfaz reaccione a eventos de red.
+     */
     public String recibirRespuesta() {
 
         try {
@@ -198,6 +213,9 @@ public class Cliente {
     //*****************************************************
 
     // Método que permite mostrar la información del estado del jugador recibido desde el servidor.
+    /**
+     * Interpreta un mensaje de estado para mostrar información legible del juego.
+     */
     public void mostrarEstado(String respuesta) {
 
         // Se verifica que se haya recibido una respuesta del servidor.
@@ -324,6 +342,9 @@ public class Cliente {
     // Método que permite cerrar la conexión Socket del Cliente con el servidor.
         // Se implementa para que un Cliente pueda finalizar su conexión cuando ya no necesita comunicarse con el Server.
             // Al liberar la posición que estaba utilizando, permite que esa posición pueda ser utilizada posteriormente por otro Cliente..
+    /**
+     * Cierra los recursos asociados con la conexión del cliente.
+     */
     public void desconectar() {
 
         try {

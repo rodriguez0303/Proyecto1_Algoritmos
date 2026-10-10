@@ -23,6 +23,9 @@ public enum TipoTransaccion {
     PREMIO_POR_INICIO;      // El banco le paga al jugador por pasar por la casilla de inicio
 
     // Nombre fácil de leer para el TXT y la pantalla final: COMPRA_PROPIEDAD -> "Compra propiedad".
+    /**
+     * Devuelve el nombre legible asociado al tipo de transacción.
+     */
     public String getNombre() {
         String Texto = name().replace('_', ' ').toLowerCase();
         return Character.toUpperCase(Texto.charAt(0)) + Texto.substring(1);

@@ -23,26 +23,44 @@ public class NodoCasilla {
     private NodoCasilla Anterior;
     private NodoCasilla Siguiente;
 
+    /**
+     * Crea un nodo que guarda una casilla del tablero.
+     */
     public NodoCasilla(Casilla Casilla) {
         this.Casilla = Casilla;
     }
 
+    /**
+     * Devuelve la casilla almacenada en el nodo.
+     */
     public Casilla getCasilla() {
         return Casilla;
     }
 
+    /**
+     * Consulta el nodo anterior para recorridos hacia atrás.
+     */
     public NodoCasilla getAnterior() {
         return Anterior;
     }
 
+    /**
+     * Consulta el nodo siguiente para movimientos hacia adelante.
+     */
     public NodoCasilla getSiguiente() {
         return Siguiente;
     }
 
+    /**
+     * Asigna la referencia al nodo anterior.
+     */
     public void setAnterior(NodoCasilla N) {
         this.Anterior = N;
     }
 
+    /**
+     * Asigna la referencia al siguiente nodo.
+     */
     public void setSiguiente(NodoCasilla N) {
         this.Siguiente = N;
     }

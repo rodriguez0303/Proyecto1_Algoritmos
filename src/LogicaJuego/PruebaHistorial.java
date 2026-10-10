@@ -1,7 +1,13 @@
 package LogicaJuego;
 
+/**
+ * Prueba manual del registro y consulta de transacciones.
+ */
 public class PruebaHistorial {
     
+    /**
+     * Ejecuta pruebas manuales del historial y sus registros.
+     */
     public static void main(String[] args) {
         HistorialTransacciones historial = new HistorialTransacciones();
 

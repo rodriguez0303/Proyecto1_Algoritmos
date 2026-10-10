@@ -64,6 +64,9 @@ public class Tablero {
     // Construye el tablero: Crea las casillas según su posición y las
     // enlaza en un círculo doble usando NodoCasilla.
     // La cantidad de casillas se toma de Constantes.NUMERO_CASILLAS.
+    /**
+     * Construye las casillas del campus y las conecta en la estructura circular.
+     */
     public Tablero() {
         this.Lista = new ListaCircularDoble<>();
         this.Mazo = new MazoEventos();   // Se crea antes de las casillas porque las de evento lo necesitan
@@ -97,6 +100,9 @@ public class Tablero {
     // Se llama una sola vez por casilla: el tipo de cada posición no cambia
     // durante la partida. Para mover los eventos, solo se cambia
     // Constantes.POSICIONES_EVENTO.
+    /**
+     * Construye el tipo de casilla que corresponde a una posición concreta.
+     */
     private Casilla CrearCasilla(int i) {
         if (EsPosicionEvento(i)) {
             return new CasillaEvento(NombresCasillas[i], Mazo);
@@ -117,6 +123,9 @@ public class Tablero {
     }
 
     // Indica si la posición "i" es una de las casillas de evento fijas
+    /**
+     * Determina si la posición representa una casilla de evento.
+     */
     private boolean EsPosicionEvento(int i) {
         for (int Posicion : Constantes.POSICIONES_EVENTO) {
             if (Posicion == i) {
@@ -128,6 +137,9 @@ public class Tablero {
 
     // Devuelve el NodoCasilla que está en una posición del tablero.
     // Acepta posiciones negativas o mayores al tamaño y las ajusta al círculo.
+    /**
+     * Recupera el nodo que corresponde a un índice del tablero.
+     */
     public NodoCasilla ObtenerNodo(int Posicion) {
         int NumCasillas = getNumeroCasillas();
         int Pasos = ((Posicion % NumCasillas) + NumCasillas) % NumCasillas;
@@ -142,17 +154,26 @@ public class Tablero {
     // Devuelve el NodoCasilla en el que está parado un Jugador, según su
     // posicionActual. Es el método "puente" entre Jugador (que solo guarda
     // un int) y el Tablero real (que navega por NodoCasilla).
+    /**
+     * Busca el nodo asociado a la posición actual de un jugador.
+     */
     public NodoCasilla ObtenerNodoActual(Jugador Jugador) {
         return ObtenerNodo(Jugador.getPosicionActual());
     }
 
     // Devuelve la Casilla en la que está parado un Jugador.
     // Reutiliza ObtenerNodoActual() para no repetir el recorrido.
+    /**
+     * Obtiene el objeto Casilla situado bajo la ficha del jugador.
+     */
     public Casilla ObtenerCasillaActual(Jugador Jugador) {
         return ObtenerNodoActual(Jugador).getCasilla();
     }
 
     // Avanza "Pasos" nodos a partir de "Nodo", recorriendo el círculo hacia adelante
+    /**
+     * Avanza una cantidad de enlaces siguientes desde el nodo dado.
+     */
     public NodoCasilla ObtenerSiguiente(NodoCasilla Nodo, int Pasos) {
         NodoCasilla Actual = Nodo;
         for (int i = 0; i < Pasos; i++) {
@@ -164,6 +185,9 @@ public class Tablero {
     // Retrocede "Pasos" nodos a partir de "Nodo", recorriendo el círculo hacia atrás.
     // Usa la referencia a la casilla anterior: es lo que justifica que el
     // tablero sea una lista DOBLEMENTE enlazada.
+    /**
+     * Retrocede una cantidad de enlaces anteriores desde el nodo dado.
+     */
     public NodoCasilla ObtenerAnterior(NodoCasilla Nodo, int Pasos) {
         NodoCasilla Actual = Nodo;
         for (int i = 0; i < Pasos; i++) {
@@ -172,11 +196,17 @@ public class Tablero {
         return Actual;
     }
 
+    /**
+     * Devuelve la cantidad de posiciones que integran el tablero.
+     */
     public int getNumeroCasillas() {
         return Lista.Tamaño();
     }
 
     // Recorre el círculo una vuelta completa desde el primer nodo e imprime el nombre de cada casilla, en orden
+    /**
+     * Imprime el recorrido y las casillas del tablero para su comprobación.
+     */
     public void MostrarTablero() {
         NodoCasilla Primero = Lista.ObtenerPrimero();
         NodoCasilla Actual = Primero;

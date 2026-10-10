@@ -45,6 +45,9 @@ public class Juego {
     // La partida termina de dos formas (la que pase primero):
     // - Queda un solo jugador activo (siempre aplica).
     // - Se completan MaxRondas rondas (solo si MaxRondas > 0; con 0 las rondas son indefinidas).
+    /**
+     * Crea los componentes de una partida y establece el límite de rondas; cero indica modo sin límite.
+     */
     public Juego(int MaxRondas) {
         this.Jugadores = new ColaCircular<>();
         this.NumTurno = 0;
@@ -65,6 +68,9 @@ public class Juego {
     }
 
     // Agrega un "Jugador" a la cola de turnos, solo si la partida aún no ha iniciado
+    /**
+     * Agrega un participante a la cola circular únicamente antes de comenzar la partida.
+     */
     public void AgregarJugador(Jugador Jugador) {
         if (Curso) {
             throw new IllegalStateException("No se pueden agregar más jugadores con la partida en curso");
@@ -73,6 +79,9 @@ public class Juego {
     }
 
     // Marca la partida como iniciada y define quién tiene el primer turno
+    /**
+     * Activa la partida y establece el primer jugador, turno y ronda.
+     */
     public void IniciarPartida() {
         if (Jugadores.Vacio()) {
             throw new IllegalStateException("No hay jugadores para iniciar la partida");
@@ -86,12 +95,18 @@ public class Juego {
 
     // Server (obtenerJugadorActual), no cambiar
     // Obtiene al jugador actual
+    /**
+     * Consulta el jugador al que le corresponde actuar en este turno.
+     */
     public Jugador obtenerJugadorActual() {
         return TurnoActual;
     }
 
     // Avanza al siguiente jugador activo y controla si la partida terminó
     // (queda un solo jugador activo, o se completó la última ronda).
+    /**
+     * Avanza al próximo jugador activo, consume turnos perdidos y verifica las condiciones de fin.
+     */
     public void SiguienteTurno() {
         if (!Curso) {
             return;
@@ -133,6 +148,9 @@ public class Juego {
     // completa (vuelve a la posición 0) todos los jugadores ya tiraron los dados
     // y jugaron su turno: termina la ronda y empieza la siguiente.
     // Si ya se completó la última ronda permitida, se finaliza la partida.
+    /**
+     * Avanza el nodo de turnos y cuenta una nueva ronda al completar una vuelta.
+     */
     private Jugador AvanzarCola() {
         Jugador Sig = Jugadores.Avanzar();
         PosicionCola = (PosicionCola + 1) % Jugadores.Tamaño();
@@ -149,6 +167,9 @@ public class Juego {
 
     // Cuenta cuántos jugadores siguen activos. Recorre la cola exactamente
     // Tamaño() veces, así que el puntero interno vuelve a donde estaba.
+    /**
+     * Cuenta participantes activos recorriendo el círculo sin alterar el jugador actual al terminar.
+     */
     private int ContarJugadoresActivos() {
         int Activos = 0;
         int Total = Jugadores.Tamaño();
@@ -164,6 +185,9 @@ public class Juego {
     // Revisa si queda un único jugador activo y, si es así, finaliza la partida (punto 18).
     // Se llama justo después de cada eliminación, sin esperar al siguiente SiguienteTurno().
     // Devuelve true si la partida ya terminó (por esta revisión o desde antes).
+    /**
+     * Finaliza la partida cuando queda uno o ningún jugador activo.
+     */
     public boolean RevisarFinPartida() {
         if (Curso && ContarJugadoresActivos() <= 1) {
             finalizarPartida();
@@ -173,6 +197,9 @@ public class Juego {
 
     // Server (finalizarTurno), no cambiar.
     // Resetea el control de dados del turno y pasa el turno al siguiente jugador
+    /**
+     * Limpia el estado temporal del turno y avanza al siguiente jugador.
+     */
     public void finalizarTurno() {
         DadosLanzados = false;
         AlquilerPendiente = null;   // Si el jugador salió de la partida con un pago pendiente, se descarta
@@ -182,29 +209,47 @@ public class Juego {
 
     // Activa los pagos en dos pasos: al caer, el alquiler o la carta de pago quedan
     // pendientes y se cobran después con CobrarPagoPendiente().
+    /**
+     * Configura el cobro diferido que permite validar pagos mediante el servidor.
+     */
     public void SetPagosDiferidos(boolean Diferidos) {
         this.PagosDiferidos = Diferidos;
     }
 
+    /**
+     * Indica si el juego está operando con cobros diferidos.
+     */
     public boolean EsPagosDiferidos() {
         return PagosDiferidos;
     }
 
     // Propiedad.ejecutar() la llama cuando el jugador cae en una Propiedad ajena y los pagos están diferidos.
+    /**
+     * Guarda la propiedad cuyo alquiler se cobrará en un segundo paso.
+     */
     public void DejarAlquilerPendiente(Propiedad Propiedad) {
         this.AlquilerPendiente = Propiedad;
     }
 
     // CartaEvento.Aplicar() la llama cuando sale una carta de pago y los pagos están diferidos.
+    /**
+     * Guarda la carta económica pendiente de validación o cobro.
+     */
     public void DejarCartaPendiente(CartaEvento Carta) {
         this.CartaPendiente = Carta;
     }
 
+    /**
+     * Comprueba si existe un alquiler o efecto económico pendiente.
+     */
     public boolean HayPagoPendiente() {
         return AlquilerPendiente != null || CartaPendiente != null;
     }
 
     // Monto del pago pendiente (0 si no hay ninguno).
+    /**
+     * Devuelve el monto pendiente para mostrarlo o validarlo antes del cobro.
+     */
     public double GetMontoPagoPendiente() {
         if (AlquilerPendiente != null) {
             return AlquilerPendiente.getAlquiler();
@@ -216,6 +261,9 @@ public class Juego {
     }
 
     // Texto que explica el pago pendiente, por ejemplo: "Alquiler de BICITEC a J001".
+    /**
+     * Genera una explicación del alquiler o carta económica que debe pagarse.
+     */
     public String GetMotivoPagoPendiente() {
         if (AlquilerPendiente != null) {
             return "Alquiler de " + AlquilerPendiente.getNombre()
@@ -229,6 +277,9 @@ public class Juego {
 
     // Cobra el pago pendiente con la lógica de siempre (Propiedad.pagarAlquiler o la carta):
     // si no le alcanza el saldo, el jugador queda eliminado.
+    /**
+     * Ejecuta el pago diferido y limpia las referencias pendientes.
+     */
     public void CobrarPagoPendiente(Jugador Jugador) {
         Propiedad Alquiler = AlquilerPendiente;
         CartaEvento Carta = CartaPendiente;
@@ -246,6 +297,9 @@ public class Juego {
     // Server (lanzarDados), no cambiar.
     // Lanza los dos dados y devuelve la suma (Dado ya implementada; podría
     // conectarse más adelante al módulo RFID real del punto 14 sin cambiar esta firma)
+    /**
+     * Lanza ambos dados de forma aleatoria, marca el turno y devuelve la suma.
+     */
     public int lanzarDados() {
         int Valor1 = Dado1.lanzar();
         int Valor2 = Dado2.lanzar();
@@ -253,6 +307,9 @@ public class Juego {
         return Valor1 + Valor2;
     }
 
+    /**
+     * Registra valores de dados recibidos del hardware y devuelve el total.
+     */
     public int registrarDadosFisicos(int valorDado1, int valorDado2) {
         Dado1.establecerValor(valorDado1);
         Dado2.establecerValor(valorDado2);
@@ -264,6 +321,9 @@ public class Juego {
 
     // Server (getDadosLanzadosEsteTurno), no cambiar.
     // Server lo usa para impedir lanzar los dados dos veces en el mismo turno
+    /**
+     * Indica si ya hubo lanzamiento de dados durante el turno actual.
+     */
     public boolean getDadosLanzadosEsteTurno() {
         return DadosLanzados;
     }
@@ -271,6 +331,9 @@ public class Juego {
     // Mueve a un Jugador "Pos" casillas hacia adelante, recorriendo los nodos
     // reales del Tablero. Actualiza la posición (int) de Jugador, muestra a
     // qué casilla llegó y ejecuta el comportamiento de esa casilla.
+    /**
+     * Avanza por el tablero, aplica el premio de Salida cuando corresponde y ejecuta la casilla de destino.
+     */
     public void MoverJugador(Jugador Jugador, int Pos) {
         NodoCasilla NodoActual = Tablero.ObtenerNodoActual(Jugador);
         NodoCasilla NodoDestino = Tablero.ObtenerSiguiente(NodoActual, Pos);
@@ -288,6 +351,9 @@ public class Juego {
 
     // El Banco le paga al Jugador el premio por pasar por Salida (punto 11)
     // y se registra una transacción PREMIO_POR_INICIO.
+    /**
+     * Solicita al banco el premio de Salida y registra la transacción cuando se completa.
+     */
     private void PagarPremioSalida(Jugador Jugador) {
         if (Banco.pagar(Jugador, Constantes.PREMIO_SALIDA)) {
             RegistrarTransaccion(new Transaccion(
@@ -304,6 +370,9 @@ public class Juego {
 
     // Mueve a un Jugador "Pasos" casillas hacia atrás usando la referencia
     // a la casilla anterior de cada nodo (lo usa la carta RETROCEDER).
+    /**
+     * Recorre enlaces anteriores del tablero y ejecuta la casilla alcanzada.
+     */
     public void RetrocederJugador(Jugador Jugador, int Pasos) {
         NodoCasilla NodoActual = Tablero.ObtenerNodoActual(Jugador);
         NodoCasilla NodoDestino = Tablero.ObtenerAnterior(NodoActual, Pasos);
@@ -315,6 +384,9 @@ public class Juego {
     }
 
     // Lleva a un Jugador directo a una casilla determinada (lo usa la carta IR_A_CASILLA)
+    /**
+     * Traslada directamente al participante a una casilla y ejecuta su efecto.
+     */
     public void MoverJugadorA(Jugador Jugador, int Posicion) {
         int NuevaPos = AjustarPosicion(Posicion);
         NodoCasilla NodoDestino = Tablero.ObtenerNodo(NuevaPos);
@@ -328,6 +400,9 @@ public class Juego {
     // Encierra a un Jugador en el D3 (lo usan la casilla "Ir al D3" y la carta IR_AL_D3).
     // Va directo sin pasar por Salida (no cobra premio) y pierde su próximo turno.
     // Si tiene guardada una carta "Salida libre del D3", la usa y no le pasa nada.
+    /**
+     * Aplica el traslado y penalización del D3, salvo que el jugador utilice una carta de salida.
+     */
     public void EnviarAlD3(Jugador Jugador) {
         if (Jugador.UsarCartaSalidaD3()) {
             System.out.println(Jugador.getNombre() + " usa su carta \"Salida libre del D3\" y se libra del encierro");
@@ -341,6 +416,9 @@ public class Juego {
     // Deja cualquier posición dentro del rango 0 .. NumeroCasillas-1.
     // Se suma NumeroCasillas antes del segundo módulo porque en Java
     // -2 % 24 da -2 (y no 22), lo que dejaría al jugador en una posición negativa.
+    /**
+     * Normaliza posiciones positivas o negativas para mantenerlas dentro del tablero circular.
+     */
     private int AjustarPosicion(int Posicion) {
         int NumCasillas = Tablero.getNumeroCasillas();
         return ((Posicion % NumCasillas) + NumCasillas) % NumCasillas;
@@ -350,6 +428,9 @@ public class Juego {
     // cada tipo de Casilla sobrescribe ejecutar()).
     // Si el movimiento viene de una carta y cae en otra CasillaEvento, no se
     // saca otra carta, para evitar una cadena infinita de cartas.
+    /**
+     * Aplica polimorfismo sobre la casilla de destino y evita cadenas de cartas de evento.
+     */
     private void EjecutarCasilla(Jugador Jugador, NodoCasilla Nodo) {
         Casilla Casilla = Nodo.getCasilla();
 
@@ -370,6 +451,9 @@ public class Juego {
     }
 
     // Guarda una transacción en el historial
+    /**
+     * Agrega una operación al historial económico de la partida.
+     */
     public void RegistrarTransaccion(Transaccion Transaccion) {
         Historial.agregar(Transaccion);
     }
@@ -377,6 +461,9 @@ public class Juego {
     // Genera el ID de la siguiente transacción: T1, T2, T3...
     // Es el único lugar donde se crean IDs (Propiedad, CartaEvento y Juego lo usan),
     // así nunca se repiten aunque una propiedad se libere y se vuelva a comprar.
+    /**
+     * Produce un identificador secuencial único para el próximo registro.
+     */
     public String GenerarIdTransaccion() {
         ContadorTransacciones++;
         return "T" + ContadorTransacciones;
@@ -388,6 +475,9 @@ public class Juego {
     // - Si dos o más jugadores comparten el mayor patrimonio, la partida termina
     //   en empate: no hay Ganador y los empatados quedan en GetEmpatados().
     //   Así el resultado no depende de a quién le tocaba el turno al terminar.
+    /**
+     * Calcula el patrimonio de participantes activos y establece el ganador o los empatados.
+     */
     public void finalizarPartida() {
         if (!Curso) {
             return;
@@ -443,21 +533,33 @@ public class Juego {
     }
 
     // Ganador de la partida; null mientras siga en curso o si terminó en empate
+    /**
+     * Consulta el ganador; es nulo si no existe o si hubo empate.
+     */
     public Jugador GetGanador() {
         return Ganador;
     }
 
     // Indica si la partida terminó en empate por patrimonio
+    /**
+     * Comprueba si existen participantes empatados con el mayor patrimonio.
+     */
     public boolean HayEmpate() {
         return Empatados != null;
     }
 
     // Jugadores empatados en el mayor patrimonio; null si no hubo empate
+    /**
+     * Devuelve los participantes empatados al finalizar una partida.
+     */
     public Jugador[] GetEmpatados() {
         return Empatados;
     }
 
     // Server (isEnCurso), no cambiar
+    /**
+     * Indica si la partida permanece activa.
+     */
     public boolean isEnCurso() {
         return Curso;
     }
@@ -469,6 +571,9 @@ public class Juego {
     // Recorre el círculo exactamente Tamaño() veces, así que al terminar
     // el puntero interno de ColaCircular vuelve a la misma posición de
     // antes de buscar, sin afectar de quién es el turno actual.
+    /**
+     * Busca al jugador en la cola circular sin desplazar permanentemente la posición actual.
+     */
     public Jugador buscarJugadorPorIdentificador(String identificador) {
         if (Jugadores.Vacio()) {
             return null;
@@ -487,6 +592,9 @@ public class Juego {
     // Server (obtenerPropiedadActual), no cambiar.
     // Devuelve la Propiedad donde está parado el jugador, o null si esa casilla
     // no es una propiedad (Evento, Salida, D3, etc.)
+    /**
+     * Obtiene la propiedad en la que se encuentra el jugador, si su casilla es comprable.
+     */
     public Propiedad obtenerPropiedadActual(Jugador jugador) {
         if (jugador == null) {
             return null;
@@ -501,6 +609,9 @@ public class Juego {
     // Server (comprarPropiedad), no cambiar.
     // Valida que la compra tenga sentido y delega en Propiedad.comprar(),
     // que cobra con el Banco y registra la transacción COMPRA_PROPIEDAD.
+    /**
+     * Valida partida, turno y casilla antes de delegar la compra a la propiedad.
+     */
     public void comprarPropiedad(Jugador jugador, Propiedad propiedad) {
         if (!Curso || jugador == null || propiedad == null) {
             System.out.println("No se puede comprar: partida no activa o datos inválidos");
@@ -522,35 +633,59 @@ public class Juego {
         }
     }
 
+    /**
+     * Devuelve el número de turno actual.
+     */
     public int getNumTurno() {
         return NumTurno;
     }
 
+    /**
+     * Devuelve la ronda actual de la partida.
+     */
     public int GetNumRonda() {
         return NumRonda;
     }
 
+    /**
+     * Devuelve el límite de rondas configurado.
+     */
     public int GetMaxRondas() {
         return MaxRondas;
     }
 
     // Dado ya implementada, no es dependencia pendiente
+    /**
+     * Obtiene el primer dado de la partida.
+     */
     public Dado getDado1() {
         return Dado1;
     }
 
+    /**
+     * Obtiene el segundo dado de la partida.
+     */
     public Dado getDado2() {
         return Dado2;
     }
 
+    /**
+     * Obtiene el historial económico de la partida.
+     */
     public HistorialTransacciones getHistorial() {
         return Historial;
     }
 
+    /**
+     * Obtiene la instancia bancaria de la partida.
+     */
     public Banco getBanco() {
         return Banco;
     }
 
+    /**
+     * Obtiene la estructura del tablero.
+     */
     public Tablero getTablero() {
         return Tablero;
     }

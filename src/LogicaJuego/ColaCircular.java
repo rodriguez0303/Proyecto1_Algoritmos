@@ -43,6 +43,9 @@ public class ColaCircular<T> {
 
     // Agrega un elemento al final de la cola, manteniendo el círculo cerrado
     // si la cola está vacía, el nuevo nodo se apunta a sí mismo y queda como "Actual".
+    /**
+     * Inserta un elemento y conserva el enlace circular de los nodos.
+     */
     public void Agregar(T Elemento) {
         Nodo Nuevo = new Nodo(Elemento);
         if (Vacio()) {
@@ -57,6 +60,9 @@ public class ColaCircular<T> {
     }
 
     // Devuelve el elemento en la posición actual, sin mover el puntero
+    /**
+     * Consulta el elemento del nodo actual sin avanzar el turno.
+     */
     public T ObtenerActual() {
         if (Vacio()) {
             return null;
@@ -65,6 +71,9 @@ public class ColaCircular<T> {
     }
 
     // Mueve el puntero "Actual" al siguiente nodo del círculo y devuelve su dato
+    /**
+     * Desplaza el nodo actual al siguiente del círculo y devuelve su elemento.
+     */
     public T Avanzar() {
         if (Vacio()) {
             return null;
@@ -74,6 +83,9 @@ public class ColaCircular<T> {
     }
 
     // Elimina el nodo actual de la cola y deja el puntero "Actual" apuntando al siguiente nodo
+    /**
+     * Desenlaza el nodo actual y reubica las referencias internas de la cola.
+     */
     public boolean EliminarActual() {
         if (Vacio()) {
             return false;
@@ -97,6 +109,9 @@ public class ColaCircular<T> {
     // Recorre el círculo hasta encontrar el nodo previo al que se recibe
     // (es necesario para desconectar un nodo, pues no es una lista doble:
     // cada nodo solo conoce a su "Siguiente", no tiene un puntero hacia atrás)
+    /**
+     * Recorre el círculo para localizar el nodo previo al indicado, dado que los enlaces son unidireccionales.
+     */
     private Nodo ObtenerAnterior(Nodo Nodo) {
         // Temp es solo un puntero de trabajo (temporal): se usa para ir
         // avanzando nodo por nodo alrededor del círculo hasta encontrar
@@ -110,11 +125,17 @@ public class ColaCircular<T> {
     }
 
     // Cantidad actual de elementos en la cola
+    /**
+     * Devuelve la cantidad de elementos de la cola.
+     */
     public int Tamaño() {
         return Tamaño;
     }
 
     // Indica si la cola no tiene elementos
+    /**
+     * Comprueba si la cola carece de elementos.
+     */
     public boolean Vacio() {
         return Tamaño == 0;
     }

@@ -1,5 +1,11 @@
 package LogicaJuego;
+/**
+ * Prueba manual de operaciones de un jugador.
+ */
 public class PruebaJugador {
+    /**
+     * Ejecuta pruebas manuales de los atributos y acciones de un jugador.
+     */
     public static void main(String[] args) {
         Jugador jugador1 = new Jugador("J001",
         "Mario",

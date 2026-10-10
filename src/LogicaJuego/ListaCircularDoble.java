@@ -47,6 +47,9 @@ public class ListaCircularDoble<T> {
 
     // Agrega un elemento al final de la lista, manteniendo el círculo
     // cerrado en ambos sentidos (Anterior y Siguiente)
+    /**
+     * Inserta un nuevo elemento preservando los enlaces anterior y siguiente del círculo.
+     */
     public void Agregar(T Elemento) {
         Nodo Nuevo = new Nodo(Elemento);
         if (Vacio()) {
@@ -64,6 +67,9 @@ public class ListaCircularDoble<T> {
     }
 
     // Devuelve el primer elemento agregado, sin moverse
+    /**
+     * Devuelve el primer dato almacenado sin alterar la lista.
+     */
     public T ObtenerPrimero() {
         if (Vacio()) {
             return null;
@@ -72,11 +78,17 @@ public class ListaCircularDoble<T> {
     }
 
     // Cantidad actual de elementos en la lista
+    /**
+     * Devuelve el número total de elementos almacenados.
+     */
     public int Tamaño() {
         return Tamaño;
     }
 
     // Indica si la lista no tiene elementos
+    /**
+     * Indica si la lista circular se encuentra vacía.
+     */
     public boolean Vacio() {
         return Tamaño == 0;
     }

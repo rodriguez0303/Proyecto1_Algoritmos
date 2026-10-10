@@ -26,6 +26,9 @@ public class Banco {
         this.saldo = saldoInicial;
     }
 
+    /**
+     * Devuelve los fondos que conserva actualmente el banco.
+     */
     public double getSaldo() {
         return saldo;
     }
@@ -66,6 +69,9 @@ public class Banco {
         return true;
     }
 
+    /**
+     * Intenta cobrar un pago obligatorio al jugador; si no dispone del saldo necesario, lo elimina de la partida.
+     */
     public boolean recibirPagoObligatorio(Jugador jugador, double monto) {
         if (jugador == null || monto <= 0) {
             return false;
@@ -77,6 +83,9 @@ public class Banco {
         return recibir(jugador, monto);
     }
 
+    /**
+     * Procesa un pago obligatorio entre jugadores y elimina al deudor cuando no puede cubrirlo.
+     */
     public boolean transferirPagoObligatorio(Jugador origen, Jugador destino, double monto) {
         if (origen == destino || origen == null || destino == null || monto <= 0) {
             return false;

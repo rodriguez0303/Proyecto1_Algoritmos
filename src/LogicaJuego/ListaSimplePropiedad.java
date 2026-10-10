@@ -49,6 +49,9 @@ public class ListaSimplePropiedad {
     private int Tamaño;
 
     // Cuando se crea una nueva lista, el Jugador todavía no tiene ninguna Propiedad almacenada.
+    /**
+     * Inicializa una lista vacía con referencias al primero, último y tamaño.
+     */
     public ListaSimplePropiedad() {
 
         // Todavía no existe un primer Nodo.
@@ -67,6 +70,9 @@ public class ListaSimplePropiedad {
     // Se agrega una nueva Propiedad al final de la lista.
         // "Propiedad" es el tipo de dato que recibe el método (clase Propieda).
             // "propiedad" es la Propiedad que se desea guardar.
+    /**
+     * Añade una propiedad al final de la lista simplemente enlazada.
+     */
     public void Agregar(Propiedad propiedad) {
 
         // Se crea un nuevo Nodo para guardar la Propiedad recibida.
@@ -100,6 +106,9 @@ public class ListaSimplePropiedad {
     //*******************************************************************************
 
     // Permite obtener una Propiedad según su posición dentro de la lista.
+    /**
+     * Recupera la propiedad en un índice determinado, o nulo cuando no existe.
+     */
     public Propiedad Obtener(int Posicion) {
 
         // Se valida que la posición de búsqueda en la lista sea válido
@@ -136,6 +145,9 @@ public class ListaSimplePropiedad {
 
     // Función que permitirá eliminaa una Propiedad específica de la lista.
         // La Propiedad será eliminada solamente de la lista de Propiedades del Jugador.
+    /**
+     * Busca y elimina una propiedad, actualizando enlaces y referencias a los extremos.
+     */
     public boolean Eliminar(Propiedad propiedad) {
 
         // Si la lista está vacía no existen nodos por eliminar es porque no jugadores con propiedades.
@@ -215,6 +227,9 @@ public class ListaSimplePropiedad {
     //*******************************************************************************
 
     //Método que devuelve la primera Propiedad almacenada en la lista.
+    /**
+     * Recupera la propiedad ubicada en el primer nodo.
+     */
     public Propiedad ObtenerPrimero() {
 
         // Se verifica si la lista está vacía.
@@ -232,6 +247,9 @@ public class ListaSimplePropiedad {
     //*******************************************************************************
 
     // Método que devuelve la cantidad de Propiedades
+    /**
+     * Devuelve la cantidad de propiedades de la lista.
+     */
     public int Tamaño() {
 
         return Tamaño;
@@ -242,6 +260,9 @@ public class ListaSimplePropiedad {
     //*******************************************************************************
 
     // Método que valida si la lista se encuentra vacía.
+    /**
+     * Comprueba si la lista no contiene nodos.
+     */
     public boolean Vacio() {
 
         return Tamaño == 0;
@@ -253,6 +274,9 @@ public class ListaSimplePropiedad {
     // Se elimina todas las referencias a Propiedades almacenadas dentro de esta lista.
         // Este método NO cambia el propietario de las Propiedades.
             // Solamente deja vacía la lista del Jugador.
+    /**
+     * Quita los enlaces y restablece la lista a su estado vacío.
+     */
     public void Vaciar() {
 
         // Se elimina la referencia al primer Nodo.

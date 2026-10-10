@@ -13,6 +13,9 @@ public class CasillaEspecial extends Casilla {
     private TipoCasillaEspecial Tipo;   // Qué hace la casilla (ver TipoCasillaEspecial)
 
     // Constructor: Crea la casilla con su nombre y su tipo.
+    /**
+     * Inicializa una casilla especial con su nombre y su categoría.
+     */
     public CasillaEspecial(String Nombre, TipoCasillaEspecial Tipo) {
         super(Nombre);
         this.Tipo = Tipo;
@@ -20,6 +23,9 @@ public class CasillaEspecial extends Casilla {
 
     // Se llama cuando un Jugador cae en esta casilla.
     @Override
+    /**
+     * Aplica la acción de la casilla especial al jugador que cayó en ella.
+     */
     public void ejecutar(Jugador Jugador, Juego Juego) {
         switch (Tipo) {
             case SALIDA:
@@ -42,6 +48,9 @@ public class CasillaEspecial extends Casilla {
         }
     }
 
+    /**
+     * Devuelve la categoría que identifica la casilla especial.
+     */
     public TipoCasillaEspecial GetTipo() {
         return Tipo;
     }

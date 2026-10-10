@@ -1,7 +1,13 @@
 package LogicaJuego;
 
+/**
+ * Prueba manual del lanzamiento y consulta de los dados.
+ */
 public class PruebaDado {
 
+    /**
+     * Ejecuta pruebas manuales de lanzamiento y almacenamiento de resultados.
+     */
     public static void main(String[] args) {
 
         Dado dado1 = new Dado(1);

@@ -33,6 +33,9 @@ public class MazoEventos {
     private static final int POSICION_GYMTEC = 13;
 
     // Constructor: Crea las cartas, las mezcla y arma el mazo.
+    /**
+     * Construye las cartas disponibles, las mezcla y prepara la cola circular.
+     */
     public MazoEventos() {
         this.Cartas = new ColaCircular<>();
         this.CartasCreadas = new CartaEvento[MAX_CARTAS];
@@ -43,6 +46,9 @@ public class MazoEventos {
     }
 
     // Todas las cartas del mazo. El orden aquí no importa, porque después se mezclan.
+    /**
+     * Define el conjunto de eventos y sus efectos asociados.
+     */
     private void CrearCartas() {
         AgregarCarta("Ganaste una beca: recibe 200", TipoEvento.RECIBIR_DINERO, 200);
         AgregarCarta("Pediste un Uber para llegar a clases: paga 80", TipoEvento.PAGAR_DINERO, 80);
@@ -65,6 +71,9 @@ public class MazoEventos {
     }
 
     // Crea una carta con el siguiente ID disponible (C01, C02...) y la guarda para mezclarla.
+    /**
+     * Crea una carta con ID secuencial y la incorpora al arreglo de mezcla.
+     */
     private void AgregarCarta(String Descripcion, TipoEvento Tipo, int Valor) {
         if (CantidadCreadas >= MAX_CARTAS) {
             throw new IllegalStateException("El mazo no admite más de " + MAX_CARTAS + " cartas");
@@ -75,6 +84,9 @@ public class MazoEventos {
     }
 
     // Mezcla las cartas creadas al azar (Fisher-Yates) y las pasa a la cola circular.
+    /**
+     * Aplica Fisher-Yates para aleatorizar el mazo antes de incorporarlo a la cola.
+     */
     private void MezclarYArmarCola() {
         Random Aleatorio = new Random();
         for (int i = CantidadCreadas - 1; i > 0; i--) {
@@ -93,6 +105,9 @@ public class MazoEventos {
     // Saca la carta que está al frente del mazo y avanza la cola circular.
     // Al avanzar, la carta recién usada queda justo antes del nuevo frente,
     // es decir, al final de la cola, lista para reutilizarse.
+    /**
+     * Entrega la carta actual y avanza la cola, permitiendo reutilizarla al completar el ciclo.
+     */
     public CartaEvento SacarCarta() {
         if (Cartas.Vacio()) {
             return null;
@@ -103,6 +118,9 @@ public class MazoEventos {
     }
 
     // Cantidad de cartas del mazo
+    /**
+     * Devuelve el número de cartas en el mazo.
+     */
     public int Tamaño() {
         return Cartas.Tamaño();
     }
