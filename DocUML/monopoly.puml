@@ -1,295 +1,1870 @@
-@startuml monopoly
+@startuml
 
-' ==============================
-' CLASE JUGADOR
-' ==============================
+title Diagrama UML - Proyecto 1
 
-class Jugador {
-    - identificador : String
-    - nombre : String
-    - saldo : double
-    - posicionActual : int
-    - activo : boolean
-    - propiedades : ListaPropiedades
+caption Monopoly TEC - Algoritmos y Estructuras de Datos I
 
-    + Jugador(identificador : String, nombre : String, saldo : double)
-    + getIdentificador() : String
-    + getNombre() : String
-    + getSaldo() : double
-    + getPosicionActual() : int
-    + esActivo() : boolean
+top to bottom direction
 
-    + modificarSaldo(monto : double) : void
-    + setPosicionActual(nuevaPosicion : int) : void
-    + eliminar() : void
+skinparam classAttributeIconSize 0
 
-    + agregarPropiedad(propiedad : Propiedad) : void
-    + obtenerPropiedades() : ListaPropiedades
-    + calcularPatrimonio() : double
+skinparam shadowing false
+
+skinparam linetype ortho
+
+skinparam nodesep 25
+
+skinparam ranksep 35
+
+skinparam packageStyle rectangle
+
+' ==========================================
+
+' PAQUETE RED
+
+' ==========================================
+
+package "Red" {
+
+class Server {
+
+  - ip : String
+
+  - puerto : int
+
+  - juego : Juego
+
+  - bloqueoJuego : Object
+
+  - hardware : ControlDadosHardware
+
+  - cantidadJugadoresEsperados : int
+
+  - partidaIniciada : boolean
+
+  - servidorActivo : boolean
+
+  - serverSocket : ServerSocket
+
+  - clientesSocket : Socket[]
+
+  - entradas : BufferedReader[]
+
+  - salidas : PrintWriter[]
+
+  - jugadoresConectados : Jugador[]
+
+  - SolicitudGuardada : String[]
+
+  - propiedadPendienteCompra : Propiedad
+
+  - jugadorPendienteCompra : Jugador
+
+  - turnoPendienteCompra : int
+
+  - FinAvisado : boolean
+
+  - {static} ARCHIVO_HISTORIAL : String
+
+  + Server(ip : String, puerto : int, juego : Juego)
+
+  + Server(ip : String, puerto : int, juego : Juego, cantidadJugadoresEsperados : int)
+
+  + Server(ip : String, puerto : int, juego : Juego, cantidadJugadoresEsperados : int, hardware : ControlDadosHardware)
+
+  + iniciar() : void
+
+  + buscarPosicionDisponible() : int
+
+  + aceptarCliente() : void
+
+  + asignarJugador(posicion : int, jugador : Jugador) : void
+
+  + procesarSolicitud(posicion : int) : void
+
+  + enviarRespuesta(posicion : int, mensaje : String) : void
+
+  + validarAccion(solicitud : String, jugador : Jugador, propiedad : Propiedad) : boolean
+
+  + actualizarClientes() : void
+
+  + actualizarOtrosClientes(posicionExcluir : int) : void
+
+  - AvisarPagoPendiente(Pagador : Jugador, Motivo : String) : void
+
+  - RevisarSolicitudDigital(Posicion : int, Esperada : String) : boolean
+
+  - ValidarPagoFisico(Pagador : Jugador, PosicionPagador : int, Motivo : String, PuedeCancelar : boolean) : boolean
+
+  - RevisarFinPartida() : void
+
+  - SacarJugadorDeLaPartida(jugadorEliminado : Jugador) : void
+
+  - puedeReiniciarPartida(jugador : Jugador) : boolean
+
+  - reiniciarPartida() : boolean
+
+  - puedeCerrarServidor(jugador : Jugador) : boolean
+
+  - cerrarServidor() : void
+
+  - enviarEstadoSala() : void
+
 }
 
+class IniciarServidor {
 
-note right of Jugador
-  Propiedad y Casilla siguen siendo
-  dependencias pendientes de integración definitiva.
-end note
+  + {static} main(args : String[]) : void
 
+  + {static} iniciarServidor(cantidadJugadores : int, maxRondas : int, usarHardware : boolean) : void
 
-' ==============================
-' LISTA DE PROPIEDADES
-' ==============================
-
-class ListaPropiedades {
-    - primero : NodoPropiedad
-
-    + agregar(propiedad : Propiedad) : void
-    + eliminar(propiedad : Propiedad) : void
-    + buscar(id : String) : Propiedad
 }
 
-
-class NodoPropiedad {
-    - propiedad : Propiedad
-    - siguiente : NodoPropiedad
 }
 
+' ==========================================
 
-' ==============================
-' CLASE JUEGO
-' ==============================
+' PAQUETE LOGICAJUEGO
 
-class Juego {
-    - Jugadores : ColaCircular<Jugador>
-    - TurnoActual : Jugador
-    - NumTurno : int
-    - Curso : boolean
-    - MaxTurnos : int
-    - DadosLanzados : boolean
-    - Tablero : Tablero
-    - Banco : Banco
-    - Dado1 : Dado
-    - Dado2 : Dado
-    - Historial : HistorialTransacciones
+' CLASES PENDIENTES DE REVISAR
 
-    + Juego(MaxTurnos : int)
-    + AgregarJugador(Jugador : Jugador) : void
-    + IniciarPartida() : void
-    + obtenerJugadorActual() : Jugador
-    + SiguienteTurno() : void
-    + finalizarTurno() : void
-    + lanzarDados() : int
-    + getDadosLanzadosEsteTurno() : boolean
-    + MoverJugador(Jugador : Jugador, Pos : int) : void
-    + RegistrarTransaccion(Transaccion : Transaccion) : void
-    + finalizarPartida() : void
-    + isEnCurso() : boolean
-    + buscarJugadorPorIdentificador(identificador : String) : Jugador
-    + obtenerPropiedadActual(jugador : Jugador) : Propiedad
-    + comprarPropiedad(jugador : Jugador, propiedad : Propiedad) : void
-    + getNumTurno() : int
-    + getMaxTurnos() : int
-    + getDado1() : Dado
-    + getDado2() : Dado
-    + getHistorial() : HistorialTransacciones
+' ==========================================
+
+package "LogicaJuego" {
+
+  class Juego
+
+  class Jugador
+
+  class Propiedad
+
+  class Tablero
+
+  class NodoCasilla
+
+  class Casilla
+
+  class CasillaEvento
+
+  class CartaEvento
+
+  class ListaSimplePropiedad
+
+  enum TipoTransaccion
+
+  class HistorialTransacciones
+
+  class Cliente
+
 }
 
+' ==========================================
 
-' ==============================
-' COLA CIRCULAR (orden de turnos)
-' ==============================
+' PAQUETE HARDWARE
 
-class ColaCircular<T> {
+' CLASES PENDIENTES DE REVISAR
+
+' ==========================================
+
+package "Hardware" {
+
+  class ControlDadosHardware
+
+  class ResultadoDados
+
+}
+
+' ==========================================
+
+' PAQUETE INTERFAZ
+
+' FORMATEADORTRANSACCIONES
+
+' ==========================================
+
+package "Interfaz" {
+
+class FormateadorTransacciones <<final>> {
+
+  - FormateadorTransacciones()
+
+  + {static} formatear(Registro : String) : String
+
+}
+
+class TraductorMensajesHardware <<final>> {
+
+  - TraductorMensajesHardware()
+
+  + {static} traducir(mensajeHardware : String) : String
+
+}
+
+}
+
+' ==========================================
+
+' CLASE VENTANAFINPARTIDA
+
+' ==========================================
+
+package "Interfaz" {
+
+class VentanaFinPartida {
+
+  - CmbJugador : JComboBox<String>
+
+  - CmbTipo : JComboBox<String>
+
+  - CmbOrden : JComboBox<String>
+
+  - BtnBuscar : JButton
+
+  - PanelConsulta : JPanel
+
+  - AccionConsultar : Consumer<String>
+
+  - lblGanador : JTextPane
+
+  - lblPatrimonio : JLabel
+
+  - areaTransacciones : JTextArea
+
+  - btnConsultarTransacciones : JButton
+
+  - btnVolverAJugar : JButton
+
+  - btnFinalizar : JButton
+
+  - scrollTransacciones : JScrollPane
+
+  + VentanaFinPartida(nombreGanador : String, patrimonio : String, transacciones : String, esAnfitrion : boolean, accionVolverAJugar : Runnable, accionFinalizar : Runnable)
+
+  + actualizarTransacciones(transacciones : String) : void
+
+  + actualizarPatrimonio(patrimonio : String) : void
+
+  + SetJugadores(Jugadores : String[]) : void
+
+  + SetAccionConsultar(Accion : Consumer<String>) : void
+
+  + MostrarConsulta(Registros : String) : void
+
+  - FormatearTabla(Registros : String) : String
+
+  + {static} main(args : String[]) : void
+
+}
+
+}
+
+' ==========================================
+
+' CLASE VENTANAINICIO
+
+' ==========================================
+
+package "Interfaz" {
+
+class VentanaInicio {
+
+  - rbPorRondas : JRadioButton
+
+  - rbNormal : JRadioButton
+
+  - spRondas : JSpinner
+
+  - spJugadores : JSpinner
+
+  + VentanaInicio()
+
+  + {static} main(args : String[]) : void
+
+}
+
+}
+
+' ==========================================
+
+' CLASE VENTANAJUEGO
+
+' ==========================================
+
+package "Interfaz" {
+
+class VentanaJuego {
+
+  ' COMPONENTES GRAFICOS
+
+  - casillasVisuales : JPanel[]
+
+  - panelesFichas : JPanel[]
+
+  - tarjetasJugadores : JPanel[]
+
+  - panelContenidoCentro : JPanel
+
+  - lblNombreJugadores : JLabel[]
+
+  - lblSaldoJugadores : JLabel[]
+
+  - lblEstadoJugadores : JLabel[]
+
+  - etiquetasPropietarios : JLabel[]
+
+  - etiquetasPrecios : JLabel[]
+
+  - fichasJugadores : JLabel[]
+
+  - lblNombre : JLabel
+
+  - lblSaldo : JLabel
+
+  - lblPatrimonio : JLabel
+
+  - lblPosicion : JLabel
+
+  - lblTurno : JLabel
+
+  - lblNumeroRonda : JLabel
+
+  - lblDado1 : JLabel
+
+  - lblDado2 : JLabel
+
+  - btnTirarDados : JButton
+
+  - btnComprar : JButton
+
+  - btnTerminarTurno : JButton
+
+  - lblPropiedades : JTextArea
+
+  - areaHistorial : JTextArea
+
+  - lblEstado : JTextArea
+
+  - DialogoCompra : JDialog
+
+  ' REFERENCIAS A OTRAS CLASES
+
+  - ventanaFinPartida : VentanaFinPartida
+
+  - cliente : Cliente
+
+  - generador : Random
+
+  ' ESTADO DE LA PARTIDA
+
+  - idParaPatrimonioFinal : String
+
+  - historialTransaccionesFinal : String
+
+  - EsperandoBotonDados : boolean
+
+  - JugadoresPartida : String[]
+
+  - CartaPorMostrar : String
+
+  - ModoHardwareEnLinea : boolean
+
+  - PosicionLocalEnLinea : int
+
+  - nombresJugadoresEnLinea : String[]
+
+  - identificadorLocalEnLinea : String
+
+  - nombresCasillas : String[]
+
+  - cartasEventoSimuladas : String[]
+
+  - transaccionesMostradasEnLinea : Set<String>
+
+  - maxRondasSimulado : int
+
+  - numeroRondaSimulada : int
+
+  - indiceCartaEventosSimulada : int
+
+  - posicionesJugadoresSimulados : int[]
+
+  - posicionesVisuales : int[]
+
+  - animacionesFichas : Timer[]
+
+  - destinosFichas : int[]
+
+  - pasosDadosPendientes : int
+
+  - jugadorDadosPendiente : int
+
+  - indiceTurnoEnLinea : int
+
+  - jugadorActualSimulado : int
+
+  - propietariosSimulados : int[]
+
+  - saldosJugadoresSimulados : double[]
+
+  - preciosPropiedadesSimulados : double[]
+
+  - modoEnLinea : boolean
+
+  - partidaPorRondas : boolean
+
+  - pierdeTurnoSimulado : boolean[]
+
+  - dadosLanzadosSimulados : boolean
+
+  - jugadoresActivosSimulados : boolean[]
+
+  ' CONSTANTES
+
+  - {static} MS_POR_CASILLA : int
+
+  - {static} MS_ANTES_DE_SALTO : int
+
+  - {static} ALQUILER_SIMULADO : double
+
+  - {static} PREMIO_SALIDA_SIMULADO : double
+
+  ' CONSTRUCTORES
+
+  + VentanaJuego()
+
+  + VentanaJuego(partidaPorRondas : boolean, maxRondasSimulado : int)
+
+  ' METODOS PUBLICOS
+
+  + activarModoEnLinea(clienteConectado : Cliente) : void
+
+  + {static} main(args : String[]) : void
+
+  ' METODOS PRIVADOS
+
+  - obtenerColorGrupoPropiedadSimulada(posicion : int) : Color
+
+  - obtenerColorCasillaSimulada(posicion : int) : Color
+
+  - actualizarPanelJugadorSimulado() : void
+
+  - mostrarFinDePartidaSimulado(motivo : String, ganador : int) : void
+
+  - obtenerGanadorPorPatrimonioSimulado() : int
+
+  - obtenerCartaEventosSimulada() : String
+
+  - esCasillaEventoSimulada(posicion : int) : boolean
+
+  - calcularPatrimonioSim(jugador : int) : double
+
+  - liberarPropiedadesJugadorSimulado(jugador : int) : void
+
+  - obtenerPropiedadesJugadorSim(jugador : int) : String
+
+  - esPropiedadSimulada(posicion : int) : boolean
+
+  - contarJugadoresActivos() : int
+
+  - crearTarjetaJugador(jugador : int) : JPanel
+
+  - AbrirPantallaFinal(TextoGanador : String) : void
+
+  - agregarHistorialSimulado(mensaje : String) : void
+
+  - actualizarEtiquetaRonda() : void
+
+  - obtenerCaraDado(valor : int) : String
+
+  - actualizarTarjetasJugadoresSimulados() : void
+
+  - resaltarCasillaJugadorActualSimulado() : void
+
+  - iniciarEscuchaServidor() : void
+
+  - actualizarFichasDesdeEstado(estado : String) : void
+
+  - obtenerNombresPropiedades(propiedades : String) : String
+
+  - marcarPosicionJugador(jugador : int, posicion : int) : void
+
+  - ResaltarCasilla(Posicion : int, ColorJugador : Color) : void
+
+  - TextoConfirmarCompra() : String
+
+  - obtenerNombreJugador(identificador : String) : String
+
+  - MostrarDialogoCompraRfid(TextoCompra : String) : void
+
+  - CerrarDialogoCompra() : void
+
+  - MostrarCartaPendiente() : void
+
+  - moverFichaDesdeEstado(jugador : int, posicion : int) : void
+
+  - animarFicha(jugador : int, pasos : int, destinoFinal : int) : void
+
+  - detenerAnimacionFicha(jugador : int) : void
+
+  - retirarFichaJugadorSimulado(jugador : int) : void
+
+  - calcularPatrimonioFinal(estado : String, idJugador : String) : String
+
+}
+
+}
+
+' ==========================================
+
+' CLASE VENTANASALAESPERA
+
+' ==========================================
+
+package "Interfaz" {
+
+class VentanaSalaEspera {
+
+  ' ATRIBUTOS
+
+  - cliente : Cliente
+
+  - idJugador : String
+
+  - lblContador : JLabel
+
+  - txtJugadores : JTextArea
+
+  - btnIniciar : JButton
+
+  ' CONSTRUCTOR
+
+  + VentanaSalaEspera(cliente : Cliente, idJugador : String)
+
+  ' METODOS PUBLICOS
+
+  + actualizarJugadores(cantidadEsperada : int, jugadoresConectados : String[]) : void
+
+  + iniciarEscuchaServidor() : void
+
+  + abrirTablero() : void
+
+}
+
+}
+
+' ==========================================
+
+' CLASE EXTERNA JAVA SWING
+
+' ==========================================
+
+class JFrame <<Swing>>
+
+' ==========================================
+
+' RELACIONES DE SERVER
+
+' ==========================================
+
+Server --> "1" Juego : administra
+
+Server --> "0..1" ControlDadosHardware : utiliza
+
+Server --> "0..4" Jugador : jugadoresConectados
+
+Server --> "0..1" Propiedad : compra pendiente
+
+Server ..> Tablero
+
+Server ..> NodoCasilla
+
+Server ..> Casilla
+
+Server ..> CasillaEvento
+
+Server ..> CartaEvento
+
+Server ..> ListaSimplePropiedad
+
+Server ..> TipoTransaccion
+
+Server ..> ResultadoDados
+
+' ==========================================
+
+' RELACIONES DE INICIARSERVIDOR
+
+' ==========================================
+
+IniciarServidor ..> Server : <<create>>
+
+IniciarServidor ..> Juego : <<create>>
+
+IniciarServidor ..> Jugador : <<create>>
+
+IniciarServidor ..> ControlDadosHardware : <<create>>
+
+' ==========================================
+
+' RELACIONES DE VENTANAFINPARTIDA
+
+' ==========================================
+
+VentanaFinPartida --|> JFrame
+
+VentanaFinPartida ..> HistorialTransacciones : <<use>>
+
+VentanaFinPartida ..> TipoTransaccion : <<use>>
+
+' ==========================================
+
+' RELACIONES DE VENTANAINICIO
+
+' ==========================================
+
+VentanaInicio --|> JFrame
+
+VentanaInicio ..> IniciarServidor : <<use>>
+
+VentanaInicio ..> VentanaJuego : <<create>>
+
+VentanaInicio ..> Cliente : <<create>>
+
+VentanaInicio ..> VentanaSalaEspera : <<create>>
+
+' ==========================================
+
+' RELACIONES DE VENTANAJUEGO
+
+' ==========================================
+
+VentanaJuego --|> JFrame
+
+VentanaJuego --> "0..1" Cliente : cliente
+
+VentanaJuego --> "0..1" VentanaFinPartida : ventanaFinPartida
+
+VentanaJuego ..> FormateadorTransacciones : <<use>>
+
+VentanaJuego ..> TraductorMensajesHardware : <<use>>
+
+' ==========================================
+
+' RELACIONES DE VENTANASALAESPERA
+
+' ==========================================
+
+VentanaSalaEspera --|> JFrame
+
+VentanaSalaEspera --> "1" Cliente : cliente
+
+VentanaSalaEspera ..> VentanaJuego : <<create>>
+
+' ==========================================
+
+' CLASE CONTROLDADOSHARDWARE
+
+' PAQUETE HARDWARE
+
+' ==========================================
+
+package "Hardware" {
+
+class ControlDadosHardware {
+
+  ' ATRIBUTOS PRIVADOS
+
+  - nombrePuerto : String
+
+  - puerto : SerialPort
+
+  - entrada : BufferedReader
+
+  - salida : PrintWriter
+
+  - bloqueoHardware : Object
+
+  ' CONSTRUCTOR PUBLICO
+
+  + ControlDadosHardware(nombrePuerto : String)
+
+  ' METODOS PUBLICOS
+
+  + conectar() : boolean
+
+  + estaConectado() : boolean
+
+  + registrarJugador(identificador : String, receptorEstado : Consumer<String>) : String
+
+  + tirarDados(identificador : String, receptorEstado : Consumer<String>) : ResultadoDados
+
+  + tirarDados(identificador : String, receptorEstado : Consumer<String>, LanzamientoDigital : BooleanSupplier) : ResultadoDados
+
+  + ValidarPago(Identificador : String, ReceptorEstado : Consumer<String>, Cancelacion : BooleanSupplier) : boolean
+
+  + close() : void
+
+  ' METODOS PRIVADOS
+
+  - enviar(mensaje : String) : void
+
+  - leerMensaje() : String
+
+  - notificar(receptorEstado : Consumer<String>, mensaje : String) : void
+
+  - validarConexion() : void
+
+}
+
+}
+
+' ==========================================
+
+' INTERFAZ EXTERNA DE JAVA
+
+' ==========================================
+
+interface AutoCloseable
+
+' ==========================================
+
+' RELACIONES UML DE CONTROLDADOSHARDWARE
+
+' ==========================================
+
+' REALIZACION - IMPLEMENTA AUTOCLOSEABLE
+
+ControlDadosHardware ..|> AutoCloseable
+
+' ASOCIACION - REFERENCIA AL PUERTO SERIAL
+
+ControlDadosHardware --> "0..1" SerialPort : puerto
+
+' DEPENDENCIA - CREA RESULTADOS DE DADOS
+
+ControlDadosHardware ..> ResultadoDados : <<create>>
+
+' ==========================================
+
+' CLASE RESULTADODADOS
+
+' PAQUETE HARDWARE
+
+' ==========================================
+
+package "Hardware" {
+
+class ResultadoDados {
+
+  ' ATRIBUTOS PRIVADOS E INMUTABLES
+
+  - jugador : String {readOnly}
+
+  - dado1 : int {readOnly}
+
+  - dado2 : int {readOnly}
+
+  ' CONSTRUCTOR PUBLICO
+
+  + ResultadoDados(jugador : String, dado1 : int, dado2 : int)
+
+  ' METODOS PUBLICOS
+
+  + getJugador() : String
+
+  + getDado1() : int
+
+  + getDado2() : int
+
+  + getSuma() : int
+
+  + esDoble() : boolean
+
+  + toString() : String
+
+}
+
+}
+
+' ==========================================
+
+' CLASE BANCO
+
+' PAQUETE LOGICAJUEGO
+
+' ==========================================
+
+package "LogicaJuego" {
+
+class Banco {
+
+  ' ATRIBUTOS PRIVADOS
+
+  - saldo : double
+
+  ' CONSTRUCTORES PUBLICOS
+
+  + Banco()
+
+  + Banco(saldoInicial : double)
+
+  ' METODOS PUBLICOS
+
+  + getSaldo() : double
+
+  + pagar(jugador : Jugador, monto : double) : boolean
+
+  + recibir(jugador : Jugador, monto : double) : boolean
+
+  + recibirPagoObligatorio(jugador : Jugador, monto : double) : boolean
+
+  + transferirPagoObligatorio(origen : Jugador, destino : Jugador, monto : double) : boolean
+
+  + transferir(origen : Jugador, destino : Jugador, monto : double) : boolean
+
+}
+
+}
+
+' ==========================================
+
+' RELACIONES UML DE BANCO
+
+' ==========================================
+
+' DEPENDENCIA - UTILIZA OBJETOS JUGADOR
+
+Banco ..> Jugador : <<use>>
+
+' ==========================================
+
+' CLASE CARTAEVENTO
+
+' PAQUETE LOGICAJUEGO
+
+' ==========================================
+
+package "LogicaJuego" {
+
+class CartaEvento {
+
+  ' ATRIBUTOS PRIVADOS
+
+  - Id : String
+
+  - Descripcion : String
+
+  - Tipo : TipoEvento
+
+  - Valor : int
+
+  ' CONSTRUCTOR PUBLICO
+
+  + CartaEvento(Id : String, Descripcion : String, Tipo : TipoEvento, Valor : int)
+
+  ' METODOS PUBLICOS
+
+  + Aplicar(Jugador : Jugador, Juego : Juego) : void
+
+  + getId() : String
+
+  + getDescripcion() : String
+
+  + getTipo() : TipoEvento
+
+  + getValor() : int
+
+  + toString() : String
+
+  ' METODO PRIVADO
+
+  - AplicarGanancia(Jugador : Jugador, Juego : Juego) : void
+
+  ' METODO CON ACCESO DE PAQUETE
+
+  ~ AplicarPerdida(Jugador : Jugador, Juego : Juego) : void
+
+}
+
+}
+
+' ==========================================
+
+' RELACIONES UML DE CARTAEVENTO
+
+' ==========================================
+
+' ASOCIACION - GUARDA EL TIPO DE EVENTO
+
+CartaEvento --> "1" TipoEvento : Tipo
+
+' DEPENDENCIA - APLICA EFECTOS AL JUGADOR
+
+CartaEvento ..> Jugador : <<use>>
+
+' DEPENDENCIA - UTILIZA LA LOGICA DE LA PARTIDA
+
+CartaEvento ..> Juego : <<use>>
+
+' DEPENDENCIA - CREA REGISTROS DE TRANSACCIONES
+
+CartaEvento ..> Transaccion : <<create>>
+
+' DEPENDENCIA - UTILIZA TIPOS DE TRANSACCION
+
+CartaEvento ..> TipoTransaccion : <<use>>
+
+
+' ==========================================
+' CLASE CASILLA
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class Casilla {
+
+  ' ATRIBUTO PRIVADO
+  - nombre : String
+
+  ' CONSTRUCTOR PUBLICO
+  + Casilla(nombre : String)
+
+  ' METODOS PUBLICOS
+  + getNombre() : String
+  + ejecutar(jugador : Jugador, juego : Juego) : void
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE CASILLA
+' ==========================================
+
+' DEPENDENCIA - RECIBE UN JUGADOR
+Casilla ..> Jugador : <<use>>
+
+' DEPENDENCIA - RECIBE EL JUEGO
+Casilla ..> Juego : <<use>>
+
+
+' ==========================================
+' CLASE CASILLAESPECIAL
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class CasillaEspecial {
+
+  ' ATRIBUTO PRIVADO
+  - Tipo : TipoCasillaEspecial
+
+  ' CONSTRUCTOR PUBLICO
+  + CasillaEspecial(Nombre : String, Tipo : TipoCasillaEspecial)
+
+  ' METODOS PUBLICOS
+  + ejecutar(Jugador : Jugador, Juego : Juego) : void
+  + GetTipo() : TipoCasillaEspecial
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE CASILLAESPECIAL
+' ==========================================
+
+' HERENCIA - CASILLAESPECIAL EXTIENDE CASILLA
+CasillaEspecial --|> Casilla
+
+' ASOCIACION - ALMACENA EL TIPO DE CASILLA
+CasillaEspecial --> "1" TipoCasillaEspecial : Tipo
+
+' DEPENDENCIA - UTILIZA JUGADOR
+CasillaEspecial ..> Jugador : <<use>>
+
+' DEPENDENCIA - UTILIZA JUEGO
+CasillaEspecial ..> Juego : <<use>>
+
+
+' ==========================================
+' CLASE CLIENTE
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class Cliente {
+
+  ' ATRIBUTOS PRIVADOS
+  - id : String
+  - nombre : String
+  - ip : String
+  - puerto : int
+  - socket : Socket
+  - entrada : BufferedReader
+  - salida : PrintWriter
+
+  ' CONSTRUCTOR PUBLICO
+  + Cliente(id : String, nombre : String, ip : String, puerto : int)
+
+  ' METODOS PUBLICOS
+  + conectar() : boolean
+  + enviarSolicitud(solicitud : String) : void
+  + recibirRespuesta() : String
+  + mostrarEstado(respuesta : String) : void
+  + desconectar() : void
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE CLIENTE
+' ==========================================
+
+' ASOCIACION - MANTIENE LA CONEXION TCP
+Cliente --> "0..1" Socket : socket
+
+' ASOCIACION - LEE MENSAJES DEL SERVIDOR
+Cliente --> "0..1" BufferedReader : entrada
+
+' ASOCIACION - ENVIA MENSAJES AL SERVIDOR
+Cliente --> "0..1" PrintWriter : salida
+
+' DEPENDENCIA - PREPARA LA LECTURA DE TEXTO
+Cliente ..> InputStreamReader : <<create>>
+
+' ==========================================
+' CLASE COLACIRCULAR - PAQUETE LOGICAJUEGO
+' ==========================================
+package "LogicaJuego" {
+  class "ColaCircular<T>" as ColaCircular {
     - Actual : Nodo
     - Ultimo : Nodo
     - Tamaño : int
-
     + Agregar(Elemento : T) : void
     + ObtenerActual() : T
     + Avanzar() : T
     + EliminarActual() : boolean
+    - ObtenerAnterior(Nodo : Nodo) : Nodo
     + Tamaño() : int
     + Vacio() : boolean
+  }
+
+  class "ColaCircular.Nodo" as NodoCola {
+    ~ Dato : T
+    ~ Siguiente : Nodo
+    ~ Nodo(Dato : T)
+  }
 }
 
+ColaCircular *-- "0..*" NodoCola : contiene
+NodoCola --> "1" NodoCola : Siguiente
 
-' ==============================
-' CLASE TABLERO (Par 1)
-' ==============================
-
-class Tablero {
-    - Lista : ListaCircularDoble<NodoCasilla>
-
-    + Tablero()
-    + ObtenerNodoActual(Jugador : Jugador) : NodoCasilla
-    + ObtenerCasillaActual(Jugador : Jugador) : Casilla
-    + ObtenerSiguiente(Nodo : NodoCasilla, Pasos : int) : NodoCasilla
-    + getNumeroCasillas() : int
-    + MostrarTablero() : void
+' ==========================================
+' CLASE CONSTANTES - PAQUETE LOGICAJUEGO
+' ==========================================
+package "LogicaJuego" {
+  class Constantes <<final>> {
+    - Constantes()
+    + {static} NUMERO_CASILLAS : int = 24 {readOnly}
+    + {static} POSICIONES_EVENTO : int[] = [3, 9, 15, 21] {readOnly}
+    + {static} SALDO_INICIAL_BANCO : double = 100000000 {readOnly}
+    + {static} PREMIO_SALIDA : double = 200 {readOnly}
+    + {static} ALQUILER_PROPIEDAD : double = 100 {readOnly}
+    + {static} POSICION_SALIDA : int = 0 {readOnly}
+    + {static} POSICION_D3 : int = 6 {readOnly}
+    + {static} POSICION_ESPECIAL : int = 12 {readOnly}
+    + {static} POSICION_IR_D3 : int = 18 {readOnly}
+  }
 }
 
-
-' ==============================
-' LISTA CIRCULAR DOBLE (estructura del tablero, Par 1)
-' ==============================
-
-class ListaCircularDoble<T> {
-    - Primero : Nodo
-    - Ultimo : Nodo
-    - Tamaño : int
-
-    + Agregar(Elemento : T) : void
-    + ObtenerPrimero() : T
-    + Tamaño() : int
-    + Vacio() : boolean
-}
-
-
-' ==============================
-' NODO CASILLA (Par 1)
-' ==============================
-
-class NodoCasilla {
-    - Casilla : Casilla
-    - Anterior : NodoCasilla
-    - Siguiente : NodoCasilla
-
-    + NodoCasilla(Casilla : Casilla)
-    + getCasilla() : Casilla
-    + getAnterior() : NodoCasilla
-    + getSiguiente() : NodoCasilla
-    + setAnterior(N : NodoCasilla) : void
-    + setSiguiente(N : NodoCasilla) : void
-}
-
-
-' ==============================
-' DADO
-' ==============================
-
-class Dado {
+' ==========================================
+' CLASE DADO - PAQUETE LOGICAJUEGO
+' ==========================================
+package "LogicaJuego" {
+  class Dado {
     - id : int
     - valor : int
-    - generador : Random
-
+    - generador : Random {readOnly}
     + Dado(id : int)
     + getId() : int
     + lanzar() : int
     + getValor() : int
+    + establecerValor(nuevoValor : int) : void
+  }
 }
 
-' ==============================
-' BANCO
-' =============================
-
-class Banco {
-    - saldo : double
-
-    + Banco()
-    + Banco(saldoInicial : double)
-    + pagar(jugador : Jugador, monto : double) : boolean
-    + getSaldo() : double
-    + recibir(jugador : Jugador, monto : double) : boolean
-    + transferir(origen : Jugador, destino : Jugador, monto : double) : boolean
-}
+Dado *-- "1" Random : generador
 
 
+' ==========================================
+' CLASE HISTORIALTRANSACCIONES
+' PAQUETE LOGICAJUEGO
+' ==========================================
 
-' ===============================
-' TRANSACCION
-' ==============================
-
-class Transaccion {
-    - identificador : String
-    - numeroTurno : int
-    - tipo : String
-    - jugadorOrigen : String
-    - jugadorDestino : String
-    - monto : double
-    - descripcion : String
-    - fechaHora : LocalDateTime
-
-    + Transaccion(identificador : String, numeroTurno : int, tipo : String,
-                  jugadorOrigen : String, jugadorDestino : String, monto : double, descripcion : String)
-    + getIdentificador() : String
-    + getNumeroTurno() : int
-    + getTipo() : String
-    + getJugadorOrigen() : String
-    + getJugadorDestino() : String
-    + getMonto() : double
-    + getDescripcion() : String
-    + toString() : String
-    + getFechaHora() : LocalDateTime
-}
-
-
-'===============================
-' HISTORIAL DE TRANSACCIONES
-'=============================
+package "LogicaJuego" {
 
 class HistorialTransacciones {
-    - primero : NodoHistorial
-    - ultimo : NodoHistorial
-    - tamaño : int
 
-    + agregar(transaccion : Transaccion) : void
-    + imprimirHistorial() : void
-    + imprimirHistorialInverso() : void
-    + buscarPorTipo(tipo : String) : void
-    + buscarPorJugador(jugador : String) : void
-    + getTamaño() : int
-    + exportarTXT(nombreArchivo : String) : boolean
+  ' ATRIBUTOS PRIVADOS
+  - primero : Nodo
+  - ultimo : Nodo
+  - tamaño : int
+
+  ' METODOS PUBLICOS
+  + agregar(transaccion : Transaccion) : void
+  + ObtenerHistorial() : String
+  + ObtenerHistorialInverso() : String
+  + ObtenerPorTipo(Tipo : TipoTransaccion) : String
+  + ObtenerPorJugador(Jugador : String) : String
+  + imprimirHistorial() : void
+  + obtenerHistorial() : String
+  + imprimirHistorialInverso() : void
+  + buscarPorTipo(tipo : TipoTransaccion) : void
+  + buscarPorJugador(jugador : String) : void
+  + getTamaño() : int
+  + exportarTXT(nombreArchivo : String) : boolean
+  + ObtenerConsulta(Jugador : String, Tipo : TipoTransaccion, DesdeReciente : boolean) : String
+  + {static} EncabezadoTabla() : String
+  + {static} FilaTabla(Numero : String, Turno : int, Tipo : String, Origen : String, Destino : String, Monto : double, Descripcion : String) : String
+
+  ' METODO PRIVADO Y ESTATICO
+  - {static} FilaTabla(Numero : String, Turno : String, Tipo : String, Origen : String, Destino : String, Monto : String, Descripcion : String) : String
 }
 
-class NodoHistorial <<private>> {
-    - transaccion : Transaccion
-    - siguiente : NodoHistorial
-    - anterior : NodoHistorial
+' ==========================================
+' CLASE INTERNA NODO
+' ==========================================
 
-    + NodoHistorial(transaccion : Transaccion)
+class "HistorialTransacciones.Nodo" as NodoHistorial {
+
+  ' ATRIBUTOS PRIVADOS
+  - transaccion : Transaccion
+  - siguiente : Nodo
+  - anterior : Nodo
+
+  ' CONSTRUCTOR PUBLICO
+  + Nodo(transaccion : Transaccion)
 }
 
-' ==============================
-' CONSTANTES
-' ==============================
-
-class Constantes {
-    + {static} NUMERO_CASILLAS : int
 }
 
+' ==========================================
+' RELACIONES UML DE HISTORIALTRANSACCIONES
+' ==========================================
 
-' ==============================
-' RELACIONES - JUGADOR
-' ==============================
+' COMPOSICION - EL HISTORIAL ADMINISTRA SUS NODOS
+HistorialTransacciones *-- "0..*" NodoHistorial : contiene
 
-Jugador *-- ListaPropiedades : propiedades
-ListaPropiedades *-- NodoPropiedad
-NodoPropiedad --> Propiedad : Propiedad (pendiente Par 2)
+' ASOCIACION - CADA NODO ALMACENA UNA TRANSACCION
+NodoHistorial --> "1" Transaccion : transaccion
+
+' AUTOASOCIACIONES - ENLACES DOBLES
+NodoHistorial --> "0..1" NodoHistorial : siguiente
+NodoHistorial --> "0..1" NodoHistorial : anterior
+
+' DEPENDENCIA - UTILIZA TIPOS DE TRANSACCION
+HistorialTransacciones ..> TipoTransaccion : <<use>>
+
+' DEPENDENCIA - UTILIZA ESCRITURA DE ARCHIVOS
+HistorialTransacciones ..> FileWriter : <<create>>
+HistorialTransacciones ..> PrintWriter : <<create>>
 
 
-' ==============================
-' RELACIONES - JUEGO
-' ==============================
+' ==========================================
+' CLASE JUEGO
+' PAQUETE LOGICAJUEGO
+' ==========================================
 
+package "LogicaJuego" {
+
+class Juego {
+
+  ' ATRIBUTOS PRIVADOS
+  - Jugadores : ColaCircular<Jugador>
+  - TurnoActual : Jugador
+  - NumTurno : int
+  - NumRonda : int
+  - PosicionCola : int
+  - Curso : boolean
+  - MaxRondas : int
+  - Ganador : Jugador
+  - Empatados : Jugador[]
+  - ContadorTransacciones : int
+  - DadosLanzados : boolean
+  - Tablero : Tablero
+  - Banco : Banco
+  - Dado1 : Dado
+  - Dado2 : Dado
+  - Historial : HistorialTransacciones
+  - CartaEnCurso : boolean
+  - PagosDiferidos : boolean
+  - AlquilerPendiente : Propiedad
+  - CartaPendiente : CartaEvento
+
+  ' CONSTRUCTOR PUBLICO
+  + Juego(MaxRondas : int)
+
+  ' METODOS PUBLICOS
+  + AgregarJugador(Jugador : Jugador) : void
+  + IniciarPartida() : void
+  + obtenerJugadorActual() : Jugador
+  + SiguienteTurno() : void
+  + RevisarFinPartida() : boolean
+  + finalizarTurno() : void
+  + SetPagosDiferidos(Diferidos : boolean) : void
+  + EsPagosDiferidos() : boolean
+  + DejarAlquilerPendiente(Propiedad : Propiedad) : void
+  + DejarCartaPendiente(Carta : CartaEvento) : void
+  + HayPagoPendiente() : boolean
+  + GetMontoPagoPendiente() : double
+  + GetMotivoPagoPendiente() : String
+  + CobrarPagoPendiente(Jugador : Jugador) : void
+  + lanzarDados() : int
+  + registrarDadosFisicos(valorDado1 : int, valorDado2 : int) : int
+  + getDadosLanzadosEsteTurno() : boolean
+  + MoverJugador(Jugador : Jugador, Pos : int) : void
+  + RetrocederJugador(Jugador : Jugador, Pasos : int) : void
+  + MoverJugadorA(Jugador : Jugador, Posicion : int) : void
+  + EnviarAlD3(Jugador : Jugador) : void
+  + RegistrarTransaccion(Transaccion : Transaccion) : void
+  + GenerarIdTransaccion() : String
+  + finalizarPartida() : void
+  + GetGanador() : Jugador
+  + HayEmpate() : boolean
+  + GetEmpatados() : Jugador[]
+  + isEnCurso() : boolean
+  + buscarJugadorPorIdentificador(identificador : String) : Jugador
+  + obtenerPropiedadActual(jugador : Jugador) : Propiedad
+  + comprarPropiedad(jugador : Jugador, propiedad : Propiedad) : void
+  + getNumTurno() : int
+  + GetNumRonda() : int
+  + GetMaxRondas() : int
+  + getDado1() : Dado
+  + getDado2() : Dado
+  + getHistorial() : HistorialTransacciones
+  + getBanco() : Banco
+  + getTablero() : Tablero
+
+  ' METODOS PRIVADOS
+  - AvanzarCola() : Jugador
+  - ContarJugadoresActivos() : int
+  - PagarPremioSalida(Jugador : Jugador) : void
+  - AjustarPosicion(Posicion : int) : int
+  - EjecutarCasilla(Jugador : Jugador, Nodo : NodoCasilla) : void
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE JUEGO
+' ==========================================
+
+' COMPOSICION - JUEGO CREA SU COLA DE TURNOS
 Juego *-- "1" ColaCircular : Jugadores
-Juego --> Jugador : TurnoActual
+
+' ASOCIACION - JUGADORES DE LA PARTIDA
+Juego --> "0..*" Jugador : participantes
+
+' COMPOSICION - JUEGO CREA EL TABLERO
 Juego *-- "1" Tablero : Tablero
-Juego *-- "2" Dado : Dado1 / Dado2
-Juego ..> Banco : usa
-Juego ..> HistorialTransacciones : usa
-Juego ..> Transaccion : usa
-Juego ..> Propiedad : usa (pendiente Par 2)
-ColaCircular o-- Jugador : contiene (T = Jugador)
-HistorialTransacciones *-- NodoHistorial : contiene
-NodoHistorial --> Transaccion : transaccion
-NodoHistorial --> NodoHistorial : siguiente / anterior
 
-' ==============================
-' RELACIONES - TABLERO
-' ==============================
+' COMPOSICION - JUEGO CREA EL BANCO
+Juego *-- "1" Banco : Banco
 
-Tablero *-- ListaCircularDoble : Lista
-ListaCircularDoble o-- NodoCasilla : contiene (T = NodoCasilla)
-NodoCasilla --> Casilla : Casilla (pendiente Par 2)
-Tablero ..> Constantes : usa (NUMERO_CASILLAS)
+' COMPOSICION - JUEGO CREA DOS DADOS
+Juego *-- "2" Dado : Dado1 y Dado2
+
+' COMPOSICION - JUEGO CREA EL HISTORIAL
+Juego *-- "1" HistorialTransacciones : Historial
+
+' ASOCIACION - REFERENCIA A LA PROPIEDAD PENDIENTE
+Juego --> "0..1" Propiedad : AlquilerPendiente
+
+' ASOCIACION - REFERENCIA A LA CARTA PENDIENTE
+Juego --> "0..1" CartaEvento : CartaPendiente
+
+' DEPENDENCIA - UTILIZA NODOS DEL TABLERO
+Juego ..> NodoCasilla : <<use>>
+
+' DEPENDENCIA - EJECUTA CASILLAS
+Juego ..> Casilla : <<use>>
+
+' DEPENDENCIA - IDENTIFICA CASILLAS DE EVENTO
+Juego ..> CasillaEvento : <<use>>
+
+' DEPENDENCIA - CREA TRANSACCIONES
+Juego ..> Transaccion : <<create>>
+
+' DEPENDENCIA - UTILIZA TIPOS DE TRANSACCION
+Juego ..> TipoTransaccion : <<use>>
+
+' DEPENDENCIA - CONSULTA CONSTANTES
+Juego ..> Constantes : <<use>>
+
+
+' ==========================================
+' CLASE JUGADOR
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class Jugador {
+
+  ' ATRIBUTOS PRIVADOS
+  - identificador : String
+  - nombre : String
+  - saldo : double
+  - posicionActual : int
+  - activo : boolean
+  - PierdeTurno : boolean
+  - CartasSalidaD3 : int
+  - propiedadesAdquiridas : ListaSimplePropiedad
+
+  ' CONSTRUCTOR PUBLICO
+  + Jugador(identificador : String, nombre : String, saldo : double)
+
+  ' METODOS PUBLICOS
+  + agregarPropiedad(propiedad : Propiedad) : void
+  + getPropiedadesAdquiridas() : ListaSimplePropiedad
+  + getIdentificador() : String
+  + getNombre() : String
+  + setNombre(nombre : String) : void
+  + getSaldo() : double
+  + getPosicionActual() : int
+  + esActivo() : boolean
+  + modificarSaldo(monto : double) : void
+  + setPosicionActual(nuevaPosicion : int) : void
+  + eliminar() : void
+  + PerderTurno() : void
+  + DebePerderTurno() : boolean
+  + ConsumirTurnoPerdido() : void
+  + GuardarCartaSalidaD3() : void
+  + UsarCartaSalidaD3() : boolean
+  + GetCartasSalidaD3() : int
+  + CalcularPatrimonio() : double
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE JUGADOR
+' ==========================================
+
+' COMPOSICION - EL JUGADOR CREA SU LISTA DE PROPIEDADES
+Jugador *-- "1" ListaSimplePropiedad : propiedadesAdquiridas
+
+' DEPENDENCIA - UTILIZA OBJETOS PROPIEDAD
+Jugador ..> Propiedad : <<use>>
+
+
+' ==========================================
+' CLASE LISTACIRCULARDOBLE
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class "ListaCircularDoble<T>" as ListaCircularDoble {
+
+  ' ATRIBUTOS PRIVADOS
+  - Primero : Nodo
+  - Ultimo : Nodo
+  - Tamaño : int
+
+  ' METODOS PUBLICOS
+  + Agregar(Elemento : T) : void
+  + ObtenerPrimero() : T
+  + Tamaño() : int
+  + Vacio() : boolean
+
+}
+
+' ==========================================
+' CLASE INTERNA NODO
+' ==========================================
+
+class "ListaCircularDoble.Nodo" as NodoListaCircularDoble {
+
+  ' ATRIBUTOS CON ACCESO DE PAQUETE
+  ~ Dato : T
+  ~ Anterior : Nodo
+  ~ Siguiente : Nodo
+
+  ' CONSTRUCTOR CON ACCESO DE PAQUETE
+  ~ Nodo(Dato : T)
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE LISTACIRCULARDOBLE
+' ==========================================
+
+' COMPOSICION - LA LISTA CREA Y CONTIENE SUS NODOS
+ListaCircularDoble *-- "0..*" NodoListaCircularDoble : contiene
+
+' AUTOASOCIACION - CADA NODO APUNTA AL ANTERIOR
+NodoListaCircularDoble --> "1" NodoListaCircularDoble : Anterior
+
+' AUTOASOCIACION - CADA NODO APUNTA AL SIGUIENTE
+NodoListaCircularDoble --> "1" NodoListaCircularDoble : Siguiente
+
+
+
+' ==========================================
+' CLASE LISTASIMPLEPROPIEDAD
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class ListaSimplePropiedad {
+
+  ' ATRIBUTOS PRIVADOS
+  - Primero : Nodo
+  - Ultimo : Nodo
+  - Tamaño : int
+
+  ' CONSTRUCTOR PUBLICO
+  + ListaSimplePropiedad()
+
+  ' METODOS PUBLICOS
+  + Agregar(propiedad : Propiedad) : void
+  + Obtener(Posicion : int) : Propiedad
+  + Eliminar(propiedad : Propiedad) : boolean
+  + ObtenerPrimero() : Propiedad
+  + Tamaño() : int
+  + Vacio() : boolean
+  + Vaciar() : void
+
+}
+
+' ==========================================
+' CLASE INTERNA NODO
+' ==========================================
+
+class "ListaSimplePropiedad.Nodo" as NodoListaSimplePropiedad {
+
+  ' ATRIBUTOS CON ACCESO DE PAQUETE
+  ~ Dato : Propiedad
+  ~ Siguiente : Nodo
+
+  ' CONSTRUCTOR CON ACCESO DE PAQUETE
+  ~ Nodo(Dato : Propiedad)
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE LISTASIMPLEPROPIEDAD
+' ==========================================
+
+' COMPOSICION - LA LISTA CREA Y ADMINISTRA SUS NODOS
+ListaSimplePropiedad *-- "0..*" NodoListaSimplePropiedad : contiene
+
+' ASOCIACION - CADA NODO ALMACENA UNA PROPIEDAD
+NodoListaSimplePropiedad --> "1" Propiedad : Dato
+
+' AUTOASOCIACION - CADA NODO APUNTA AL SIGUIENTE
+NodoListaSimplePropiedad --> "0..1" NodoListaSimplePropiedad : Siguiente
+
+' DEPENDENCIA - LA LISTA UTILIZA OBJETOS PROPIEDAD
+ListaSimplePropiedad ..> Propiedad : <<use>>
+
+
+' ==========================================
+' CLASE MAZOEVENTOS
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class MazoEventos {
+
+  ' ATRIBUTOS PRIVADOS
+  - Cartas : ColaCircular<CartaEvento>
+  - CartasCreadas : CartaEvento[]
+  - CantidadCreadas : int
+
+  ' CONSTANTES PRIVADAS Y ESTATICAS
+  - {static} MAX_CARTAS : int = 30 {readOnly}
+  - {static} POSICION_COMEDOR : int = 1 {readOnly}
+  - {static} POSICION_LAGO : int = 11 {readOnly}
+  - {static} POSICION_GYMTEC : int = 13 {readOnly}
+
+  ' CONSTRUCTOR PUBLICO
+  + MazoEventos()
+
+  ' METODOS PUBLICOS
+  + SacarCarta() : CartaEvento
+  + Tamaño() : int
+
+  ' METODOS PRIVADOS
+  - CrearCartas() : void
+  - AgregarCarta(Descripcion : String, Tipo : TipoEvento, Valor : int) : void
+  - MezclarYArmarCola() : void
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE MAZOEVENTOS
+' ==========================================
+
+' COMPOSICION - EL MAZO CREA SU COLA CIRCULAR
+MazoEventos *-- "1" ColaCircular : Cartas
+
+' ASOCIACION - ALMACENA CARTAS DE EVENTO
+MazoEventos --> "0..*" CartaEvento : CartasCreadas
+
+' DEPENDENCIA - CREA OBJETOS CARTAEVENTO
+MazoEventos ..> CartaEvento : <<create>>
+
+' DEPENDENCIA - UTILIZA LOS TIPOS DE EVENTO
+MazoEventos ..> TipoEvento : <<use>>
+
+' DEPENDENCIA - UTILIZA CONSTANTES DEL JUEGO
+MazoEventos ..> Constantes : <<use>>
+
+' DEPENDENCIA - MEZCLA LAS CARTAS ALEATORIAMENTE
+MazoEventos ..> Random : <<create>>
+
+
+' ==========================================
+' CLASE NODOCASILLA
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class NodoCasilla {
+
+  ' ATRIBUTOS PRIVADOS
+  - Casilla : Casilla
+  - Anterior : NodoCasilla
+  - Siguiente : NodoCasilla
+
+  ' CONSTRUCTOR PUBLICO
+  + NodoCasilla(Casilla : Casilla)
+
+  ' METODOS PUBLICOS
+  + getCasilla() : Casilla
+  + getAnterior() : NodoCasilla
+  + getSiguiente() : NodoCasilla
+  + setAnterior(N : NodoCasilla) : void
+  + setSiguiente(N : NodoCasilla) : void
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE NODOCASILLA
+' ==========================================
+
+' ASOCIACION - EL NODO ALMACENA UNA CASILLA
+NodoCasilla --> "1" Casilla : Casilla
+
+' AUTOASOCIACION - REFERENCIA AL NODO ANTERIOR
+NodoCasilla --> "0..1" NodoCasilla : Anterior
+
+' AUTOASOCIACION - REFERENCIA AL NODO SIGUIENTE
+NodoCasilla --> "0..1" NodoCasilla : Siguiente
+
+
+' ==========================================
+' CLASE PROPIEDAD
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class Propiedad {
+
+  ' ATRIBUTOS PRIVADOS
+  - identificador : String
+  - precioCompra : double
+  - alquiler : double
+  - propietario : Jugador
+
+  ' CONSTRUCTOR PUBLICO
+  + Propiedad(identificador : String, nombre : String, precioCompra : double, alquiler : double)
+
+  ' METODOS PUBLICOS
+  + getIdentificador() : String
+  + getPrecioCompra() : double
+  + getAlquiler() : double
+  + getPropietario() : Jugador
+  + isDisponible() : boolean
+  + comprar(jugador : Jugador, juego : Juego) : boolean
+  + ejecutar(jugador : Jugador, juego : Juego) : void
+  + pagarAlquiler(jugador : Jugador, juego : Juego) : void
+  + liberarPropiedad() : void
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE PROPIEDAD
+' ==========================================
+
+' HERENCIA - PROPIEDAD EXTIENDE CASILLA
+Propiedad --|> Casilla
+
+' ASOCIACION - GUARDA EL JUGADOR PROPIETARIO
+Propiedad --> "0..1" Jugador : propietario
+
+' DEPENDENCIA - UTILIZA LA LOGICA DEL JUEGO
+Propiedad ..> Juego : <<use>>
+
+' DEPENDENCIA - UTILIZA EL BANCO PARA LOS PAGOS
+Propiedad ..> Banco : <<use>>
+
+' DEPENDENCIA - CREA TRANSACCIONES
+Propiedad ..> Transaccion : <<create>>
+
+' DEPENDENCIA - UTILIZA LOS TIPOS DE TRANSACCION
+Propiedad ..> TipoTransaccion : <<use>>
+
+
+' ==========================================
+' CLASE TABLERO
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class Tablero {
+
+  ' ATRIBUTOS PRIVADOS
+  - Lista : ListaCircularDoble<NodoCasilla>
+  - Mazo : MazoEventos
+
+  ' ATRIBUTOS PRIVADOS ESTATICOS Y FINALES
+  - {static} NombresCasillas : String[] {readOnly}
+  - {static} PreciosCasillas : double[] {readOnly}
+
+  ' CONSTRUCTOR PUBLICO
+  + Tablero()
+
+  ' METODOS PUBLICOS
+  + ObtenerNodo(Posicion : int) : NodoCasilla
+  + ObtenerNodoActual(Jugador : Jugador) : NodoCasilla
+  + ObtenerCasillaActual(Jugador : Jugador) : Casilla
+  + ObtenerSiguiente(Nodo : NodoCasilla, Pasos : int) : NodoCasilla
+  + ObtenerAnterior(Nodo : NodoCasilla, Pasos : int) : NodoCasilla
+  + getNumeroCasillas() : int
+  + MostrarTablero() : void
+
+  ' METODOS PRIVADOS
+  - CrearCasilla(i : int) : Casilla
+  - EsPosicionEvento(i : int) : boolean
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE TABLERO
+' ==========================================
+
+' COMPOSICION - EL TABLERO CREA SU LISTA CIRCULAR DOBLE
+Tablero *-- "1" ListaCircularDoble : Lista
+
+' COMPOSICION - EL TABLERO CREA SU MAZO DE EVENTOS
+Tablero *-- "1" MazoEventos : Mazo
+
+' DEPENDENCIA - EL TABLERO CREA LOS NODOS DE CASILLAS
+Tablero ..> NodoCasilla : <<create>>
+
+' DEPENDENCIA - CREA CASILLAS DE EVENTO
+Tablero ..> CasillaEvento : <<create>>
+
+' DEPENDENCIA - CREA CASILLAS ESPECIALES
+Tablero ..> CasillaEspecial : <<create>>
+
+' DEPENDENCIA - CREA PROPIEDADES
+Tablero ..> Propiedad : <<create>>
+
+' DEPENDENCIA - UTILIZA LA CLASE BASE CASILLA
+Tablero ..> Casilla : <<use>>
+
+' DEPENDENCIA - CONSULTA POSICIONES Y VALORES
+Tablero ..> Constantes : <<use>>
+
+' DEPENDENCIA - CONSULTA LA POSICION DEL JUGADOR
+Tablero ..> Jugador : <<use>>
+
+' DEPENDENCIA - UTILIZA LOS TIPOS DE CASILLAS ESPECIALES
+Tablero ..> TipoCasillaEspecial : <<use>>
+
+
+' ==========================================
+' ENUM TIPOEVENTO
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+enum TipoEvento {
+  RECIBIR_DINERO
+  PAGAR_DINERO
+  AVANZAR
+  RETROCEDER
+  PERDER_TURNO
+  IR_A_CASILLA
+  IR_AL_D3
+  SALIDA_LIBRE_D3
+}
+
+}
+
+
+' ==========================================
+' ENUM TIPOCASILLAESPECIAL
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+enum TipoCasillaEspecial {
+  SALIDA
+  VISITA_D3
+  ESPECIAL
+  IR_AL_D3
+}
+
+}
+
+
+' ==========================================
+' ENUM TIPOTRANSACCION
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+enum TipoTransaccion {
+  COMPRA_PROPIEDAD
+  PAGO_ALQUILER
+  PAGO_BANCO
+  PAGO_ENTRE_JUGADORES
+  GANANCIA_EVENTO
+  PERDIDA_EVENTO
+  PREMIO_POR_INICIO
+  --
+  + getNombre() : String
+}
+
+}
+
+
+' ==========================================
+' CLASE TRANSACCION
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class Transaccion {
+
+  ' ATRIBUTOS PRIVADOS
+  - identificador : String
+  - numeroTurno : int
+  - tipo : TipoTransaccion
+  - jugadorOrigen : String
+  - jugadorDestino : String
+  - monto : double
+  - descripcion : String
+  - fechaHora : LocalDateTime
+
+  ' CONSTRUCTORES PUBLICOS
+  + Transaccion(identificador : String, numeroTurno : int, tipo : TipoTransaccion, jugadorOrigen : String, jugadorDestino : String, monto : double, descripcion : String)
+  + Transaccion(identificador : String, numeroTurno : int, tipo : String, jugadorOrigen : String, jugadorDestino : String, monto : double, descripcion : String)
+
+  ' METODOS PUBLICOS
+  + getIdentificador() : String
+  + getNumeroTurno() : int
+  + getTipo() : TipoTransaccion
+  + getJugadorOrigen() : String
+  + getJugadorDestino() : String
+  + getMonto() : double
+  + getDescripcion() : String
+  + getFechaHora() : LocalDateTime
+  + getResumen() : String
+  + toString() : String
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE TRANSACCION
+' ==========================================
+
+' ASOCIACION - ALMACENA EL TIPO DE TRANSACCION
+Transaccion --> "1" TipoTransaccion : tipo
+
+' DEPENDENCIA - UTILIZA LA FECHA Y HORA
+Transaccion ..> LocalDateTime : <<use>>
+
+' DEPENDENCIA - FORMATEA LA FECHA Y HORA
+Transaccion ..> DateTimeFormatter : <<use>>
+
+
+' ==========================================
+' CLASE CASILLAEVENTO
+' PAQUETE LOGICAJUEGO
+' ==========================================
+
+package "LogicaJuego" {
+
+class CasillaEvento {
+
+  ' ATRIBUTOS PRIVADOS
+  - Mazo : MazoEventos
+  - Carta : CartaEvento
+
+  ' CONSTRUCTOR PUBLICO
+  + CasillaEvento(Nombre : String, Mazo : MazoEventos)
+
+  ' METODOS PUBLICOS
+  + ejecutar(Jugador : Jugador, Juego : Juego) : void
+  + ObtenerCarta() : CartaEvento
+
+}
+
+}
+
+' ==========================================
+' RELACIONES UML DE CASILLAEVENTO
+' ==========================================
+
+' HERENCIA - CASILLAEVENTO EXTIENDE CASILLA
+CasillaEvento --|> Casilla
+
+' ASOCIACION - UTILIZA EL MAZO COMPARTIDO
+CasillaEvento --> "1" MazoEventos : Mazo
+
+' ASOCIACION - GUARDA LA ULTIMA CARTA OBTENIDA
+CasillaEvento --> "0..1" CartaEvento : Carta
+
+' DEPENDENCIA - UTILIZA JUGADOR
+CasillaEvento ..> Jugador : <<use>>
+
+' DEPENDENCIA - UTILIZA JUEGO
+CasillaEvento ..> Juego : <<use>>
+
 
 @enduml
